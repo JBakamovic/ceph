@@ -421,13 +421,13 @@ if(run_slow_baselines) {
   janitor j;
 
   meter.measure([&j, &inputs, stride] {
-   // Notice that here we are passing around the database handle, winding up making a new one per-operation:
-   for(auto block : inputs | views::chunk(stride)) {
-    std::for_each(std::begin(block), std::end(block), [&j](const auto& kv) mutable {
-      lfdb::set(j, kv.first, kv.second);
-    });
-   }
-  });
+	   // Notice that here we are passing around the database handle, winding up making a new one per-operation:
+	   for(auto block : inputs | views::chunk(stride)) {
+	    std::for_each(std::begin(block), std::end(block), [&j](const auto& kv) mutable {
+	      lfdb::set(j, kv.first, kv.second);
+	    });
+	   }
+	  });
  };
 }
 

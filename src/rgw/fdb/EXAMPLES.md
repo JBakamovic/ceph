@@ -121,9 +121,7 @@ lfdb::set(dbh, std::begin(people), std::end(people));
 /* Read a key range into an STL associative container. */
 std::map<std::string, std::string> people;
 
-lfdb::get(dbh,
-          lfdb::select { "person/" },
-          std::inserter(people, std::end(people)));
+lfdb::get(dbh, lfdb::select { "person/" }, people);
 ```
 
 ## Key Ordering
