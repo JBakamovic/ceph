@@ -64,6 +64,24 @@ doc for more details on build.
       it (download, extract, build the ``b2`` engine) under a lock, so
       concurrent cold configures are serialized safely. Use an absolute path.
 
+.. tip:: Linking Ceph's many test and tool binaries can dominate build time.
+   To use a faster linker, pass ``-DCEPH_USE_LINKER=<linker>`` when configuring,
+   for example ``lld`` (from LLVM), ``mold``, or ``gold``::
+
+       ./do_cmake.sh -DCEPH_USE_LINKER=lld
+
+   The linker must be installed (e.g. the ``lld`` package for
+   ``-DCEPH_USE_LINKER=lld``); configuration fails with a clear message if the
+   requested linker is unavailable. Leaving it unset uses the compiler's default
+   linker.
+
+   .. important:: ``CEPH_USE_LINKER`` is for development and testing builds
+      only. When set, librados is built **without** its ABI-stable symbol
+      versioning, because that scheme depends on GNU ld version-script
+      semantics that ``lld`` (and some other linkers) reject. The resulting
+      ``librados.so`` is therefore not ABI-stable and must not be shipped;
+      leave ``CEPH_USE_LINKER`` unset for release/packaging builds.
+
 Build Ceph Packages
 ===================
 
