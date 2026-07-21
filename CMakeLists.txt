@@ -134,6 +134,49 @@ if(WITH_SCCACHE)
   set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_EXECUTABLE})
 endif(WITH_SCCACHE)
 
+# Allow selecting a faster linker (e.g. lld, mold, gold) instead of the
+# compiler default (usually GNU ld.bfd). Linking Ceph's many unit-test and
+# tool binaries is a large part of a full build, and a parallel linker such as
+# LLVM's lld or mold can cut that time dramatically. Empty (the default) keeps
+# the compiler's default linker, so behaviour is unchanged unless requested.
+#
+# NOTE: this is intended for development and testing builds only. When set, it
+# also disables librados' ABI-stable symbol versioning (see
+# src/librados/CMakeLists.txt), because that scheme relies on GNU ld version-
+# script semantics that lld and friends reject. Do NOT use CEPH_USE_LINKER for
+# builds that produce a distributable/ABI-stable librados.so.
+set(CEPH_USE_LINKER "" CACHE STRING
+  "Linker to pass to -fuse-ld (e.g. lld, mold, gold, bfd). Empty = compiler default. Dev/test builds only.")
+if(CEPH_USE_LINKER)
+  if(WIN32)
+    message(FATAL_ERROR "CEPH_USE_LINKER is not supported on Windows builds.")
+  endif()
+  set(_ceph_use_ld_flag "-fuse-ld=${CEPH_USE_LINKER}")
+  include(CheckLinkerFlag)
+  check_linker_flag(CXX "${_ceph_use_ld_flag}" CEPH_LINKER_${CEPH_USE_LINKER}_WORKS)
+  if(NOT CEPH_LINKER_${CEPH_USE_LINKER}_WORKS)
+    message(FATAL_ERROR
+      "Requested linker '${CEPH_USE_LINKER}' (via CEPH_USE_LINKER) does not work "
+      "with ${CMAKE_CXX_COMPILER_ID}. Make sure it is installed (e.g. 'lld' for "
+      "-DCEPH_USE_LINKER=lld) and reachable via -fuse-ld=${CEPH_USE_LINKER}.")
+  endif()
+  message(STATUS "Using alternate linker: ${CEPH_USE_LINKER} (${_ceph_use_ld_flag})")
+  string(APPEND CMAKE_EXE_LINKER_FLAGS " ${_ceph_use_ld_flag}")
+  string(APPEND CMAKE_SHARED_LINKER_FLAGS " ${_ceph_use_ld_flag}")
+  string(APPEND CMAKE_MODULE_LINKER_FLAGS " ${_ceph_use_ld_flag}")
+  unset(_ceph_use_ld_flag)
+endif()
+
+# A handful of targets pass GNU ld's --copy-dt-needed-entries to resolve
+# symbols through a shared library's own DT_NEEDED dependencies. Not every
+# linker understands it (lld rejects it outright; it resolves the DT_NEEDED
+# graph on its own instead). Probe support once - with whichever linker is
+# active, including any CEPH_USE_LINKER selection above - so call sites can
+# add the flag only where it is understood.
+include(CheckLinkerFlag)
+check_linker_flag(CXX "-Wl,--copy-dt-needed-entries"
+  CEPH_HAVE_COPY_DT_NEEDED_ENTRIES)
+
 option(WITH_MANPAGE "Build man pages." ON)
 if(WITH_MANPAGE)
   find_program(SPHINX_BUILD
