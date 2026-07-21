@@ -155,7 +155,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(GNUInstallDirs)
 include(CephChecks)
+option(WITH_LIMIT_JOBS
+  "Cap concurrent Ninja compile/link jobs to fit available RAM (see LimitJobs.cmake)."
+  ON)
 if(CMAKE_GENERATOR MATCHES Ninja)
+  # Always included for Ninja: the module still needs to *declare* the job
+  # pools (targets such as ceph-dencoder reference heavy_*_job_pool, and Ninja
+  # errors on an undeclared pool). WITH_LIMIT_JOBS only controls whether those
+  # pools actually cap concurrency.
   include(LimitJobs)
 endif()
 
