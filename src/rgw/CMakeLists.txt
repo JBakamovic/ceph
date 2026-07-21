@@ -654,6 +654,16 @@ target_link_libraries(rgw_a
     ${ARROW_LIBRARIES}
     ${ARROW_FLIGHT_LIBRARIES}
     OATH::OATH
+    # Implementation dependencies of rgw_a's own code that must propagate to
+    # every consumer (radosgw, the rgw shared lib, and the rgw unit tests).
+    # The top-level binaries used to add these by hand alongside ${rgw_libs};
+    # declaring them on rgw_a itself is what strict linkers such as lld need,
+    # since they pull the referencing archive members and would otherwise
+    # report undefined symbols:
+    #   - kmip:           rgw_kmip_client_impl.cc -> kmip_free_buffer
+    #   - rgw_schedulers: rgw_asio_frontend.cc    -> throttle_counters::build
+    kmip
+    rgw_schedulers
   PUBLIC
     rgw_common
     Boost::context)
