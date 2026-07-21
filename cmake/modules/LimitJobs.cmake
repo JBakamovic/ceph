@@ -1,6 +1,21 @@
 set(MAX_COMPILE_MEM 3500 CACHE INTERNAL "maximum memory used by each compiling job (in MiB)")
 set(MAX_LINK_MEM 4500 CACHE INTERNAL "maximum memory used by each linking job (in MiB)")
 
+# When job limiting is disabled we still have to declare the pools, because
+# some targets (e.g. ceph-dencoder, test/librbd, crimson) assign themselves to
+# heavy_*_job_pool and Ninja errors on an undeclared pool. Declare all four
+# pools with an effectively unlimited depth and skip the memory-based capping,
+# so concurrency is bounded only by Ninja's global -j.
+if(DEFINED WITH_LIMIT_JOBS AND NOT WITH_LIMIT_JOBS)
+  set(_unlimited_jobs 1000000)
+  set_property(GLOBAL APPEND PROPERTY JOB_POOLS
+    avg_compile_job_pool=${_unlimited_jobs}
+    heavy_compile_job_pool=${_unlimited_jobs}
+    avg_link_job_pool=${_unlimited_jobs}
+    heavy_link_job_pool=${_unlimited_jobs})
+  return()
+endif()
+
 cmake_host_system_information(RESULT _num_cores QUERY NUMBER_OF_LOGICAL_CORES)
 cmake_host_system_information(RESULT _total_mem QUERY TOTAL_PHYSICAL_MEMORY)
 
