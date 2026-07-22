@@ -343,8 +343,13 @@ function(do_build_boost root_dir version)
       ${b2} headers stage
       #"--buildid=ceph" # changes lib names--can omit for static
       ${boost_features})
+    # Pass the same features to `install` as to the `stage` build above.
+    # Without them b2 falls back to its default (link=shared) and rebuilds the
+    # whole set as shared libraries on top of the static staged build - roughly
+    # doubling the Boost build - even though bundled Boost is always static
+    # (Boost_USE_STATIC_LIBS is forced ON) and nothing links the shared libs.
     set(install_command
-      ${b2} install)
+      ${b2} install ${boost_features})
     # build all components in a single shot
     ExternalProject_Add(Boost
       ${source_dir}
