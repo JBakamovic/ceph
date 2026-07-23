@@ -17,24 +17,35 @@ if(ENABLE_SHARED)
     VERSION 2.0.0
     SOVERSION 2
     VISIBILITY_INLINES_HIDDEN ON)
-  if(HAVE_LINK_EXCLUDE_LIBS AND NOT WIN32)
-    set_property(TARGET librados APPEND_STRING PROPERTY
-      LINK_FLAGS " -Wl,--exclude-libs,ALL")
-  endif()
-  # librados ships an ABI-stable .so via symbol versioning: the .symver
-  # machinery in librados_c.cc (enabled by -DLIBRADOS_SHARED) plus the
-  # librados.map version script. That scheme relies on GNU ld semantics
-  # (unversioned "@@" base symbols, literal extern "C++" names) that lld and
-  # some other linkers reject. Selecting an alternate linker via
-  # CEPH_USE_LINKER is a development/test-only build where ABI stability does
-  # not matter, so disable versioning there and fall back to the already
-  # supported non-versioned code path, letting librados link with any linker.
-  if(CEPH_USE_LINKER)
+  # librados normally ships an ABI-stable .so: symbol versioning (the .symver
+  # machinery in librados_c.cc, enabled by -DLIBRADOS_SHARED, plus the
+  # librados.map version script) defines the public ABI, and
+  # -Wl,--exclude-libs,ALL hides the internal symbols pulled in from the static
+  # librados_impl archive. Two development-only builds must relax this:
+  #
+  #  - CEPH_USE_LINKER (lld/mold/gold): the version-script scheme uses GNU ld
+  #    semantics those linkers reject, so drop versioning.
+  #  - WITH_UBSAN: UBSAN's -fsanitize=vptr emits cross-DSO references to the
+  #    typeinfo of internal polymorphic classes (e.g. RadosClient). Those
+  #    typeinfos are weak symbols in librados_impl.a, but --exclude-libs,ALL and
+  #    the version script's `local: *` keep them out of librados.so's dynamic
+  #    table, so librbd/pybind fail with "undefined reference to typeinfo for
+  #    librados::v14_2_0::RadosClient". Export them by dropping BOTH.
+  #
+  # In every such case the resulting librados.so is dev-only and NOT ABI-stable.
+  if(CEPH_USE_LINKER OR WITH_UBSAN)
     set(_librados_versioned OFF)
-    message(STATUS "librados: symbol versioning disabled for dev linker "
-      "'${CEPH_USE_LINKER}'; the resulting librados.so is NOT ABI-stable")
+    message(STATUS "librados: symbol versioning disabled (dev build; "
+      "CEPH_USE_LINKER='${CEPH_USE_LINKER}', WITH_UBSAN=${WITH_UBSAN}); "
+      "librados.so is NOT ABI-stable")
   else()
     set(_librados_versioned ON)
+  endif()
+  # Hide internal symbols normally; export them under UBSAN so its cross-DSO
+  # vptr typeinfo references (e.g. for RadosClient) resolve at link time.
+  if(HAVE_LINK_EXCLUDE_LIBS AND NOT WIN32 AND NOT WITH_UBSAN)
+    set_property(TARGET librados APPEND_STRING PROPERTY
+      LINK_FLAGS " -Wl,--exclude-libs,ALL")
   endif()
   if(_librados_versioned AND HAVE_LINK_VERSION_SCRIPT AND NOT WIN32)
     set_property(TARGET librados APPEND_STRING PROPERTY
