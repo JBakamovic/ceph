@@ -1005,7 +1005,6 @@ void RGWIndexCompletionManager::process()
 
 			       librados::ObjectWriteOperation o;
 			       o.assert_exists();
-			       cls_rgw_guard_bucket_resharding(o, -ERR_BUSY_RESHARDING);
 			       cls_rgw_bucket_complete_op(o, c->op, c->tag, c->ver, c->key, c->dir_meta, &c->remove_objs,
 							  c->log_op, c->bilog_op, &c->zones_trace);
 			       int ret = bs->bucket_obj.operate(&dpp, std::move(o), null_yield);
@@ -9359,7 +9358,6 @@ int RGWRados::bucket_index_link_olh(const DoutPrefixProvider *dpp, RGWBucketInfo
 		      auto& ref = bs->bucket_obj;
 		      librados::ObjectWriteOperation op;
 		      op.assert_exists(); // bucket index shard must exist
-		      cls_rgw_guard_bucket_resharding(op, -ERR_BUSY_RESHARDING);
 		      cls_rgw_bucket_link_olh(op, key, olh_state.olh_tag,
                                               delete_marker, op_tag, meta, olh_epoch,
 					      unmod_since, high_precision_time,
@@ -9412,7 +9410,6 @@ int RGWRados::bucket_index_unlink_instance(const DoutPrefixProvider *dpp,
 		      auto& ref = bs->bucket_obj;
 		      librados::ObjectWriteOperation op;
 		      op.assert_exists(); // bucket index shard must exist
-		      cls_rgw_guard_bucket_resharding(op, -ERR_BUSY_RESHARDING);
 		      cls_rgw_bucket_unlink_instance(op, key, op_tag,
 						     olh_tag, olh_epoch, log_op, bilog_flags, zones_trace);
                       return rgw_rados_operate(dpp, ref.ioctx, ref.obj.oid, std::move(op), y);
@@ -9553,7 +9550,6 @@ int RGWRados::bucket_index_trim_olh_log(const DoutPrefixProvider *dpp,
 		      [&](BucketShard *pbs) -> int {
 			ObjectWriteOperation op;
 			op.assert_exists(); // bucket index shard must exist
-			cls_rgw_guard_bucket_resharding(op, -ERR_BUSY_RESHARDING);
 			cls_rgw_trim_olh_log(op, key, ver, olh_tag);
                         return pbs->bucket_obj.operate(dpp, std::move(op), y);
                       }, y);
@@ -9585,7 +9581,6 @@ int RGWRados::bucket_index_clear_olh(const DoutPrefixProvider *dpp,
 			    ObjectWriteOperation op;
 			    op.assert_exists(); // bucket index shard must exist
 			    auto& ref = bs.bucket_obj;
-			    cls_rgw_guard_bucket_resharding(op, -ERR_BUSY_RESHARDING);
 			    cls_rgw_clear_olh(op, key, olh_tag);
                             return rgw_rados_operate(dpp, ref.ioctx, ref.obj.oid, std::move(op), y);
                           }, y);
@@ -10875,7 +10870,6 @@ int RGWRados::cls_obj_prepare_op(const DoutPrefixProvider *dpp, BucketShard& bs,
   o.assert_exists(); // bucket index shard must exist
 
   cls_rgw_obj_key key(obj.key.get_index_key_name(), obj.key.instance);
-  cls_rgw_guard_bucket_resharding(o, -ERR_BUSY_RESHARDING);
   cls_rgw_bucket_prepare_op(o, op, tag, key, obj.key.get_loc());
   int ret = bs.bucket_obj.operate(dpp, std::move(o), y);
   ldout_bitx(bitx, dpp, 10) << "EXITING " << __func__ << ": ret=" << ret << dendl_bitx;
@@ -10912,7 +10906,6 @@ int RGWRados::cls_obj_complete_op(BucketShard& bs, const rgw_obj& obj, RGWModify
   ver.pool = pool;
   ver.epoch = epoch;
   cls_rgw_obj_key key(ent.key.name, ent.key.instance);
-  cls_rgw_guard_bucket_resharding(o, -ERR_BUSY_RESHARDING);
   cls_rgw_bucket_complete_op(o, op, tag, ver, key, dir_meta, remove_objs,
                              log_op, bilog_flags, &zones_trace, obj.key.get_loc());
   complete_op_data *arg;
@@ -11292,7 +11285,6 @@ int RGWRados::cls_bucket_list_ordered(const DoutPrefixProvider *dpp,
     if (miter.second.length()) {
       ObjectWriteOperation o;
       o.assert_exists();
-      cls_rgw_guard_bucket_resharding(o, -ERR_BUSY_RESHARDING);
       cls_rgw_suggest_changes(o, miter.second);
       // we don't care if we lose suggested updates, send them off blindly
       AioCompletion *c =
@@ -11565,7 +11557,6 @@ check_updates:
     if (miter->second.length()) {
       ObjectWriteOperation o;
       o.assert_exists();
-      cls_rgw_guard_bucket_resharding(o, -ERR_BUSY_RESHARDING);
       cls_rgw_suggest_changes(o, miter->second);
       // we don't care if we lose suggested updates, send them off blindly
       AioCompletion *c = librados::Rados::aio_create_completion(nullptr, nullptr);
