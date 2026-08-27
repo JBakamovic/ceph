@@ -1,0 +1,41 @@
+{
+    "cluster_capacity" : 48,
+    "elapsed_time_s" : 6.0675855350000001,
+    "jains_fairness_index" : 0.63387423935091292,
+    "max_concurrency" : 64,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 3,
+            "attempted" : 1594,
+            "drop_rate_pct" : 99.811794228356334,
+            "drops_503" : 1591,
+            "max_ms" : 988.74661700000001,
+            "name" : "Batch Clients (With Retries)",
+            "p50_ms" : 512.51032599999996,
+            "p90_ms" : 893.49935879999998,
+            "p95_ms" : 941.12298790000000,
+            "p99_ms" : 979.22189118000006,
+            "retries" : 6363,
+            "role" : "Heavy Load with Retries",
+            "throughput_tps" : 0.49443060714924064
+        },
+        {
+            "accepted" : 22,
+            "attempted" : 960,
+            "drop_rate_pct" : 97.708333333333329,
+            "drops_503" : 938,
+            "max_ms" : 948.58424000000002,
+            "name" : "API Clients (With Retries)",
+            "p50_ms" : 478.56060850000000,
+            "p90_ms" : 882.76852030000009,
+            "p95_ms" : 943.35175809999998,
+            "p99_ms" : 948.08521721000000,
+            "retries" : 3741,
+            "role" : "Interactive with Retries",
+            "throughput_tps" : 3.6258244524277647
+        }
+    ],
+    "total_throughput_tps" : 4.1202550595770058
+}
