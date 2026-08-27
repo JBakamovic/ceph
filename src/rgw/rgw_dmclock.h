@@ -16,16 +16,57 @@
 
 #pragma once
 
+#include <cstdint>
+#include <string_view>
+
 #include "dmclock/src/dmclock_server.h"
 
 namespace rgw::dmclock {
 // TODO: implement read vs write
-enum class client_id {
+enum class op_class {
                       admin, //< /admin apis
                       auth, //< swift auth, sts
                       data, //< PutObj, GetObj
                       metadata, //< bucket operations, object metadata
                       count
+};
+
+/// Derive a dmClock tenant key from a stable identity string, such as an S3
+/// user or account id.  A collision only puts two tenants in the same queue,
+/// which is exactly the behaviour we have without per-tenant scheduling, so a
+/// 64-bit hash is enough and no coordination is needed to assign these.
+constexpr uint64_t tenant_id_from(std::string_view identity)
+{
+  // FNV-1a, spelled out so the mapping stays stable across toolchains.
+  uint64_t h = 0xcbf29ce484222325ull;
+  for (unsigned char c : identity) {
+    h = (h ^ c) * 0x100000001b3ull;
+  }
+  // Reserve 0 for "no particular tenant" (see client_id below).
+  return h ? h : 1;
+}
+
+/// Identifies a dmClock queue.  Historically this was just the op class, which
+/// meant every S3 tenant shared one `data` queue and a single aggressive client
+/// could starve all the others.  Carrying a tenant id alongside the op class
+/// gives each tenant its own queue and its own reservation.
+///
+/// A zero tenant_id means "daemon-level", reproducing the old behaviour
+/// exactly; that is what is used when per-tenant scheduling is disabled.
+struct client_id {
+  uint64_t tenant_id = 0;
+  op_class op = op_class::metadata;
+
+  client_id() = default;
+
+  /// implicit, so existing daemon-level call sites read unchanged
+  constexpr client_id(op_class op) noexcept : tenant_id(0), op(op) {}
+
+  constexpr client_id(uint64_t tenant_id, op_class op) noexcept
+    : tenant_id(tenant_id), op(op) {}
+
+  /// ordering only: the dmClock queue keys its client map with std::map
+  auto operator<=>(const client_id&) const = default;
 };
 
 // TODO move these to dmclock/types or so in submodule

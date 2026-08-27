@@ -29,8 +29,10 @@ using crimson::dmclock::AtLimit;
 using crimson::dmclock::Time;
 using crimson::dmclock::get_time;
 
-/// function to provide client counters
-using GetClientCounters = std::function<PerfCounters*(client_id)>;
+/// function to provide client counters. keyed by op class rather than by the
+/// full client_id: per-tenant counters would multiply the perf-counter set by
+/// the number of tenants on the gateway.
+using GetClientCounters = std::function<PerfCounters*(op_class)>;
 
 struct Request {
   client_id client;

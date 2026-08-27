@@ -75,7 +75,14 @@ class AsyncScheduler : public md_config_obs_t, public Scheduler {
                             optional_yield yield_ctx) override;
 
   static constexpr bool IsDelayed = false;
-  using Queue = crimson::dmclock::PullPriorityQueue<client_id, Request, IsDelayed>;
+  // Consult client_info_f on every tag computation rather than caching a
+  // ClientInfo* in ClientRec. Two reasons: per-tenant profiles live in a
+  // container that grows as tenants appear, and a cached pointer into it would
+  // dangle on reallocation; and dmClock's rates are absolute, so they have to be
+  // re-derived as the cluster's usable capacity changes.
+  static constexpr bool DynamicClientInfo = true;
+  using Queue = crimson::dmclock::PullPriorityQueue<client_id, Request,
+                                                    IsDelayed, DynamicClientInfo>;
   using RequestRef = typename Queue::RequestRef;
   Queue queue; //< dmclock priority queue
 
@@ -138,7 +145,7 @@ auto AsyncScheduler::async_request(const client_id& client,
         if (r == 0) {
           // schedule an immediate call to process() on the executor
           schedule(crimson::dmclock::TimeZero);
-          if (auto c = counters(client)) {
+          if (auto c = counters(client.op)) {
             c->inc(queue_counters::l_qlen);
             c->inc(queue_counters::l_cost, cost);
           }
@@ -149,7 +156,7 @@ auto AsyncScheduler::async_request(const client_id& client,
           auto completion = static_cast<Completion*>(req.release());
           async::post(std::unique_ptr<Completion>{completion},
                       ec, PhaseType::priority);
-          if (auto c = counters(client)) {
+          if (auto c = counters(client.op)) {
             c->inc(queue_counters::l_limit);
             c->inc(queue_counters::l_limit_cost, cost);
           }

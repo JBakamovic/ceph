@@ -329,8 +329,16 @@ public:
   CephContext* get_cct() const override { return s->cct; }
   unsigned get_subsys() const override { return ceph_subsys_rgw; }
 
-  virtual dmc::client_id dmclock_client() { return dmc::client_id::metadata; }
+  /// dmClock queue for this op.  Ops that serve a specific S3 tenant should
+  /// use dmclock_tenant_client() so that tenants are scheduled independently;
+  /// daemon-level ops (admin, auth) stay on the shared per-class queue.
+  virtual dmc::client_id dmclock_client() { return dmc::op_class::metadata; }
   virtual dmc::Cost dmclock_cost() { return 1; }
+
+  /// Queue key for a tenant-scoped op: its own queue per S3 identity when
+  /// rgw_dmclock_per_tenant_enabled is set, otherwise the shared class queue
+  /// (tenant_id 0), which is bit-for-bit the pre-existing behaviour.
+  dmc::client_id dmclock_tenant_client(dmc::op_class op) const;
   virtual void write_ops_log_entry(rgw_log_entry& entry) const {};
 };
 
@@ -547,7 +555,7 @@ public:
   int get_lua_filter(std::unique_ptr<RGWGetObj_Filter>* filter,
       RGWGetObj_Filter* cb);
 
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 };
 
 class RGWGetObj_CB : public RGWGetObj_Filter
@@ -769,7 +777,7 @@ public:
   std::string canonical_name() const override { return fmt::format("REST.{}.BULK_DELETE", s->info.method); }
   RGWOpType get_type() override { return RGW_OP_BULK_DELETE; }
   uint32_t op_mask() override { return RGW_OP_TYPE_DELETE; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 };
 
 inline std::ostream& operator<<(std::ostream& out, const RGWBulkDelete::acct_path_t &o) {
@@ -847,7 +855,7 @@ public:
   uint32_t op_mask() override {
     return RGW_OP_TYPE_WRITE;
   }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 }; /* RGWBulkUploadOp */
 
 
@@ -1406,7 +1414,7 @@ public:
   }
   RGWOpType get_type() override { return RGW_OP_PUT_OBJ; }
   uint32_t op_mask() override { return RGW_OP_TYPE_WRITE; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
   bool always_do_bucket_logging() const override { return false; }
 };
 
@@ -1459,7 +1467,7 @@ public:
   std::string canonical_name() const override { return fmt::format("REST.{}.OBJECT", s->info.method); }
   RGWOpType get_type() override { return RGW_OP_POST_OBJ; }
   uint32_t op_mask() override { return RGW_OP_TYPE_WRITE; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 };
 
 class RGWPutMetadataAccount : public RGWOp {
@@ -1605,7 +1613,7 @@ public:
   RGWOpType get_type() override { return RGW_OP_DELETE_OBJ; }
   uint32_t op_mask() override { return RGW_OP_TYPE_DELETE; }
   virtual bool need_object_expiration() { return false; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 };
 
 class RGWCopyObj : public RGWOp {
@@ -1723,7 +1731,7 @@ public:
   std::string canonical_name() const override { return fmt::format("REST.{}.OBJECT", s->info.method); }
   RGWOpType get_type() override { return RGW_OP_COPY_OBJ; }
   uint32_t op_mask() override { return RGW_OP_TYPE_WRITE; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::data; }
+  dmc::client_id dmclock_client() override { return dmclock_tenant_client(dmc::op_class::data); }
 };
 
 class RGWGetACLs : public RGWOp {
@@ -2818,7 +2826,7 @@ public:
   virtual int get_params(optional_yield y) = 0;
   void execute(optional_yield y) override;
   const char* name() const override { return "get_cluster_stat"; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::admin; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::admin; }
 };
 
 class RGWGetBucketPolicyStatus : public RGWOp {
@@ -2830,7 +2838,7 @@ public:
   virtual RGWOpType get_type() override { return RGW_OP_GET_BUCKET_POLICY_STATUS; }
   virtual uint32_t op_mask() override { return RGW_OP_TYPE_READ; }
   void execute(optional_yield y) override;
-  dmc::client_id dmclock_client() override { return dmc::client_id::metadata; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::metadata; }
 };
 
 class RGWPutBucketPublicAccessBlock : public RGWOp {
@@ -2845,7 +2853,7 @@ public:
   virtual uint32_t op_mask() override { return RGW_OP_TYPE_WRITE; }
   int get_params(optional_yield y);
   void execute(optional_yield y) override;
-  dmc::client_id dmclock_client() override { return dmc::client_id::metadata; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::metadata; }
 };
 
 class RGWGetBucketPublicAccessBlock : public RGWOp {
@@ -2859,7 +2867,7 @@ public:
   virtual uint32_t op_mask() override { return RGW_OP_TYPE_READ; }
   int get_params(optional_yield y);
   void execute(optional_yield y) override;
-  dmc::client_id dmclock_client() override { return dmc::client_id::metadata; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::metadata; }
 };
 
 class RGWDeleteBucketPublicAccessBlock : public RGWOp {
@@ -2874,7 +2882,7 @@ public:
   int get_params(optional_yield y);
   void execute(optional_yield y) override;
   void send_response() override;
-  dmc::client_id dmclock_client() override { return dmc::client_id::metadata; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::metadata; }
 };
 
 inline int parse_value_and_bound(

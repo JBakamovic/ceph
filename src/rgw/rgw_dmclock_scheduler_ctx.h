@@ -51,15 +51,15 @@ namespace throttle_counters {
 namespace rgw::dmclock {
 
 // the last client counter would be for global scheduler stats
-static constexpr auto counter_size = static_cast<size_t>(client_id::count) + 1;
-/// array of per-client counters to serve as GetClientCounters
+static constexpr auto counter_size = static_cast<size_t>(op_class::count) + 1;
+/// array of per-op-class counters to serve as GetClientCounters
 class ClientCounters {
   std::array<PerfCountersRef, counter_size> clients;
  public:
   ClientCounters(CephContext *cct);
 
-  PerfCounters* operator()(client_id client) const {
-    return clients[static_cast<size_t>(client)].get();
+  PerfCounters* operator()(op_class op) const {
+    return clients[static_cast<size_t>(op)].get();
   }
 };
 
@@ -80,10 +80,10 @@ struct ClientSum {
   Cost cost{0};
 };
 
-constexpr auto client_count = static_cast<size_t>(client_id::count);
+constexpr auto client_count = static_cast<size_t>(op_class::count);
 using ClientSums = std::array<ClientSum, client_count>;
 
-void inc(ClientSums& sums, client_id client, Cost cost);
+void inc(ClientSums& sums, const client_id& client, Cost cost);
 void on_cancel(PerfCounters *c, const ClientSum& sum);
 void on_process(PerfCounters* c, const ClientSum& rsum, const ClientSum& psum);
 
@@ -96,7 +96,11 @@ class ClientConfig : public md_config_obs_t {
 public:
   ClientConfig(CephContext *cct);
 
-  ClientInfo* operator()(client_id client);
+  /// Resolve the (reservation, weight, limit) for a queue.  Every tenant of a
+  /// given op class currently shares that class's configured profile; the
+  /// isolation comes from each tenant having its own queue, not from differing
+  /// profiles.  Per-tenant profiles are a separate step.
+  ClientInfo* operator()(const client_id& client);
 
   std::vector<std::string> get_tracked_keys() const noexcept override;
   void handle_conf_change(const ConfigProxy& conf,

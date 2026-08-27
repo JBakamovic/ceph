@@ -27,7 +27,7 @@ int SyncScheduler::add_request(const client_id& client, const ReqParams& params,
   auto req = SyncRequest{client, time, cost, req_mtx, req_cv, rstate, counters};
   int r = queue.add_request_time(req, client, params, time, cost);
   if (r == 0) {
-    if (auto c = counters(client)) {
+    if (auto c = counters(client.op)) {
       c->inc(queue_counters::l_qlen);
       c->inc(queue_counters::l_cost, cost);
     }
@@ -43,7 +43,7 @@ int SyncScheduler::add_request(const client_id& client, const ReqParams& params,
     }
   } else {
       // post the error code
-    if (auto c = counters(client)) {
+    if (auto c = counters(client.op)) {
       c->inc(queue_counters::l_limit);
       c->inc(queue_counters::l_limit_cost, cost);
     }
@@ -60,7 +60,7 @@ void SyncScheduler::handle_request_cb(const client_id &c,
     req->req_cv.notify_one();
   }
 
-  if (auto ctr = req->counters(c)) {
+  if (auto ctr = req->counters(c.op)) {
     auto lat = Clock::from_double(get_time()) - Clock::from_double(req->started);
     if (phase == PhaseType::reservation){
       ctr->tinc(queue_counters::l_res_latency, lat);
@@ -91,7 +91,7 @@ void SyncScheduler::cancel(const client_id& client)
         request->req_cv.notify_one();
       }
     });
-  if (auto c = counters(client)) {
+  if (auto c = counters(client.op)) {
     on_cancel(c, sum);
   }
 
@@ -114,7 +114,7 @@ void SyncScheduler::cancel()
            });
 
   for (size_t i = 0; i < client_count; i++) {
-    if (auto c = counters(static_cast<client_id>(i))) {
+    if (auto c = counters(static_cast<op_class>(i))) {
       on_cancel(c, sums[i]);
     }
   }

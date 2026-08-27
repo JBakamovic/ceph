@@ -62,7 +62,7 @@ int AsyncScheduler::schedule_request_impl(const client_id& client,
 void AsyncScheduler::request_complete()
 {
   --outstanding_requests;
-  if(auto c = counters(client_id::count)){
+  if(auto c = counters(op_class::count)){
     c->inc(throttle_counters::l_outstanding, -1);
   }
   schedule(crimson::dmclock::TimeZero);
@@ -83,7 +83,7 @@ void AsyncScheduler::cancel()
   timer.cancel();
 
   for (size_t i = 0; i < client_count; i++) {
-    if (auto c = counters(static_cast<client_id>(i))) {
+    if (auto c = counters(static_cast<op_class>(i))) {
       on_cancel(c, sums[i]);
     }
   }
@@ -101,7 +101,7 @@ void AsyncScheduler::cancel(const client_id& client)
                            boost::asio::error::operation_aborted,
                            PhaseType::priority);
     });
-  if (auto c = counters(client)) {
+  if (auto c = counters(client.op)) {
     on_cancel(c, sum);
   }
   schedule(crimson::dmclock::TimeZero);
@@ -141,7 +141,7 @@ void AsyncScheduler::process(const Time& now)
       break;
     }
     ++outstanding_requests;
-    if(auto c = counters(client_id::count)){
+    if(auto c = counters(op_class::count)){
       c->inc(throttle_counters::l_outstanding);
     }
 
@@ -155,7 +155,7 @@ void AsyncScheduler::process(const Time& now)
     Completion::post(std::unique_ptr<Completion>{c},
                      boost::system::error_code{}, phase);
 
-    if (auto c = counters(client)) {
+    if (auto c = counters(client.op)) {
       auto lat = Clock::from_double(now) - Clock::from_double(started);
       if (phase == PhaseType::reservation) {
         inc(rsums, client, cost);
@@ -168,13 +168,13 @@ void AsyncScheduler::process(const Time& now)
   }
 
   if (outstanding_requests >= max_requests) {
-    if(auto c = counters(client_id::count)){
+    if(auto c = counters(op_class::count)){
       c->inc(throttle_counters::l_throttle);
     }
   }
 
   for (size_t i = 0; i < client_count; i++) {
-    if (auto c = counters(static_cast<client_id>(i))) {
+    if (auto c = counters(static_cast<op_class>(i))) {
       on_process(c, rsums[i], psums[i]);
     }
   }

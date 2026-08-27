@@ -551,7 +551,7 @@ public:
   virtual int check_caps(const RGWUserCaps& caps)
     { return -EPERM; } /* should to be implemented! */
   int verify_permission(optional_yield y) override;
-  dmc::client_id dmclock_client() override { return dmc::client_id::admin; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::admin; }
 };
 
 class RGWHandler_REST : public RGWHandler {

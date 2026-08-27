@@ -58,7 +58,8 @@ auto schedule_request(Scheduler *scheduler, req_state *s, RGWOp *op)
   if (s->cct->_conf->subsys.should_gather(ceph_subsys_rgw, 10)) {
     ldpp_dout(op,10) << "scheduling with "
 		     << s->cct->_conf.get_val<std::string>("rgw_scheduler_type")
-		     << " client=" << static_cast<int>(client)
+		     << " op_class=" << static_cast<int>(client.op)
+		     << " tenant=" << client.tenant_id
 		     << " cost=" << cost << dendl;
   }
   return scheduler->schedule_request(client, {},
