@@ -203,6 +203,10 @@ struct TenantConfig {
   std::string name;
   std::string role_desc = "custom";
   int workers = 10;
+  // open_loop only: offered arrivals per second for this tenant. Zero means
+  // derive it from workers/pacing_ms, which is only meaningful when the tenant
+  // is paced -- an unpaced tenant has no closed-loop rate to convert.
+  double arrival_rate_per_s = 0.0;
   dmc::op_class client_id = dmc::op_class::data;
   double pacing_ms = 0.0;
   PacingDistribution pacing_dist = PacingDistribution::Constant;
@@ -217,6 +221,47 @@ struct BenchConfig {
   int thread_count = 8;
   bool allow_retries = false;
   int max_retries = 3;
+
+  // Fidelity knobs. Defaults match what radosgw actually does; the historical
+  // scenarios pin the old values explicitly so their results still reproduce.
+  //
+  // at_limit: production constructs AsyncScheduler with dmc::AtLimit::Reject
+  // (rgw_asio_frontend.cc), which rejects the moment a client is at its limit.
+  // "reject_threshold" instead queues up to threshold_s of work first, which
+  // converts what production reports as 503s into queueing latency.
+  // load_model: "closed_loop" is the historical generator -- a fixed worker
+  // population where each worker blocks until its request resolves, so the
+  // offered load depends on the scheduler being measured. "open_loop" drives a
+  // per-tenant arrival process that submits independently of completion, which
+  // is what admission control actually faces and what makes drop rate mean
+  // the same thing across arms.
+  std::string load_model = "closed_loop";
+
+  // capacity_relative: interpret each tenant's dmclock profile as fractions of
+  // the gateway's usable throughput rather than as absolute ops/sec. dmClock's
+  // tags are 1/rate in wall-clock units, so an absolute reservation above what
+  // the cluster can actually serve collapses every client's tag onto its arrival
+  // time and the queue degenerates to FIFO -- which is exactly what radosgw's
+  // shipped defaults do. Ratios are the only form that can have a sane default.
+  // Open-loop arrivals are unbounded by construction, so a run against a
+  // scheduler that admits everything will pile up in-flight requests until the
+  // backend congestion model makes each one take effectively forever. A real
+  // gateway has finite sockets and memory; this is that bound. Arrivals refused
+  // here are counted separately from 503s -- they never reached admission
+  // control at all.
+  int64_t max_inflight = 20000;
+
+  bool capacity_relative = false;
+  // ops/sec the gateway is assumed able to sustain. A real deployment would
+  // measure this; here it is stated so the sweep can vary it deliberately.
+  double capacity_estimate_ops_s = 0.0;
+
+  std::string at_limit = "reject";
+  double at_limit_threshold_s = 1.0;
+  // production RGWOp::dmclock_cost() returns 1 for every op and nothing
+  // overrides it, so dmClock does no cost-proportional budgeting today.
+  // Differentiated costs are a proposal, not current behaviour.
+  bool uniform_cost = true;
 
   // Adaptive closed-loop capacity tuning options
   bool adaptive_tuning = false;
@@ -305,6 +350,13 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
   bench_obj["thread_count"] = config.thread_count;
   bench_obj["allow_retries"] = config.allow_retries;
   bench_obj["max_retries"] = config.max_retries;
+  bench_obj["load_model"] = config.load_model;
+  bench_obj["max_inflight"] = static_cast<int64_t>(config.max_inflight);
+  bench_obj["capacity_relative"] = config.capacity_relative;
+  bench_obj["capacity_estimate_ops_s"] = config.capacity_estimate_ops_s;
+  bench_obj["at_limit"] = config.at_limit;
+  bench_obj["at_limit_threshold_s"] = config.at_limit_threshold_s;
+  bench_obj["uniform_cost"] = config.uniform_cost;
   bench_obj["adaptive_tuning"] = config.adaptive_tuning;
   bench_obj["adaptive_target_latency_ms"] = config.adaptive_target_latency_ms;
   bench_obj["adaptive_sample_interval_ms"] = config.adaptive_sample_interval_ms;
@@ -354,6 +406,7 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
     t_obj["role"] = t.role_desc;
     t_obj["workers"] = t.workers;
     t_obj["client_id"] = op_class_to_str(t.client_id);
+    t_obj["arrival_rate_per_s"] = t.arrival_rate_per_s;
     t_obj["pacing_ms"] = t.pacing_ms;
     t_obj["pacing_distribution"] = pacing_dist_to_str(t.pacing_dist);
 
@@ -405,6 +458,27 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
     }
     if (auto v = b.find("max_retries"); v != b.end() && v->second.type() == json_spirit::int_type) {
       config.max_retries = v->second.get_int();
+    }
+    if (auto v = b.find("max_inflight"); v != b.end()) {
+      config.max_inflight = v->second.get_int64();
+    }
+    if (auto v = b.find("capacity_relative"); v != b.end() && v->second.type() == json_spirit::bool_type) {
+      config.capacity_relative = v->second.get_bool();
+    }
+    if (auto v = b.find("capacity_estimate_ops_s"); v != b.end()) {
+      config.capacity_estimate_ops_s = v->second.get_real();
+    }
+    if (auto v = b.find("load_model"); v != b.end() && v->second.type() == json_spirit::str_type) {
+      config.load_model = v->second.get_str();
+    }
+    if (auto v = b.find("at_limit"); v != b.end() && v->second.type() == json_spirit::str_type) {
+      config.at_limit = v->second.get_str();
+    }
+    if (auto v = b.find("at_limit_threshold_s"); v != b.end()) {
+      config.at_limit_threshold_s = v->second.get_real();
+    }
+    if (auto v = b.find("uniform_cost"); v != b.end() && v->second.type() == json_spirit::bool_type) {
+      config.uniform_cost = v->second.get_bool();
     }
     if (auto v = b.find("adaptive_tuning"); v != b.end() && v->second.type() == json_spirit::bool_type) {
       config.adaptive_tuning = v->second.get_bool();
@@ -497,6 +571,9 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
           t.client_id = *cid;
         }
       }
+      if (auto v = t_obj.find("arrival_rate_per_s"); v != t_obj.end()) {
+        t.arrival_rate_per_s = v->second.get_real();
+      }
       if (auto v = t_obj.find("pacing_ms"); v != t_obj.end()) {
         t.pacing_ms = v->second.get_real();
       }
@@ -556,6 +633,8 @@ struct TenantStats {
   std::atomic<uint64_t> total_accepted{0};
   std::atomic<uint64_t> total_rejected_503{0};
   std::atomic<uint64_t> total_retries{0};
+  std::atomic<uint64_t> total_shed_backpressure{0};
+  std::atomic<int64_t> inflight{0};
   std::atomic<uint64_t> total_bytes{0};
 
   std::mutex samples_mutex;
@@ -659,6 +738,43 @@ struct TenantRequest {
   virtual ~TenantRequest() = default;
 };
 
+// Resolve capacity-relative profiles into the absolute rates dmClock needs.
+//
+// In this mode a tenant's (res, wgt, lim) are read as fractions of usable
+// gateway throughput: res 0.10 means "guarantee this tenant 10% of whatever the
+// cluster can actually do". Weight stays a pure ratio -- dmClock already treats
+// it as relative -- so only res and lim are scaled. A limit of 0 keeps its
+// special meaning of "unlimited" and is left alone.
+inline void resolve_capacity_relative_profiles(BenchConfig& config) {
+  if (!config.capacity_relative) return;
+  // scaling is destructive, so make a second call a no-op rather than squaring
+  static bool resolved = false;
+  if (resolved) return;
+  resolved = true;
+  const double cap = config.capacity_estimate_ops_s;
+  if (cap <= 0.0) {
+    std::cerr << "[-] capacity_relative requires capacity_estimate_ops_s > 0\n";
+    return;
+  }
+  auto scale = [cap](DmClockProfile& p) {
+    p.reservation *= cap;
+    if (p.limit > 0.0) p.limit *= cap;
+  };
+  for (auto& [cls, prof] : config.dmclock_profiles) scale(prof);
+  for (auto& t : config.tenants) scale(t.dmclock_profile);
+}
+
+inline crimson::dmclock::AtLimitParam make_at_limit(const std::string& mode,
+                                                   double threshold_s) {
+  if (mode == "wait")  return crimson::dmclock::AtLimit::Wait;
+  if (mode == "allow") return crimson::dmclock::AtLimit::Allow;
+  if (mode == "reject_threshold") {
+    return crimson::dmclock::AtLimitParam(
+        crimson::dmclock::RejectThreshold{threshold_s});
+  }
+  return crimson::dmclock::AtLimit::Reject; // production default
+}
+
 class TenantScheduler {
 public:
   virtual ~TenantScheduler() = default;
@@ -710,7 +826,8 @@ public:
       boost::asio::io_context& context,
       dmc::ClientCounters& counters,
       const std::map<dmc::op_class, DmClockProfile>& profiles,
-      int64_t max_concurrency = 128)
+      int64_t max_concurrency,
+      crimson::dmclock::AtLimitParam at_limit)
     : cct(cct), profiles(profiles), base_max(max_concurrency),
       scheduler(std::make_shared<dmc::AsyncScheduler>(
           cct, context, std::ref(counters), nullptr,
@@ -730,7 +847,7 @@ public:
             }
             return &client_infos[idx];
           },
-          crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))) {}
+          at_limit)) {}
 
   void cancel() override {
     scheduler->cancel();
@@ -759,6 +876,88 @@ private:
   std::shared_ptr<dmc::AsyncScheduler> scheduler;
 };
 
+// 3a. Per-tenant dmClock built on the *production* rgw::dmclock::AsyncScheduler.
+//
+// Until client_id became a composite {tenant_id, op_class}, per-tenant queues
+// could not be expressed with upstream's scheduler at all, which is why the
+// hand-rolled FineGrainedDmClockTenantScheduler below exists. Now that the
+// production type carries a tenant id, the real scheduler does this natively --
+// so this arm exercises the same code path radosgw would, rather than a
+// reimplementation of it.
+class UpstreamFineDmClockTenantScheduler : public TenantScheduler {
+public:
+  UpstreamFineDmClockTenantScheduler(
+      CephContext *cct,
+      boost::asio::io_context& context,
+      dmc::ClientCounters& counters,
+      const std::vector<TenantConfig>& tenant_configs,
+      int64_t max_concurrency,
+      crimson::dmclock::AtLimitParam at_limit)
+    : cct(cct), base_max(max_concurrency)
+  {
+    // std::map is node-based, so these addresses stay valid for the lifetime of
+    // the queue. That matters: PullPriorityQueue is instantiated with U1=false,
+    // so ClientRec caches the ClientInfo* and never re-reads client_info_f.
+    for (size_t i = 0; i < tenant_configs.size(); ++i) {
+      const auto& p = tenant_configs[i].dmclock_profile;
+      base_profiles.emplace(tenant_key(i), p);
+      infos.emplace(tenant_key(i), dmc::ClientInfo{p.reservation, p.weight, p.limit});
+    }
+    scheduler = std::make_shared<dmc::AsyncScheduler>(
+        cct, context, std::ref(counters), nullptr,
+        [this](const dmc::client_id& c) -> dmc::ClientInfo* {
+          auto it = infos.find(c.tenant_id);
+          if (it != infos.end()) {
+            return &it->second;
+          }
+          static dmc::ClientInfo fallback{10.0, 50.0, 50.0};
+          return &fallback;
+        },
+        at_limit);
+  }
+
+  void cancel() override { scheduler->cancel(); }
+
+  void update_capacity(double scale_factor) override {
+    for (auto& [key, base] : base_profiles) {
+      double r = base.reservation * scale_factor;
+      double w = std::max(1.0, base.weight * scale_factor);
+      double l = std::max(1.0, base.limit * scale_factor);
+      // shield VIP and control-plane reservations from excessive contraction
+      if (base.reservation >= 10.0) {
+        r = std::max(r, base.reservation * 0.70);
+      }
+      // in-place mutation is the only update path that reaches the queue,
+      // since it holds a pointer rather than calling client_info_f again
+      infos.at(key).update(r, w, l);
+    }
+    int64_t new_max = std::max<int64_t>(8, static_cast<int64_t>(base_max * scale_factor));
+    cct->_conf.set_val("rgw_max_concurrent_requests", std::to_string(new_max));
+  }
+
+  std::pair<int, dmc::SchedulerCompleter> schedule_request(
+      uint32_t tenant_idx,
+      dmc::op_class op_class,
+      const dmc::ReqParams& params,
+      const dmc::Time& time,
+      dmc::Cost cost,
+      boost::asio::yield_context yield) override
+  {
+    return scheduler->schedule_request(
+        dmc::client_id{tenant_key(tenant_idx), op_class}, params, time, cost, yield);
+  }
+
+private:
+  // tenant_id 0 means "daemon-level" in production, so shift off it
+  static uint64_t tenant_key(size_t idx) { return static_cast<uint64_t>(idx) + 1; }
+
+  CephContext *cct;
+  int64_t base_max;
+  std::map<uint64_t, DmClockProfile> base_profiles;
+  std::map<uint64_t, dmc::ClientInfo> infos;
+  std::shared_ptr<dmc::AsyncScheduler> scheduler;
+};
+
 // 3. Fine-Grained Multi-Tenant dmClock (Per-Tenant Isolated dmClock Queues)
 class FineGrainedDmClockTenantScheduler : public TenantScheduler {
 public:
@@ -771,7 +970,8 @@ public:
       CephContext *cct,
       boost::asio::io_context& context,
       const std::vector<TenantConfig>& tenant_configs,
-      int64_t max_reqs)
+      int64_t max_reqs,
+      crimson::dmclock::AtLimitParam at_limit)
     : cct(cct),
       strand(boost::asio::make_strand(context)),
       timer(strand),
@@ -785,7 +985,7 @@ public:
           static dmc::ClientInfo default_info{10.0, 50.0, 50.0};
           return &default_info;
         },
-        crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))
+        at_limit)
   {
     client_infos.reserve(tenant_configs.size());
     base_profiles.reserve(tenant_configs.size());
@@ -1063,6 +1263,118 @@ inline std::chrono::microseconds compute_pacing_delay(double mean_pacing_ms,
 }
 
 // ============================================================================
+// Open-Loop Arrival Generator
+// ============================================================================
+//
+// One request in flight per arrival, spawned independently of whether earlier
+// requests have finished. The arrival process is the tenant's offered load and
+// is unaffected by the scheduler under test, so `attempted` means the same thing
+// in every arm and drop rate becomes comparable.
+//
+// A rejected request is simply a drop: an S3 client that receives 503 does not
+// get to slow the arrival of the next client's request.
+
+inline double resolve_arrival_rate(const TenantConfig& t) {
+  if (t.arrival_rate_per_s > 0.0) return t.arrival_rate_per_s;
+  // A paced closed-loop tenant offers roughly workers/pacing requests per
+  // second when it is not being throttled; use that as the open-loop rate.
+  if (t.pacing_ms > 0.0) return (t.workers * 1000.0) / t.pacing_ms;
+  return 0.0; // unpaced: caller must supply an explicit rate
+}
+
+void run_one_open_loop_request(boost::asio::io_context& ioc,
+                               std::shared_ptr<TenantScheduler> scheduler,
+                               std::shared_ptr<SimulatedBackend> backend,
+                               std::shared_ptr<TenantStats> stats,
+                               uint32_t tenant_idx,
+                               TenantConfig tenant_cfg,
+                               OpType op,
+                               const BenchConfig& config) {
+  boost::asio::spawn(boost::asio::make_strand(ioc),
+                     [&ioc, scheduler, backend, stats, tenant_idx, tenant_cfg, op, config]
+                     (boost::asio::yield_context yield) {
+    stats->inflight++;
+    struct InflightGuard {
+      std::shared_ptr<TenantStats> s;
+      ~InflightGuard() { s->inflight--; }
+    } guard{stats};
+
+    auto start_time = std::chrono::steady_clock::now();
+    dmc::Cost cost = config.uniform_cost ? dmc::Cost{1}
+                                         : config.op_model.get_cost(op);
+
+    int ret = 0;
+    dmc::SchedulerCompleter completer;
+    std::tie(ret, completer) = scheduler->schedule_request(
+        tenant_idx, tenant_cfg.client_id, {}, dmc::get_time(), cost, yield);
+
+    auto scheduled_time = std::chrono::steady_clock::now();
+    double queue_lat_ms = std::chrono::duration<double, std::milli>(
+        scheduled_time - start_time).count();
+
+    if (ret < 0) {
+      stats->total_rejected_503++;
+      stats->record_sample(RequestSample{queue_lat_ms, queue_lat_ms, 0.0, false, ret, op});
+      return;
+    }
+
+    double backend_lat_ms = 0.0;
+    backend->simulate_storage_io(op, yield, ioc, backend_lat_ms);
+    // Release the throttle slot by DESTROYING the completer. Assigning an empty
+    // one over it does not work: Completer's move-assignment is defaulted, so it
+    // overwrites the stored callback without ever invoking it, and the slot is
+    // leaked. Production releases it the same way, by letting the completer in
+    // process_request() go out of scope.
+    { dmc::SchedulerCompleter release = std::move(completer); }
+
+    double total_lat_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start_time).count();
+    stats->total_accepted++;
+    stats->record_sample(RequestSample{total_lat_ms, queue_lat_ms, backend_lat_ms, true, 0, op});
+  }, boost::asio::detached);
+}
+
+void run_open_loop_generator(boost::asio::io_context& ioc,
+                             std::shared_ptr<TenantScheduler> scheduler,
+                             std::shared_ptr<SimulatedBackend> backend,
+                             std::shared_ptr<TenantStats> stats,
+                             uint32_t tenant_idx,
+                             TenantConfig tenant_cfg,
+                             const std::atomic<bool>& running,
+                             const BenchConfig& config) {
+  boost::asio::spawn(boost::asio::make_strand(ioc),
+                     [&ioc, scheduler, backend, stats, tenant_idx, tenant_cfg, &running, config]
+                     (boost::asio::yield_context yield) {
+    // The generator owns its stream. A thread_local RNG is wrong here: the
+    // coroutine migrates between io threads at every suspension point, so
+    // successive draws come from whichever thread resumed it, and the resulting
+    // interarrival sequence is not the distribution that was asked for.
+    std::mt19937 rng(0x9E3779B9u ^ (tenant_idx * 2654435761u));
+    OpSelector selector(tenant_cfg.op_weights);
+    const double rate = resolve_arrival_rate(tenant_cfg);
+    if (rate <= 0.0) return;
+    std::exponential_distribution<double> interarrival(rate);
+
+    while (running.load()) {
+      auto gap = std::chrono::duration<double>(interarrival(rng));
+      boost::asio::steady_timer timer(ioc);
+      timer.expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(gap));
+      boost::system::error_code ec;
+      timer.async_wait(yield[ec]);
+      if (!running.load()) break;
+
+      stats->total_attempted++;
+      if (stats->inflight.load() >= config.max_inflight) {
+        stats->total_shed_backpressure++;
+        continue;
+      }
+      run_one_open_loop_request(ioc, scheduler, backend, stats, tenant_idx,
+                                tenant_cfg, selector.select_op(rng), config);
+    }
+  }, boost::asio::detached);
+}
+
+// ============================================================================
 // Dynamic Worker Coroutine
 // ============================================================================
 void run_tenant_worker(boost::asio::io_context& ioc,
@@ -1085,7 +1397,9 @@ void run_tenant_worker(boost::asio::io_context& ioc,
 
       OpType op = selector.select_op(rng);
       dmc::op_class cid = tenant_cfg.client_id;
-      dmc::Cost cost = config.op_model.get_cost(op);
+      // production RGWOp::dmclock_cost() is 1 for every op
+      dmc::Cost cost = config.uniform_cost ? dmc::Cost{1}
+                                           : config.op_model.get_cost(op);
       auto dmc_time = dmc::get_time();
 
       int ret = 0;
@@ -1145,10 +1459,11 @@ void run_tenant_worker(boost::asio::io_context& ioc,
       double backend_lat_ms = 0.0;
       backend->simulate_storage_io(op, yield, ioc, backend_lat_ms);
 
-      // Completer destructor releases the scheduler throttle slot
-      // Release by DESTROYING the completer. Assigning an empty one does not
-      // work: Completer's move-assignment is defaulted, so it overwrites the
-      // stored callback without ever invoking it, and the slot is leaked.
+      // Release the throttle slot by DESTROYING the completer. Assigning an empty
+      // one over it does not work: Completer's move-assignment is defaulted, so it
+      // overwrites the stored callback without ever invoking it, and the slot is
+      // leaked. Production releases it the same way, by letting the completer in
+      // process_request() go out of scope.
       { dmc::SchedulerCompleter release = std::move(completer); }
 
       auto end_time = std::chrono::steady_clock::now();
@@ -1176,10 +1491,43 @@ void run_tenant_worker(boost::asio::io_context& ioc,
 // ============================================================================
 // Metrics Exporters (JSON & CSV)
 // ============================================================================
+// dmClock's own view of what happened, per op class. The harness only sees
+// success or EAGAIN at the schedule_request() boundary; these say *why*:
+// l_limit counts requests turned away at admission because the client was over
+// its limit, l_res and l_prio count what was dispatched via the reservation and
+// proportional phases respectively, and l_qlen/l_cost are what was still sitting
+// in the queue at the end. A tenant that is rejected at admission and one that
+// is enqueued but never pulled look identical from outside and quite different
+// here.
+inline json_spirit::mObject dmclock_counters_to_json(dmc::ClientCounters& counters) {
+  json_spirit::mObject out;
+  const std::pair<const char*, dmc::op_class> classes[] = {
+    {"admin",    dmc::op_class::admin},
+    {"auth",     dmc::op_class::auth},
+    {"data",     dmc::op_class::data},
+    {"metadata", dmc::op_class::metadata},
+  };
+  for (const auto& [name, oc] : classes) {
+    PerfCounters* c = counters(oc);
+    if (!c) continue;
+    json_spirit::mObject o;
+    o["qlen"]       = static_cast<int64_t>(c->get(queue_counters::l_qlen));
+    o["cost"]       = static_cast<int64_t>(c->get(queue_counters::l_cost));
+    o["res"]        = static_cast<int64_t>(c->get(queue_counters::l_res));
+    o["prio"]       = static_cast<int64_t>(c->get(queue_counters::l_prio));
+    o["limit"]      = static_cast<int64_t>(c->get(queue_counters::l_limit));
+    o["limit_cost"] = static_cast<int64_t>(c->get(queue_counters::l_limit_cost));
+    o["cancel"]     = static_cast<int64_t>(c->get(queue_counters::l_cancel));
+    out[name] = o;
+  }
+  return out;
+}
+
 inline void export_results_to_json(const std::string& filepath,
                                    const std::vector<std::shared_ptr<TenantStats>>& all_stats,
                                    const BenchConfig& config,
-                                   double elapsed_s) {
+                                   double elapsed_s,
+                                   dmc::ClientCounters* counters) {
   json_spirit::mObject root;
   root["scheduler"] = config.scheduler_type;
   root["elapsed_time_s"] = elapsed_s;
@@ -1206,6 +1554,7 @@ inline void export_results_to_json(const std::string& filepath,
     sum_sq_tps += (tps * tps);
 
     t_obj["attempted"] = static_cast<int64_t>(attempted);
+    t_obj["shed_backpressure"] = static_cast<int64_t>(t->total_shed_backpressure.load());
     t_obj["accepted"] = static_cast<int64_t>(accepted);
     t_obj["drops_503"] = static_cast<int64_t>(drops);
     t_obj["retries"] = static_cast<int64_t>(retries);
@@ -1235,6 +1584,31 @@ inline void export_results_to_json(const std::string& filepath,
   size_t n = all_stats.size();
   double jains = (sum_sq_tps > 0.0 && n > 0) ? ((sum_tps * sum_tps) / (n * sum_sq_tps)) : 1.0;
   root["jains_fairness_index"] = jains;
+  if (counters) {
+    root["dmclock_counters"] = dmclock_counters_to_json(*counters);
+  }
+
+  // Fidelity manifest: which knobs match radosgw and which do not, so a result
+  // can be read without going back to the scenario file to find out.
+  json_spirit::mObject fid;
+  fid["at_limit"] = config.at_limit;
+  fid["at_limit_matches_production"] = (config.at_limit == "reject");
+  fid["uniform_cost"] = config.uniform_cost;
+  fid["cost_model_matches_production"] = config.uniform_cost;
+  fid["max_concurrent_requests"] = static_cast<int64_t>(config.max_concurrent_requests);
+  fid["production_max_concurrent_requests_default"] = 1024;
+  fid["thread_count"] = config.thread_count;
+  fid["production_rgw_thread_pool_size_default"] = 128;
+  fid["scheduler_is_production_code"] =
+      (config.scheduler_type == "throttler" ||
+       config.scheduler_type == "dmclock" ||
+       config.scheduler_type == "dmclock_coarse" ||
+       config.scheduler_type == "dmclock_fine_upstream");
+  fid["load_model"] = config.load_model;
+  fid["capacity_relative"] = config.capacity_relative;
+  fid["capacity_estimate_ops_s"] = config.capacity_estimate_ops_s;
+  fid["offered_load_independent_of_scheduler"] = (config.load_model == "open_loop");
+  root["fidelity"] = fid;
 
   std::ofstream fout(filepath);
   if (fout.is_open()) {
@@ -1274,7 +1648,8 @@ inline void export_results_to_csv(const std::string& filepath,
 // ============================================================================
 void print_report(const std::vector<std::shared_ptr<TenantStats>>& all_stats,
                   const BenchConfig& config,
-                  double elapsed_s) {
+                  double elapsed_s,
+                  dmc::ClientCounters* counters) {
   std::cout << "\n"
             << "====================================================================================================\n"
             << "                         RGW WORKLOAD SCHEDULING BENCHMARK REPORT                                   \n"
@@ -1359,8 +1734,31 @@ void print_report(const std::vector<std::shared_ptr<TenantStats>>& all_stats,
             << " | Jain's Fairness Index: " << std::fixed << std::setprecision(3) << jains_fairness << " (1.0 = ideal)\n";
   std::cout << "====================================================================================================\n\n";
 
+  // A scheduler that never had to reject anything has not been tested. This is
+  // easy to get wrong: with a closed-loop generator, in-flight requests can
+  // never exceed the worker count, so a run whose worker count is below
+  // rgw_max_concurrent_requests cannot produce a single 503 no matter what the
+  // workload looks like. Say so rather than reporting the comparison as if it
+  // meant something.
+  uint64_t total_drops = 0;
+  for (const auto& t : all_stats) total_drops += t->total_rejected_503.load();
+  if (total_drops == 0) {
+    int64_t offered_concurrency = 0;
+    for (const auto& t : config.tenants) offered_concurrency += t.workers;
+    std::cout << "  !! WARNING: zero requests were rejected. Admission control was never\n"
+              << "     exercised, so this run does not compare schedulers under load.\n";
+    if (config.load_model != "open_loop" && offered_concurrency <= config.max_concurrent_requests) {
+      std::cout << "     Cause: closed-loop offered concurrency (" << offered_concurrency
+                << " workers) <= max_concurrent_requests (" << config.max_concurrent_requests
+                << "),\n     so the throttler cannot reject by construction. Raise the worker"
+                   " count or\n     lower the ceiling.\n";
+    }
+    std::cout << "\n";
+  }
+
   if (!config.export_json_path.empty()) {
-    export_results_to_json(config.export_json_path, all_stats, config, elapsed_s);
+    export_results_to_json(config.export_json_path, all_stats, config, elapsed_s,
+                           counters);
   }
   if (!config.export_csv_path.empty()) {
     export_results_to_csv(config.export_csv_path, all_stats);
@@ -1393,7 +1791,10 @@ int main(int argc, char* argv[]) {
       ("export_csv", po::value<std::string>(&config.export_csv_path),
        "Path to export raw request latency samples in CSV format")
       ("scheduler", po::value<std::string>(&config.scheduler_type)->default_value("throttler"),
-       "Scheduler to test: throttler | dmclock_coarse (or dmclock) | dmclock_fine (per-tenant) | none")
+       "Scheduler to test: throttler | dmclock_coarse (or dmclock) | dmclock_fine (per-tenant, "
+       "hand-rolled) | dmclock_fine_upstream (per-tenant, production AsyncScheduler) | none")
+      ("max_inflight", po::value<int64_t>(&config.max_inflight),
+       "open_loop: cap on in-flight requests, standing in for the gateway's finite sockets/memory")
       ("max_concurrency", po::value<int64_t>(&config.max_concurrent_requests)->default_value(128),
        "Ceiling on concurrent requests (rgw_max_concurrent_requests)")
       ("runtime", po::value<int>(&config.runtime_seconds)->default_value(10),
@@ -1445,8 +1846,14 @@ int main(int argc, char* argv[]) {
         return 1;
       }
       // Re-apply CLI overrides if explicitly passed on command line
+      // Only an explicitly supplied option overrides the scenario file.
+      // vm.count() is also non-zero for values program_options filled in from
+      // default_value(), so using it here silently clobbered the config file --
+      // which is how spike_amplitude_ms sat at 0.0 through the entire adaptive
+      // capacity analysis, and cluster_capacity at 64 through every sweep.
       if (vm.count("scheduler") && !vm["scheduler"].defaulted()) config.scheduler_type = vm["scheduler"].as<std::string>();
       if (vm.count("max_concurrency") && !vm["max_concurrency"].defaulted()) config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
+      if (vm.count("max_inflight") && !vm["max_inflight"].defaulted()) config.max_inflight = vm["max_inflight"].as<int64_t>();
       if (vm.count("runtime") && !vm["runtime"].defaulted()) config.runtime_seconds = vm["runtime"].as<int>();
       if (vm.count("threads") && !vm["threads"].defaulted()) config.thread_count = vm["threads"].as<int>();
       if (vm.count("cluster_capacity") && !vm["cluster_capacity"].defaulted()) config.backend.cluster_capacity = vm["cluster_capacity"].as<int>();
@@ -1459,6 +1866,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (dump_config_flag) {
+      // Show the profiles the scheduler will actually be built with, not the
+      // ratios as written -- otherwise --dump_config misreports a
+      // capacity_relative scenario as reserving 0.1 ops/sec.
+      resolve_capacity_relative_profiles(config);
       std::cout << dump_config_to_json(config) << "\n";
       return 0;
     }
@@ -1482,17 +1893,29 @@ int main(int argc, char* argv[]) {
   work.emplace(boost::asio::make_work_guard(context));
 
   // Instantiate Scheduler
+  resolve_capacity_relative_profiles(config);
+
   std::shared_ptr<TenantScheduler> scheduler;
   dmc::ClientCounters counters(g_ceph_context);
+  const auto at_limit = make_at_limit(config.at_limit, config.at_limit_threshold_s);
+  const bool uses_dmclock = config.scheduler_type == "dmclock"
+                         || config.scheduler_type == "dmclock_coarse"
+                         || config.scheduler_type == "dmclock_fine_upstream";
 
   if (config.scheduler_type == "throttler") {
     scheduler = std::make_shared<ThrottlerTenantScheduler>(g_ceph_context, config.max_concurrent_requests);
   } else if (config.scheduler_type == "dmclock" || config.scheduler_type == "dmclock_coarse") {
     scheduler = std::make_shared<CoarseDmClockTenantScheduler>(
-        g_ceph_context, context, counters, config.dmclock_profiles, config.max_concurrent_requests);
+        g_ceph_context, context, counters, config.dmclock_profiles,
+        config.max_concurrent_requests, at_limit);
+  } else if (config.scheduler_type == "dmclock_fine_upstream") {
+    scheduler = std::make_shared<UpstreamFineDmClockTenantScheduler>(
+        g_ceph_context, context, counters, config.tenants,
+        config.max_concurrent_requests, at_limit);
   } else if (config.scheduler_type == "dmclock_fine" || config.scheduler_type == "dmclock_per_tenant") {
     scheduler = std::make_shared<FineGrainedDmClockTenantScheduler>(
-        g_ceph_context, context, config.tenants, config.max_concurrent_requests);
+        g_ceph_context, context, config.tenants,
+        config.max_concurrent_requests, at_limit);
   } else if (config.scheduler_type == "none") {
     scheduler = std::make_shared<NoOpTenantScheduler>();
   } else {
@@ -1537,8 +1960,21 @@ int main(int argc, char* argv[]) {
               << ", W=" << t_cfg.dmclock_profile.weight
               << ", L=" << t_cfg.dmclock_profile.limit << ")\n";
 
-    for (int w = 0; w < t_cfg.workers; w++) {
-      run_tenant_worker(context, scheduler, backend, t_stats, t_idx, t_cfg, running, config);
+    if (config.load_model == "open_loop") {
+      const double rate = resolve_arrival_rate(t_cfg);
+      if (rate <= 0.0) {
+        std::cerr << "[-] open_loop: tenant '" << t_cfg.name
+                  << "' is unpaced and has no arrival_rate_per_s; "
+                     "there is no closed-loop rate to convert. Set one.\n";
+        return 1;
+      }
+      std::cout << "         open-loop arrivals: " << rate << " req/s (Poisson)\n";
+      run_open_loop_generator(context, scheduler, backend, t_stats, t_idx,
+                              t_cfg, running, config);
+    } else {
+      for (int w = 0; w < t_cfg.workers; w++) {
+        run_tenant_worker(context, scheduler, backend, t_stats, t_idx, t_cfg, running, config);
+      }
     }
   }
 
@@ -1574,7 +2010,8 @@ int main(int argc, char* argv[]) {
   auto end_time = std::chrono::steady_clock::now();
   double elapsed_s = std::chrono::duration<double>(end_time - start_time).count();
 
-  print_report(all_stats, config, elapsed_s);
+  print_report(all_stats, config, elapsed_s,
+               uses_dmclock ? &counters : nullptr);
 
   return 0;
 }
