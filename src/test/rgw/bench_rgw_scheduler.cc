@@ -1143,8 +1143,12 @@ void run_tenant_worker(boost::asio::io_context& ioc,
       double backend_lat_ms = 0.0;
       backend->simulate_storage_io(op, yield, ioc, backend_lat_ms);
 
-      // Completer destructor releases the scheduler throttle slot
-      completer = dmc::SchedulerCompleter{};
+      // Release by DESTROYING the completer. Assigning an empty one does not
+      // work: Completer's move-assignment is defaulted, so it overwrites the
+      // stored callback without ever invoking it, and the slot is leaked.
+      {
+        dmc::SchedulerCompleter release = std::move(completer);
+      }
 
       auto end_time = std::chrono::steady_clock::now();
       double total_lat_ms = std::chrono::duration<double, std::milli>(
