@@ -19,6 +19,15 @@
 #include <cstdint>
 #include <string_view>
 
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <algorithm>
+#include <memory>
+#include <functional>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/io_context.hpp>
+
 #include "dmclock/src/dmclock_server.h"
 
 namespace rgw::dmclock {
@@ -89,5 +98,90 @@ inline scheduler_t get_scheduler_t(CephContext* const cct)
   else
     return scheduler_t::none;
 }
+
+/// Lock-free telemetry tracker for storage backend I/O completion latencies.
+class LatencyTelemetry {
+  std::atomic<double> recent_ema_ms{5.0};
+  std::atomic<uint64_t> sample_count{0};
+public:
+  void record_latency(double latency_ms) noexcept {
+    double old_ema = recent_ema_ms.load(std::memory_order_relaxed);
+    while (!recent_ema_ms.compare_exchange_weak(
+        old_ema, 0.85 * old_ema + 0.15 * latency_ms,
+        std::memory_order_relaxed, std::memory_order_relaxed)) {
+    }
+    sample_count.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  double get_ema_latency_ms() const noexcept {
+    return recent_ema_ms.load(std::memory_order_relaxed);
+  }
+
+  uint64_t get_sample_count() const noexcept {
+    return sample_count.load(std::memory_order_relaxed);
+  }
+};
+
+/// Asynchronous AIMD feedback capacity controller running on the frontend io_context.
+class AdaptiveCapacityController {
+public:
+  using update_callback_t = std::function<void(double)>;
+
+  AdaptiveCapacityController(
+      boost::asio::io_context& ioc,
+      std::shared_ptr<LatencyTelemetry> telemetry,
+      update_callback_t update_cb,
+      double target_latency_ms = 5.0,
+      uint32_t sample_interval_ms = 50)
+    : timer(ioc),
+      telemetry(std::move(telemetry)),
+      update_cb(std::move(update_cb)),
+      target_lat_ms(target_latency_ms),
+      sample_interval_ms(sample_interval_ms) {}
+
+  void start() {
+    running = true;
+    schedule_next();
+  }
+
+  void stop() {
+    running = false;
+    timer.cancel();
+  }
+
+private:
+  void schedule_next() {
+    if (!running) return;
+    timer.expires_after(std::chrono::milliseconds(sample_interval_ms));
+    timer.async_wait([this](const boost::system::error_code& ec) {
+      if (ec || !running) return;
+      step();
+      schedule_next();
+    });
+  }
+
+  void step() {
+    if (!telemetry || !update_cb) return;
+    double measured_lat = telemetry->get_ema_latency_ms();
+    if (measured_lat <= target_lat_ms * 1.10) {
+      // Additive Increase up to 1.5x nominal
+      current_scale = std::min(1.5, current_scale + 0.05);
+    } else if (measured_lat > target_lat_ms * 1.25) {
+      // Multiplicative Decrease based on overshoot ratio
+      double ratio = target_lat_ms / measured_lat;
+      double dec = std::clamp(ratio, 0.35, 0.85);
+      current_scale = std::max(0.15, current_scale * dec);
+    }
+    update_cb(current_scale);
+  }
+
+  boost::asio::steady_timer timer;
+  std::shared_ptr<LatencyTelemetry> telemetry;
+  update_callback_t update_cb;
+  double target_lat_ms;
+  uint32_t sample_interval_ms;
+  double current_scale = 1.0;
+  bool running = false;
+};
 
 } // namespace rgw::dmclock

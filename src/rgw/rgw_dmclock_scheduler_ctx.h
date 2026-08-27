@@ -117,6 +117,9 @@ public:
   /// Clear all custom tenant profiles.
   void clear_tenant_profiles();
 
+  /// Dynamically scale all base op-class profiles and registered tenant profiles.
+  void update_capacity(double scale_factor);
+
   std::vector<std::string> get_tracked_keys() const noexcept override;
   void handle_conf_change(const ConfigProxy& conf,
                           const std::set<std::string>& changed) override;

@@ -68,6 +68,16 @@ void AsyncScheduler::request_complete()
   schedule(crimson::dmclock::TimeZero);
 }
 
+void AsyncScheduler::update_capacity(double scale_factor)
+{
+  int64_t base = cct->_conf.get_val<int64_t>("rgw_max_concurrent_requests");
+  if (base <= 0) {
+    base = 1024;
+  }
+  int64_t new_max = std::max<int64_t>(8, static_cast<int64_t>(base * scale_factor));
+  max_requests.store(new_max);
+}
+
 void AsyncScheduler::cancel()
 {
   ClientSums sums;

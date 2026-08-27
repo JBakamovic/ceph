@@ -78,6 +78,7 @@ public:
     return std::make_pair(r,SchedulerCompleter(std::bind(&Scheduler::request_complete,this)));
   }
   virtual void request_complete() {};
+  virtual void update_capacity(double scale_factor) {};
 
   virtual ~Scheduler() {};
 private:

@@ -53,6 +53,20 @@ void ClientConfig::clear_tenant_profiles()
   tenant_overrides->clear();
 }
 
+void ClientConfig::update_capacity(double scale_factor)
+{
+  std::unique_lock<std::shared_mutex> w_lock(*lock);
+  for (auto& [id, info] : *tenant_overrides) {
+    double r = info.reservation * scale_factor;
+    double w = std::max(1.0, info.weight * scale_factor);
+    double l = std::max(1.0, info.limit * scale_factor);
+    if (info.reservation >= 10.0) {
+      r = std::max(r, info.reservation * 0.70);
+    }
+    info.update(r, w, l);
+  }
+}
+
 std::vector<std::string> ClientConfig::get_tracked_keys() const noexcept
 {
   return {

@@ -57,6 +57,9 @@ class AsyncScheduler : public md_config_obs_t, public Scheduler {
   /// returns a throttle unit granted by async_request()
   void request_complete() override;
 
+  /// dynamically adjust max concurrent requests based on adaptive feedback scale
+  void update_capacity(double scale_factor) override;
+
   /// cancel all queued requests, invoking their completion handlers with an
   /// operation_aborted error and default-constructed result
   void cancel();

@@ -4104,6 +4104,27 @@ options:
   see_also:
   - rgw_dmclock_metadata_res
   - rgw_dmclock_metadata_wgt
+- name: rgw_dmclock_adaptive_tuning
+  type: bool
+  level: advanced
+  desc: Enable real-time closed-loop adaptive AIMD capacity tuning for dmClock
+  default: false
+  services:
+  - rgw
+- name: rgw_dmclock_adaptive_target_latency_ms
+  type: float
+  level: advanced
+  desc: Target storage backend latency threshold in milliseconds for AIMD feedback
+  default: 5
+  services:
+  - rgw
+- name: rgw_dmclock_adaptive_sample_interval_ms
+  type: uint
+  level: advanced
+  desc: Telemetry sampling and controller adjustment interval in milliseconds
+  default: 50
+  services:
+  - rgw
 - name: rgw_d3n_l1_local_datacache_enabled
   type: bool
   level: advanced

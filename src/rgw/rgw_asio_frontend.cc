@@ -458,6 +458,8 @@ class AsioFrontend {
   CephContext* ctx() const { return cct.get(); }
   std::optional<dmc::ClientCounters> client_counters;
   std::unique_ptr<dmc::ClientConfig> client_config;
+  std::shared_ptr<dmc::LatencyTelemetry> latency_telemetry = std::make_shared<dmc::LatencyTelemetry>();
+  std::unique_ptr<dmc::AdaptiveCapacityController> adaptive_controller;
 
   void accept(Listener& listener, boost::asio::yield_context yield);
   void on_accept(Listener& listener, tcp::socket stream);
@@ -482,6 +484,20 @@ class AsioFrontend {
                                               sched_ctx.get_dmc_client_config(),
                                               *sched_ctx.get_dmc_client_config(),
                                               dmc::AtLimit::Reject));
+      if (ctx()->_conf.get_val<bool>("rgw_dmclock_adaptive_tuning")) {
+        double target_lat = ctx()->_conf.get_val<double>("rgw_dmclock_adaptive_target_latency_ms");
+        uint32_t interval = static_cast<uint32_t>(ctx()->_conf.get_val<uint64_t>("rgw_dmclock_adaptive_sample_interval_ms"));
+        auto* sched_ptr = scheduler.get();
+        auto* cfg_ptr = sched_ctx.get_dmc_client_config();
+        adaptive_controller = std::make_unique<dmc::AdaptiveCapacityController>(
+            context, latency_telemetry,
+            [sched_ptr, cfg_ptr](double scale) {
+              if (sched_ptr) sched_ptr->update_capacity(scale);
+              if (cfg_ptr) cfg_ptr->update_capacity(scale);
+            },
+            target_lat, interval);
+        adaptive_controller->start();
+      }
       break;
     case dmc::scheduler_t::none:
       lderr(ctx()) << "Got invalid scheduler type for beast, defaulting to throttler" << dendl;
@@ -1230,6 +1246,10 @@ void AsioFrontend::stop()
   ldout(ctx(), 4) << "frontend initiating shutdown..." << dendl;
 
   going_down = true;
+
+  if (adaptive_controller) {
+    adaptive_controller->stop();
+  }
 
   boost::system::error_code ec;
   // close all listeners
