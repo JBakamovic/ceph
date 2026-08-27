@@ -207,12 +207,22 @@ struct TenantConfig {
   dmc::op_class client_id = dmc::op_class::data;
   double pacing_ms = 0.0;
   PacingDistribution pacing_dist = PacingDistribution::Constant;
+  double arrival_rate_per_s = 0.0;
   std::vector<std::pair<OpType, int>> op_weights; // OpType -> weight
   DmClockProfile dmclock_profile{10.0, 50.0, 50.0};
 };
 
+inline double resolve_arrival_rate(const TenantConfig& t) {
+  if (t.arrival_rate_per_s > 0.0) return t.arrival_rate_per_s;
+  if (t.pacing_ms > 0.0) return 1000.0 / t.pacing_ms;
+  if (t.workers > 0) return static_cast<double>(t.workers) * 200.0;
+  return 0.0;
+}
+
 struct BenchConfig {
   std::string scheduler_type = "throttler"; // "throttler", "dmclock", "dmclock_coarse", "dmclock_fine", "none"
+  std::string load_model = "closed_loop";   // "closed_loop" | "open_loop"
+  int64_t max_inflight = 2048;
   int64_t max_concurrent_requests = 128;
   int runtime_seconds = 10;
   int thread_count = 8;
@@ -308,6 +318,8 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
   // Benchmark global
   json_spirit::mObject bench_obj;
   bench_obj["scheduler"] = config.scheduler_type;
+  bench_obj["load_model"] = config.load_model;
+  bench_obj["max_inflight"] = static_cast<int64_t>(config.max_inflight);
   bench_obj["max_concurrent_requests"] = static_cast<int64_t>(config.max_concurrent_requests);
   bench_obj["runtime_seconds"] = config.runtime_seconds;
   bench_obj["thread_count"] = config.thread_count;
@@ -369,6 +381,7 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
     t_obj["client_id"] = client_id_to_str(t.client_id);
     t_obj["pacing_ms"] = t.pacing_ms;
     t_obj["pacing_distribution"] = pacing_dist_to_str(t.pacing_dist);
+    t_obj["arrival_rate_per_s"] = t.arrival_rate_per_s;
 
     json_spirit::mObject weights_obj;
     for (const auto& [op, w] : t.op_weights) {
@@ -403,6 +416,12 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
     const auto& b = it->second.get_obj();
     if (auto v = b.find("scheduler"); v != b.end() && v->second.type() == json_spirit::str_type) {
       config.scheduler_type = v->second.get_str();
+    }
+    if (auto v = b.find("load_model"); v != b.end() && v->second.type() == json_spirit::str_type) {
+      config.load_model = v->second.get_str();
+    }
+    if (auto v = b.find("max_inflight"); v != b.end() && v->second.type() == json_spirit::int_type) {
+      config.max_inflight = v->second.get_int64();
     }
     if (auto v = b.find("max_concurrent_requests"); v != b.end() && v->second.type() == json_spirit::int_type) {
       config.max_concurrent_requests = v->second.get_int64();
@@ -533,6 +552,9 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
           t.pacing_dist = *dist;
         }
       }
+      if (auto v = t_obj.find("arrival_rate_per_s"); v != t_obj.end()) {
+        t.arrival_rate_per_s = v->second.get_real();
+      }
       if (auto v = t_obj.find("op_weights"); v != t_obj.end() && v->second.type() == json_spirit::obj_type) {
         for (const auto& [op_name, weight_val] : v->second.get_obj()) {
           if (auto op = parse_op_type(op_name); op && weight_val.type() == json_spirit::int_type) {
@@ -587,6 +609,8 @@ struct TenantStats {
   std::atomic<uint64_t> total_rejected_503{0};
   std::atomic<uint64_t> total_retries{0};
   std::atomic<uint64_t> total_bytes{0};
+  std::atomic<int64_t> inflight{0};
+  std::atomic<uint64_t> total_shed_backpressure{0};
 
   std::mutex samples_mutex;
   std::vector<RequestSample> samples;
@@ -1203,20 +1227,111 @@ inline std::chrono::microseconds compute_pacing_delay(double mean_pacing_ms,
 }
 
 // ============================================================================
-// Dynamic Worker Coroutine
+// Open-Loop and Closed-Loop Request Generators
 // ============================================================================
+void run_one_open_loop_request(boost::asio::io_context& ioc,
+                               std::shared_ptr<TenantScheduler> scheduler,
+                               std::shared_ptr<SimulatedBackend> backend,
+                               std::shared_ptr<TenantStats> stats,
+                               uint32_t tenant_idx,
+                               TenantConfig tenant_cfg,
+                               OpType op,
+                               const BenchConfig& config) {
+  stats->inflight++;
+  boost::asio::spawn(boost::asio::make_strand(ioc),
+                     [&ioc, scheduler, backend, stats, tenant_idx, tenant_cfg, op, config]
+                     (boost::asio::yield_context yield) {
+    struct InflightGuard {
+      std::shared_ptr<TenantStats> s;
+      ~InflightGuard() { s->inflight--; }
+    } guard{stats};
+
+    auto start_time = std::chrono::steady_clock::now();
+    dmc::client_id cid = tenant_cfg.client_id;
+    dmc::Cost cost = config.uniform_cost ? dmc::Cost{1} : config.op_model.get_cost(op);
+    auto dmc_time = dmc::get_time();
+
+    int ret = 0;
+    dmc::SchedulerCompleter completer;
+    std::tie(ret, completer) = scheduler->schedule_request(tenant_idx, cid, {}, dmc_time, cost, yield);
+
+    auto scheduled_time = std::chrono::steady_clock::now();
+    double queue_lat_ms = std::chrono::duration<double, std::milli>(
+        scheduled_time - start_time).count();
+
+    if (ret < 0) {
+      stats->total_rejected_503++;
+      RequestSample s{queue_lat_ms, queue_lat_ms, 0.0, false, ret, op};
+      stats->record_sample(s);
+      return;
+    }
+
+    double backend_lat_ms = 0.0;
+    backend->simulate_storage_io(op, yield, ioc, backend_lat_ms);
+
+    {
+      dmc::SchedulerCompleter release = std::move(completer);
+    }
+
+    auto end_time = std::chrono::steady_clock::now();
+    double total_lat_ms = std::chrono::duration<double, std::milli>(
+        end_time - start_time).count();
+
+    stats->total_accepted++;
+    RequestSample s{total_lat_ms, queue_lat_ms, backend_lat_ms, true, 0, op};
+    stats->record_sample(s);
+  }, boost::asio::detached);
+}
+
+void run_open_loop_generator(boost::asio::io_context& ioc,
+                             std::shared_ptr<TenantScheduler> scheduler,
+                             std::shared_ptr<SimulatedBackend> backend,
+                             std::shared_ptr<TenantStats> stats,
+                             uint32_t tenant_idx,
+                             TenantConfig tenant_cfg,
+                             const std::atomic<bool>& running,
+                             const BenchConfig& config) {
+  boost::asio::spawn(boost::asio::make_strand(ioc),
+                     [&ioc, scheduler, backend, stats, tenant_idx, tenant_cfg, &running, config]
+                     (boost::asio::yield_context yield) {
+    std::mt19937 rng(0x9E3779B9u ^ (tenant_idx * 2654435761u));
+    OpSelector selector(tenant_cfg.op_weights);
+    const double rate = resolve_arrival_rate(tenant_cfg);
+    if (rate <= 0.0) return;
+    std::exponential_distribution<double> interarrival(rate);
+
+    while (running.load()) {
+      auto gap = std::chrono::duration<double>(interarrival(rng));
+      boost::asio::steady_timer timer(ioc);
+      timer.expires_after(std::chrono::duration_cast<std::chrono::nanoseconds>(gap));
+      boost::system::error_code ec;
+      timer.async_wait(yield[ec]);
+      if (!running.load()) break;
+
+      stats->total_attempted++;
+      if (stats->inflight.load() >= config.max_inflight) {
+        stats->total_shed_backpressure++;
+        continue;
+      }
+      run_one_open_loop_request(ioc, scheduler, backend, stats, tenant_idx,
+                                tenant_cfg, selector.select_op(rng), config);
+    }
+  }, boost::asio::detached);
+}
+
 void run_tenant_worker(boost::asio::io_context& ioc,
                        std::shared_ptr<TenantScheduler> scheduler,
                        std::shared_ptr<SimulatedBackend> backend,
                        std::shared_ptr<TenantStats> stats,
                        uint32_t tenant_idx,
+                       int worker_idx,
                        TenantConfig tenant_cfg,
                        const std::atomic<bool>& running,
                        const BenchConfig& config) {
   boost::asio::spawn(boost::asio::make_strand(ioc),
-                     [&ioc, scheduler, backend, stats, tenant_idx, tenant_cfg, &running, config]
+                     [&ioc, scheduler, backend, stats, tenant_idx, worker_idx, tenant_cfg, &running, config]
                      (boost::asio::yield_context yield) {
-    thread_local std::mt19937 rng(std::random_device{}());
+    std::mt19937 rng(0x9E3779B9u ^ (tenant_idx * 10007u + static_cast<uint32_t>(worker_idx) * 2654435761u));
     OpSelector selector(tenant_cfg.op_weights);
 
     while (running.load()) {
@@ -1550,6 +1665,23 @@ void print_report(const std::vector<std::shared_ptr<TenantStats>>& all_stats,
             << " | Jain's Fairness Index: " << std::fixed << std::setprecision(3) << jains_fairness << " (1.0 = ideal)\n";
   std::cout << "====================================================================================================\n\n";
 
+  // A scheduler that never had to reject anything has not been tested under saturation.
+  uint64_t total_drops = 0;
+  for (const auto& t : all_stats) total_drops += t->total_rejected_503.load();
+  if (total_drops == 0) {
+    int64_t offered_concurrency = 0;
+    for (const auto& t : config.tenants) offered_concurrency += t.workers;
+    std::cout << "  !! WARNING: zero requests were rejected. Admission control was never\n"
+              << "     exercised, so this run does not compare schedulers under load.\n";
+    if (config.load_model != "open_loop" && offered_concurrency <= config.max_concurrent_requests) {
+      std::cout << "     Cause: closed-loop offered concurrency (" << offered_concurrency
+                << " workers) <= max_concurrent_requests (" << config.max_concurrent_requests
+                << "),\n     so the throttler cannot reject by construction. Raise the worker"
+                   " count or\n     lower the ceiling.\n";
+    }
+    std::cout << "\n";
+  }
+
   if (!config.export_json_path.empty()) {
     export_results_to_json(config.export_json_path, all_stats, config, elapsed_s, counters);
   }
@@ -1626,7 +1758,11 @@ int main(int argc, char* argv[]) {
       ("capacity_relative", po::value<bool>(&config.capacity_relative),
        "Scale dmClock profiles relative to estimated cluster knee capacity")
       ("capacity_estimate_ops_s", po::value<double>(&config.capacity_estimate_ops_s),
-       "Estimated cluster capacity in ops/s for capacity_relative scaling");
+       "Estimated cluster capacity in ops/s for capacity_relative scaling")
+      ("load_model", po::value<std::string>(&config.load_model)->default_value("closed_loop"),
+       "Load generator model: closed_loop | open_loop")
+      ("max_inflight", po::value<int64_t>(&config.max_inflight)->default_value(2048),
+       "open_loop: cap on in-flight requests, standing in for the gateway's finite sockets/memory");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -1648,6 +1784,10 @@ int main(int argc, char* argv[]) {
       // Re-apply CLI overrides ONLY if explicitly passed on the command line
       if (vm.count("scheduler") && !vm["scheduler"].defaulted())
         config.scheduler_type = vm["scheduler"].as<std::string>();
+      if (vm.count("load_model") && !vm["load_model"].defaulted())
+        config.load_model = vm["load_model"].as<std::string>();
+      if (vm.count("max_inflight") && !vm["max_inflight"].defaulted())
+        config.max_inflight = vm["max_inflight"].as<int64_t>();
       if (vm.count("max_concurrency") && !vm["max_concurrency"].defaulted())
         config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
       if (vm.count("runtime") && !vm["runtime"].defaulted())
@@ -1745,7 +1885,7 @@ int main(int argc, char* argv[]) {
   std::atomic<bool> running{true};
 
   std::cout << "[*] Starting workload benchmark with " << config.scheduler_type
-            << " scheduler for " << config.runtime_seconds << "s...\n"
+            << " scheduler (" << config.load_model << " load) for " << config.runtime_seconds << "s...\n"
             << "    Configured Tenants: " << config.tenants.size()
             << " | Capacity Knee: " << config.backend.cluster_capacity << "\n";
 
@@ -1775,8 +1915,21 @@ int main(int argc, char* argv[]) {
               << ", W=" << t_cfg.dmclock_profile.weight
               << ", L=" << t_cfg.dmclock_profile.limit << ")\n";
 
-    for (int w = 0; w < t_cfg.workers; w++) {
-      run_tenant_worker(context, scheduler, backend, t_stats, t_idx, t_cfg, running, config);
+    if (config.load_model == "open_loop") {
+      const double rate = resolve_arrival_rate(t_cfg);
+      if (rate <= 0.0) {
+        std::cerr << "[-] open_loop: tenant '" << t_cfg.name
+                  << "' is unpaced and has no arrival_rate_per_s; "
+                     "there is no closed-loop rate to convert. Set one.\n";
+        return 1;
+      }
+      std::cout << "         open-loop arrivals: " << rate << " req/s (Poisson)\n";
+      run_open_loop_generator(context, scheduler, backend, t_stats, t_idx,
+                              t_cfg, running, config);
+    } else {
+      for (int w = 0; w < t_cfg.workers; w++) {
+        run_tenant_worker(context, scheduler, backend, t_stats, t_idx, w, t_cfg, running, config);
+      }
     }
   }
 
