@@ -6,9 +6,13 @@
     "thread_count": 8,
     "allow_retries": false,
     "max_retries": 3,
-    "at_limit": "reject_threshold",
+    "at_limit": "reject",
     "at_limit_threshold_s": 1.0,
-    "uniform_cost": false
+    "uniform_cost": true,
+    "load_model": "open_loop",
+    "capacity_relative": true,
+    "capacity_estimate_ops_s": 1900.0,
+    "max_inflight": 50000
   },
   "backend": {
     "cluster_base_latency_ms": 5.0,
@@ -21,24 +25,24 @@
   },
   "dmclock": {
     "admin": {
-      "res": 10.0,
+      "res": 0.05,
       "wgt": 100.0,
-      "lim": 50.0
+      "lim": 0.2
     },
     "auth": {
-      "res": 5.0,
-      "wgt": 50.0,
-      "lim": 25.0
+      "res": 0.05,
+      "wgt": 100.0,
+      "lim": 0.2
     },
     "data": {
-      "res": 20.0,
+      "res": 0.35,
       "wgt": 100.0,
-      "lim": 100.0
+      "lim": 0.6
     },
     "metadata": {
-      "res": 10.0,
-      "wgt": 50.0,
-      "lim": 50.0
+      "res": 0.1,
+      "wgt": 100.0,
+      "lim": 0.6
     }
   },
   "op_costs": {
@@ -70,10 +74,11 @@
         "ListBucket": 30
       },
       "dmclock": {
-        "res": 20.0,
+        "res": 0.1,
         "wgt": 100.0,
-        "lim": 100.0
-      }
+        "lim": 2.0
+      },
+      "arrival_rate_per_s": 4500.0
     },
     {
       "name": "Tenant B (Interactive Data)",
@@ -87,10 +92,11 @@
         "PutSmall": 50
       },
       "dmclock": {
-        "res": 50.0,
+        "res": 0.25,
         "wgt": 100.0,
-        "lim": 100.0
-      }
+        "lim": 0.6
+      },
+      "arrival_rate_per_s": 1000.0
     },
     {
       "name": "Tenant C (Health Probe)",
@@ -103,10 +109,11 @@
         "ProbeHealth": 100
       },
       "dmclock": {
-        "res": 10.0,
+        "res": 0.05,
         "wgt": 100.0,
-        "lim": 50.0
-      }
+        "lim": 0.2
+      },
+      "arrival_rate_per_s": 4.0
     }
   ]
 }

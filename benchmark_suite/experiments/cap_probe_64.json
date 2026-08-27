@@ -1,14 +1,15 @@
 {
   "benchmark": {
-    "scheduler": "throttler",
+    "scheduler": "none",
     "max_concurrent_requests": 128,
     "runtime_seconds": 10,
     "thread_count": 8,
     "allow_retries": false,
     "max_retries": 3,
-    "at_limit": "reject_threshold",
+    "at_limit": "reject",
     "at_limit_threshold_s": 1.0,
-    "uniform_cost": false
+    "uniform_cost": true,
+    "load_model": "open_loop"
   },
   "backend": {
     "cluster_base_latency_ms": 5.0,
@@ -73,40 +74,8 @@
         "res": 20.0,
         "wgt": 100.0,
         "lim": 100.0
-      }
-    },
-    {
-      "name": "Tenant B (Interactive Data)",
-      "role": "Latency-Sensitive S3 App",
-      "workers": 15,
-      "client_id": "data",
-      "pacing_ms": 2.0,
-      "pacing_distribution": "constant",
-      "op_weights": {
-        "GetSmall": 50,
-        "PutSmall": 50
       },
-      "dmclock": {
-        "res": 50.0,
-        "wgt": 100.0,
-        "lim": 100.0
-      }
-    },
-    {
-      "name": "Tenant C (Health Probe)",
-      "role": "Cluster Health / K8s Probe",
-      "workers": 1,
-      "client_id": "admin",
-      "pacing_ms": 250.0,
-      "pacing_distribution": "constant",
-      "op_weights": {
-        "ProbeHealth": 100
-      },
-      "dmclock": {
-        "res": 10.0,
-        "wgt": 100.0,
-        "lim": 50.0
-      }
+      "arrival_rate_per_s": 2000.0
     }
   ]
 }

@@ -8,7 +8,10 @@
     "max_retries": 3,
     "adaptive_tuning": false,
     "adaptive_target_latency_ms": 5.0,
-    "adaptive_sample_interval_ms": 50
+    "adaptive_sample_interval_ms": 50,
+    "at_limit": "reject_threshold",
+    "at_limit_threshold_s": 1.0,
+    "uniform_cost": false
   },
   "backend": {
     "cluster_base_latency_ms": 5.0,
