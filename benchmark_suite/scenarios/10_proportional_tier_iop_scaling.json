@@ -1,0 +1,126 @@
+{
+    "benchmark": {
+        "scheduler": "dmclock_fine",
+        "runtime_seconds": 10,
+        "thread_count": 16,
+        "max_concurrent_requests": 512,
+        "allow_retries": false,
+        "max_retries": 3,
+        "adaptive_tuning": false,
+        "adaptive_target_latency_ms": 3.0,
+        "adaptive_sample_interval_ms": 50
+    },
+    "backend": {
+        "cluster_capacity": 256,
+        "cluster_base_latency_ms": 1.5,
+        "congestion_factor": 2.0,
+        "spike_amplitude_ms": 0.0,
+        "spike_interval_s": 5.0,
+        "spike_duration_s": 1.0,
+        "jitter_pct": 0.05
+    },
+    "dmclock": {
+        "admin": { "res": 50.0, "wgt": 200.0, "lim": 200.0 },
+        "auth": { "res": 50.0, "wgt": 100.0, "lim": 100.0 },
+        "data": { "res": 500.0, "wgt": 500.0, "lim": 5000.0 },
+        "metadata": { "res": 100.0, "wgt": 200.0, "lim": 500.0 }
+    },
+    "op_costs": {
+        "GetSmall": 1,
+        "PutSmall": 2,
+        "GetLarge": 8,
+        "PutLarge": 12,
+        "ListBucket": 10,
+        "ProbeHealth": 1
+    },
+    "op_latency_multipliers": {
+        "GetSmall": 1.0,
+        "PutSmall": 1.2,
+        "GetLarge": 2.5,
+        "PutLarge": 3.0,
+        "ListBucket": 3.0,
+        "ProbeHealth": 0.5
+    },
+    "tenants": [
+        {
+            "name": "Tenant 1 [Control] Health Monitor",
+            "role": "Cluster Health / K8s Liveness Probe",
+            "client_id": "admin",
+            "workers": 1,
+            "pacing_ms": 100.0,
+            "pacing_distribution": "constant",
+            "op_weights": {
+                "ProbeHealth": 100
+            },
+            "dmclock": {
+                "res": 50.0,
+                "wgt": 200.0,
+                "lim": 200.0
+            }
+        },
+        {
+            "name": "Tenant 2 [Tier 1] Platinum VIP",
+            "role": "Enterprise VIP (R=5000, 6.25x Silver)",
+            "client_id": "data",
+            "workers": 40,
+            "pacing_ms": 0.0,
+            "pacing_distribution": "constant",
+            "op_weights": {
+                "GetSmall": 100
+            },
+            "dmclock": {
+                "res": 5000.0,
+                "wgt": 5000.0,
+                "lim": 10000.0
+            }
+        },
+        {
+            "name": "Tenant 3 [Tier 2] Gold Standard",
+            "role": "Gold Standard (R=2000, 2.5x Silver)",
+            "client_id": "data",
+            "workers": 40,
+            "pacing_ms": 0.0,
+            "pacing_distribution": "constant",
+            "op_weights": {
+                "GetSmall": 100
+            },
+            "dmclock": {
+                "res": 2000.0,
+                "wgt": 2000.0,
+                "lim": 5000.0
+            }
+        },
+        {
+            "name": "Tenant 4 [Tier 3] Silver Standard",
+            "role": "Silver Standard (R=800, 1.0x Base)",
+            "client_id": "data",
+            "workers": 40,
+            "pacing_ms": 0.0,
+            "pacing_distribution": "constant",
+            "op_weights": {
+                "GetSmall": 100
+            },
+            "dmclock": {
+                "res": 800.0,
+                "wgt": 800.0,
+                "lim": 2000.0
+            }
+        },
+        {
+            "name": "Tenant 5 [Tier 4] Bronze Standard",
+            "role": "Bronze Standard (R=100, 0.125x Silver)",
+            "client_id": "data",
+            "workers": 40,
+            "pacing_ms": 0.0,
+            "pacing_distribution": "constant",
+            "op_weights": {
+                "GetSmall": 100
+            },
+            "dmclock": {
+                "res": 100.0,
+                "wgt": 100.0,
+                "lim": 500.0
+            }
+        }
+    ]
+}
