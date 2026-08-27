@@ -175,6 +175,13 @@ target_link_libraries(bench_rgw_ratelimit ${rgw_libs})
 add_executable(bench_rgw_ratelimit_gc bench_rgw_ratelimit_gc.cc )
 target_link_libraries(bench_rgw_ratelimit_gc ${rgw_libs})
 
+add_executable(bench_rgw_scheduler bench_rgw_scheduler.cc)
+target_link_libraries(bench_rgw_scheduler
+  rgw_schedulers
+  global
+  ${rgw_libs}
+  Boost::program_options)
+
 # Crypto benchmark through the BlockCrypt interface (full RGW encrypt path).
 # Uses the plugin system to load the configured accelerator (ISA-L or OpenSSL).
 # Run with --accel crypto_isal or --accel crypto_openssl to compare backends.

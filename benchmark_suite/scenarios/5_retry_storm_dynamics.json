@@ -1,0 +1,67 @@
+{
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 48,
+    "congestion_factor": 3.0,
+    "jitter_pct": 0.1,
+    "spike_amplitude_ms": 0.0,
+    "spike_duration_s": 1.0,
+    "spike_interval_s": 5.0
+  },
+  "benchmark": {
+    "allow_retries": true,
+    "max_concurrent_requests": 64,
+    "max_retries": 4,
+    "runtime_seconds": 6,
+    "scheduler": "throttler",
+    "thread_count": 8
+  },
+  "dmclock": {
+    "admin": {
+      "res": 15.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "tenants": [
+    {
+      "name": "Batch Clients (With Retries)",
+      "role": "Heavy Load with Retries",
+      "client_id": "data",
+      "workers": 40,
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutLarge": 50,
+        "PutSmall": 50
+      }
+    },
+    {
+      "name": "API Clients (With Retries)",
+      "role": "Interactive with Retries",
+      "client_id": "data",
+      "workers": 25,
+      "pacing_ms": 2.0,
+      "pacing_distribution": "exponential",
+      "op_weights": {
+        "GetSmall": 80,
+        "PutSmall": 20
+      }
+    }
+  ]
+}

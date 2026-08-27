@@ -1,0 +1,109 @@
+{
+  "benchmark": {
+    "scheduler": "throttler",
+    "max_concurrent_requests": 128,
+    "runtime_seconds": 10,
+    "thread_count": 8,
+    "allow_retries": false,
+    "max_retries": 3
+  },
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 64,
+    "congestion_factor": 3.0,
+    "spike_amplitude_ms": 0.0,
+    "spike_interval_s": 5.0,
+    "spike_duration_s": 1.0,
+    "jitter_pct": 0.05
+  },
+  "dmclock": {
+    "admin": {
+      "res": 10.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "op_costs": {
+    "ProbeHealth": 1,
+    "GetSmall": 2,
+    "PutSmall": 3,
+    "GetLarge": 16,
+    "PutLarge": 24,
+    "ListBucket": 20
+  },
+  "op_latency_multipliers": {
+    "ProbeHealth": 0.5,
+    "GetSmall": 1.0,
+    "PutSmall": 1.5,
+    "GetLarge": 4.0,
+    "PutLarge": 6.0,
+    "ListBucket": 5.0
+  },
+  "tenants": [
+    {
+      "name": "Tenant A (Bully Data)",
+      "role": "Bulk Aggressor",
+      "workers": 60,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutLarge": 70,
+        "ListBucket": 30
+      },
+      "dmclock": {
+        "res": 20.0,
+        "wgt": 100.0,
+        "lim": 100.0
+      }
+    },
+    {
+      "name": "Tenant B (Interactive Data)",
+      "role": "Latency-Sensitive S3 App",
+      "workers": 15,
+      "client_id": "data",
+      "pacing_ms": 2.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "GetSmall": 50,
+        "PutSmall": 50
+      },
+      "dmclock": {
+        "res": 50.0,
+        "wgt": 100.0,
+        "lim": 100.0
+      }
+    },
+    {
+      "name": "Tenant C (Health Probe)",
+      "role": "Cluster Health / K8s Probe",
+      "workers": 1,
+      "client_id": "admin",
+      "pacing_ms": 250.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "ProbeHealth": 100
+      },
+      "dmclock": {
+        "res": 10.0,
+        "wgt": 100.0,
+        "lim": 50.0
+      }
+    }
+  ]
+}

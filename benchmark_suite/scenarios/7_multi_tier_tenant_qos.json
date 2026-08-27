@@ -1,0 +1,160 @@
+{
+  "benchmark": {
+    "scheduler": "throttler",
+    "max_concurrent_requests": 128,
+    "runtime_seconds": 10,
+    "thread_count": 8,
+    "allow_retries": false,
+    "max_retries": 3
+  },
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 64,
+    "congestion_factor": 3.0,
+    "spike_amplitude_ms": 0.0,
+    "spike_interval_s": 5.0,
+    "spike_duration_s": 1.0,
+    "jitter_pct": 0.05
+  },
+  "dmclock": {
+    "admin": {
+      "res": 10.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "op_costs": {
+    "ProbeHealth": 1,
+    "GetSmall": 2,
+    "PutSmall": 3,
+    "GetLarge": 16,
+    "PutLarge": 24,
+    "ListBucket": 20
+  },
+  "op_latency_multipliers": {
+    "ProbeHealth": 0.5,
+    "GetSmall": 1.0,
+    "PutSmall": 1.5,
+    "GetLarge": 4.0,
+    "PutLarge": 6.0,
+    "ListBucket": 5.0
+  },
+  "tenants": [
+    {
+      "name": "Tenant 1 [Control] Health Probe",
+      "role": "Cluster Health / K8s Liveness Probe",
+      "workers": 1,
+      "client_id": "admin",
+      "pacing_ms": 250.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "ProbeHealth": 100
+      },
+      "dmclock": {
+        "res": 10.0,
+        "wgt": 100.0,
+        "lim": 50.0
+      }
+    },
+    {
+      "name": "Tenant 2 [Tier 1] Platinum VIP",
+      "role": "Latency-Critical S3 Web App",
+      "workers": 20,
+      "client_id": "data",
+      "pacing_ms": 2.0,
+      "pacing_distribution": "poisson",
+      "op_weights": {
+        "GetSmall": 70,
+        "PutSmall": 30
+      },
+      "dmclock": {
+        "res": 40.0,
+        "wgt": 200.0,
+        "lim": 100.0
+      }
+    },
+    {
+      "name": "Tenant 3 [Tier 2] Gold Standard",
+      "role": "Production Core Microservices",
+      "workers": 15,
+      "client_id": "data",
+      "pacing_ms": 5.0,
+      "pacing_distribution": "poisson",
+      "op_weights": {
+        "GetSmall": 50,
+        "PutSmall": 50
+      },
+      "dmclock": {
+        "res": 20.0,
+        "wgt": 100.0,
+        "lim": 100.0
+      }
+    },
+    {
+      "name": "Tenant 4 [Tier 3] Silver ETL",
+      "role": "Data Warehouse / Analytics Queries",
+      "workers": 10,
+      "client_id": "data",
+      "pacing_ms": 10.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "GetLarge": 60,
+        "ListBucket": 40
+      },
+      "dmclock": {
+        "res": 10.0,
+        "wgt": 50.0,
+        "lim": 80.0
+      }
+    },
+    {
+      "name": "Tenant 5 [Tier 4] Bronze Batch Bully",
+      "role": "Heavy Nightly Backup Flood",
+      "workers": 60,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutLarge": 80,
+        "ListBucket": 20
+      },
+      "dmclock": {
+        "res": 5.0,
+        "wgt": 20.0,
+        "lim": 50.0
+      }
+    },
+    {
+      "name": "Tenant 6 [Tier 5] Free Best-Effort",
+      "role": "Public Sandbox / Free Tier",
+      "workers": 15,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "GetSmall": 80,
+        "PutSmall": 20
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 10.0,
+        "lim": 20.0
+      }
+    }
+  ]
+}

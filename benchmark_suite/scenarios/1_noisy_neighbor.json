@@ -1,0 +1,78 @@
+{
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 64,
+    "congestion_factor": 3.0,
+    "jitter_pct": 0.1,
+    "spike_amplitude_ms": 0.0,
+    "spike_duration_s": 1.0,
+    "spike_interval_s": 5.0
+  },
+  "benchmark": {
+    "allow_retries": false,
+    "max_concurrent_requests": 128,
+    "max_retries": 3,
+    "runtime_seconds": 6,
+    "scheduler": "throttler",
+    "thread_count": 8
+  },
+  "dmclock": {
+    "admin": {
+      "res": 15.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "tenants": [
+    {
+      "name": "Tenant A (Bully Bulk Ingest)",
+      "role": "Bulk Aggressor",
+      "client_id": "data",
+      "workers": 50,
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutLarge": 80,
+        "GetLarge": 20
+      }
+    },
+    {
+      "name": "Tenant B (Interactive Web CRUD)",
+      "role": "Latency Sensitive",
+      "client_id": "data",
+      "workers": 15,
+      "pacing_ms": 2.0,
+      "pacing_distribution": "exponential",
+      "op_weights": {
+        "GetSmall": 60,
+        "PutSmall": 40
+      }
+    },
+    {
+      "name": "Tenant C (K8s Liveness Probe)",
+      "role": "Control Plane Health",
+      "client_id": "admin",
+      "workers": 1,
+      "pacing_ms": 200.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "ProbeHealth": 100
+      }
+    }
+  ]
+}
