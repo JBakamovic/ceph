@@ -8,7 +8,7 @@
             "limit_cost" : 0,
             "prio" : 1,
             "qlen" : 0,
-            "res" : 41
+            "res" : 17
         },
         "auth" : {
             "cancel" : 0,
@@ -22,8 +22,8 @@
         "data" : {
             "cancel" : 0,
             "cost" : 0,
-            "limit" : 52910,
-            "limit_cost" : 52910,
+            "limit" : 15960,
+            "limit_cost" : 15960,
             "prio" : 0,
             "qlen" : 0,
             "res" : 1
@@ -38,32 +38,30 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 10.005067573000000,
+    "elapsed_time_s" : 3.0756773300000000,
     "fidelity" : {
         "at_limit" : "reject",
         "at_limit_matches_production" : true,
         "capacity_estimate_ops_s" : 1900.0000000000000,
         "capacity_relative" : true,
         "cost_model_matches_production" : true,
-        "load_model" : "open_loop",
         "max_concurrent_requests" : 128,
-        "offered_load_independent_of_scheduler" : true,
         "production_max_concurrent_requests_default" : 1024,
         "production_rgw_thread_pool_size_default" : 128,
         "scheduler_is_production_code" : true,
         "thread_count" : 8,
         "uniform_cost" : true
     },
-    "jains_fairness_index" : 0.34919735599622298,
+    "jains_fairness_index" : 0.37025641025641026,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_coarse",
     "server_threads" : 8,
     "tenants" : [
         {
             "accepted" : 0,
-            "attempted" : 42960,
+            "attempted" : 12991,
             "drop_rate_pct" : 100.00000000000000,
-            "drops_503" : 42960,
+            "drops_503" : 12991,
             "max_ms" : 0.0000000000000000,
             "name" : "Tenant A (Bully Data)",
             "p50_ms" : 0.0000000000000000,
@@ -72,41 +70,38 @@
             "p99_ms" : 0.0000000000000000,
             "retries" : 0,
             "role" : "Bulk Aggressor",
-            "shed_backpressure" : 0,
             "throughput_tps" : 0.0000000000000000
         },
         {
             "accepted" : 1,
-            "attempted" : 9951,
-            "drop_rate_pct" : 99.989950758717711,
-            "drops_503" : 9950,
-            "max_ms" : 5.0536250000000003,
+            "attempted" : 2970,
+            "drop_rate_pct" : 99.966329966329965,
+            "drops_503" : 2969,
+            "max_ms" : 5.2668710000000001,
             "name" : "Tenant B (Interactive Data)",
-            "p50_ms" : 5.0536250000000003,
-            "p90_ms" : 5.0536250000000003,
-            "p95_ms" : 5.0536250000000003,
-            "p99_ms" : 5.0536250000000003,
+            "p50_ms" : 5.2668710000000001,
+            "p90_ms" : 5.2668710000000001,
+            "p95_ms" : 5.2668710000000001,
+            "p99_ms" : 5.2668710000000001,
             "retries" : 0,
             "role" : "Latency-Sensitive S3 App",
-            "shed_backpressure" : 0,
-            "throughput_tps" : 0.099949349937289031
+            "throughput_tps" : 0.32513163531364325
         },
         {
-            "accepted" : 42,
-            "attempted" : 42,
+            "accepted" : 18,
+            "attempted" : 18,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 2.6509070000000001,
+            "max_ms" : 2.5974870000000001,
             "name" : "Tenant C (Health Probe)",
-            "p50_ms" : 2.5716725000000000,
-            "p90_ms" : 2.6394126000000000,
-            "p95_ms" : 2.6455788999999998,
-            "p99_ms" : 2.6498352599999997,
+            "p50_ms" : 2.5101680000000002,
+            "p90_ms" : 2.5796431000000002,
+            "p95_ms" : 2.5905646000000000,
+            "p99_ms" : 2.5961025200000001,
             "retries" : 0,
             "role" : "Cluster Health / K8s Probe",
-            "shed_backpressure" : 0,
-            "throughput_tps" : 4.1978726973661393
+            "throughput_tps" : 5.8523694356455787
         }
     ],
-    "total_throughput_tps" : 4.2978220473034288
+    "total_throughput_tps" : 6.1775010709592220
 }

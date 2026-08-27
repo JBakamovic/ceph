@@ -11,6 +11,7 @@ RESULTS_DIR = Path("/home/jbakamovic/development/ceph/benchmark_suite/results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SCENARIOS = [
+    ("0_production_defaults.json", "Scenario 0: Production Defaults Baseline", 6),
     ("1_noisy_neighbor.json", "Scenario 1: Classic Noisy Neighbor", 6),
     ("2_metadata_crawler_storm.json", "Scenario 2: Metadata Index Lock Storm", 6),
     ("3_backend_congestion_and_spikes.json", "Scenario 3: Severe Backend Congestion & Spikes", 6),
@@ -19,8 +20,11 @@ SCENARIOS = [
     ("6_intra_class_tenant_starvation.json", "Scenario 6: Intra-Class S3 Tenant Starvation", 10),
     ("7_multi_tier_tenant_qos.json", "Scenario 7: 6-Tier Multi-Tenant Production QoS", 10),
     ("8_adaptive_capacity_tuning.json", "Scenario 8: Closed-Loop Adaptive Capacity Tuning", 12),
-    ("9_high_throughput_scale.json", "Scenario 9: High-Throughput Multi-Tenant Scale", 10),
-    ("10_proportional_tier_iop_scaling.json", "Scenario 10: Proportional Tier IOP Scaling", 10),
+    ("9_open_loop_starvation.json", "Scenario 9: Open-Loop Poisson Starvation", 10),
+    ("10_capacity_relative.json", "Scenario 10: Capacity-Relative Scaling", 10),
+    ("11_true_overload.json", "Scenario 11: True Overload Admission Control", 10),
+    ("12_high_throughput_scale.json", "Scenario 12: High-Throughput Multi-Tenant Scale", 10),
+    ("13_proportional_tier_iop_scaling.json", "Scenario 13: Proportional Tier IOP Scaling", 10),
 ]
 
 SCHEDULERS = ["throttler", "dmclock_coarse", "dmclock_fine", "dmclock_fine_upstream"]
