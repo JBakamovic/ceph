@@ -3965,6 +3965,25 @@ options:
   default: throttler
   services:
   - rgw
+- name: rgw_dmclock_per_tenant_enabled
+  type: bool
+  level: advanced
+  desc: Give each S3 tenant its own dmclock queue instead of one shared queue per
+    op class
+  long_desc: Only meaningful when rgw_scheduler_type is dmclock. When false (the
+    default), every S3 request shares a single data queue, so one aggressive
+    client can starve every other tenant on the gateway. When true, requests are
+    scheduled per S3 identity, so each tenant competes for its own reservation.
+    Admission control runs before authentication, so the identity used is the
+    bucket named in the request, not the authenticated user. Every tenant
+    currently shares its op class's configured reservation, weight and limit;
+    per-tenant profiles are not implemented yet.
+  default: false
+  services:
+  - rgw
+  see_also:
+  - rgw_scheduler_type
+  with_legacy: true
 - name: rgw_dmclock_admin_res
   type: float
   level: advanced

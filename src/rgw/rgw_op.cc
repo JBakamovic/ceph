@@ -1377,6 +1377,28 @@ int RGWGetObj::verify_permission(optional_yield y)
 
 RGWOp::~RGWOp(){};
 
+dmc::client_id RGWOp::dmclock_tenant_client(dmc::op_class op) const
+{
+  // direct member read rather than get_val(): this is on the request path
+  if (!s->cct->_conf->rgw_dmclock_per_tenant_enabled) {
+    return op; // tenant_id 0: the single shared queue per op class
+  }
+
+  // Admission control runs before verify_requester(), so s->user is not
+  // authenticated yet and cannot be used to identify the tenant here. What the
+  // handler has already parsed out of the request line is the bucket, so that
+  // is what we key on -- per-bucket QoS. Fall back to the authenticated user
+  // when one happens to be set (other frontends, e.g. librgw, init differently),
+  // and to the shared queue when neither is known.
+  if (s->user && !s->user->get_id().empty()) {
+    return {dmc::tenant_id_from(s->user->get_id().to_str()), op};
+  }
+  if (!s->bucket_name.empty()) {
+    return {dmc::tenant_id_from(s->bucket_tenant + '/' + s->bucket_name), op};
+  }
+  return op;
+}
+
 int RGWOp::verify_op_mask()
 {
   uint32_t required_mask = op_mask();

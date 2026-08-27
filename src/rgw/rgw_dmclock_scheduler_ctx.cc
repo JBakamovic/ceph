@@ -23,9 +23,9 @@ ClientConfig::ClientConfig(CephContext *cct)
   update(cct->_conf);
 }
 
-ClientInfo* ClientConfig::operator()(client_id client)
+ClientInfo* ClientConfig::operator()(const client_id& client)
 {
-  return &clients[static_cast<size_t>(client)];
+  return &clients[static_cast<size_t>(client.op)];
 }
 
 std::vector<std::string> ClientConfig::get_tracked_keys() const noexcept
@@ -43,26 +43,27 @@ std::vector<std::string> ClientConfig::get_tracked_keys() const noexcept
     "rgw_dmclock_metadata_res"s,
     "rgw_dmclock_metadata_wgt"s,
     "rgw_dmclock_metadata_lim"s,
-    "rgw_max_concurrent_requests"s
+    "rgw_max_concurrent_requests"s,
+    "rgw_dmclock_per_tenant_enabled"s
   };
 }
 
 void ClientConfig::update(const ConfigProxy& conf)
 {
   clients.clear();
-  static_assert(0 == static_cast<int>(client_id::admin));
+  static_assert(0 == static_cast<int>(op_class::admin));
   clients.emplace_back(conf.get_val<double>("rgw_dmclock_admin_res"),
                        conf.get_val<double>("rgw_dmclock_admin_wgt"),
                        conf.get_val<double>("rgw_dmclock_admin_lim"));
-  static_assert(1 == static_cast<int>(client_id::auth));
+  static_assert(1 == static_cast<int>(op_class::auth));
   clients.emplace_back(conf.get_val<double>("rgw_dmclock_auth_res"),
                        conf.get_val<double>("rgw_dmclock_auth_wgt"),
                        conf.get_val<double>("rgw_dmclock_auth_lim"));
-  static_assert(2 == static_cast<int>(client_id::data));
+  static_assert(2 == static_cast<int>(op_class::data));
   clients.emplace_back(conf.get_val<double>("rgw_dmclock_data_res"),
                        conf.get_val<double>("rgw_dmclock_data_wgt"),
                        conf.get_val<double>("rgw_dmclock_data_lim"));
-  static_assert(3 == static_cast<int>(client_id::metadata));
+  static_assert(3 == static_cast<int>(op_class::metadata));
   clients.emplace_back(conf.get_val<double>("rgw_dmclock_metadata_res"),
                        conf.get_val<double>("rgw_dmclock_metadata_wgt"),
                        conf.get_val<double>("rgw_dmclock_metadata_lim"));
@@ -76,21 +77,21 @@ void ClientConfig::handle_conf_change(const ConfigProxy& conf,
 
 ClientCounters::ClientCounters(CephContext *cct)
 {
-  clients[static_cast<size_t>(client_id::admin)] =
+  clients[static_cast<size_t>(op_class::admin)] =
       queue_counters::build(cct, "dmclock-admin");
-  clients[static_cast<size_t>(client_id::auth)] =
+  clients[static_cast<size_t>(op_class::auth)] =
       queue_counters::build(cct, "dmclock-auth");
-  clients[static_cast<size_t>(client_id::data)] =
+  clients[static_cast<size_t>(op_class::data)] =
       queue_counters::build(cct, "dmclock-data");
-  clients[static_cast<size_t>(client_id::metadata)] =
+  clients[static_cast<size_t>(op_class::metadata)] =
       queue_counters::build(cct, "dmclock-metadata");
-  clients[static_cast<size_t>(client_id::count)] =
+  clients[static_cast<size_t>(op_class::count)] =
       throttle_counters::build(cct, "dmclock-scheduler");
 }
 
-void inc(ClientSums& sums, client_id client, Cost cost)
+void inc(ClientSums& sums, const client_id& client, Cost cost)
 {
-  auto& sum = sums[static_cast<size_t>(client)];
+  auto& sum = sums[static_cast<size_t>(client.op)];
   sum.count++;
   sum.cost += cost;
 }

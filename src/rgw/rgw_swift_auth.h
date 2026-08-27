@@ -452,7 +452,7 @@ public:
   int verify_permission(optional_yield) override { return 0; }
   void execute(optional_yield y) override;
   const char* name() const override { return "swift_auth_get"; }
-  dmc::client_id dmclock_client() override { return dmc::client_id::auth; }
+  dmc::client_id dmclock_client() override { return dmc::op_class::auth; }
 };
 
 class RGWHandler_SWIFT_Auth : public RGWHandler_REST {

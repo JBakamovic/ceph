@@ -26,7 +26,7 @@ struct SyncRequest : public Request {
   std::condition_variable& req_cv;
   ReqState& req_state;
   GetClientCounters& counters;
-  explicit SyncRequest(client_id _id, Time started, Cost cost,
+  explicit SyncRequest(const client_id& _id, Time started, Cost cost,
                        std::mutex& mtx, std::condition_variable& _cv,
                        ReqState& _state, GetClientCounters& counters):
     Request{_id, started, cost}, req_mtx(mtx), req_cv(_cv), req_state(_state), counters(counters) {};
