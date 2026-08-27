@@ -35,8 +35,8 @@ This document outlines the **Fine-Grained Multi-Tenant dmClock Architecture**, c
 
 ### The Architectural Gap
 In upstream Ceph RGW:
-- [`src/rgw/rgw_dmclock.h`](file:///home/jbakamovic/development/ceph/src/rgw/rgw_dmclock.h): `client_id` is hardcoded as an enum of 4 daemon-level classes (`admin`, `auth`, `data`, `metadata`).
-- [`src/rgw/rgw_op.h`](file:///home/jbakamovic/development/ceph/src/rgw/rgw_op.h): All S3 object operations (`GetObj`, `PutObj`, `ListBucket`) unconditionally return `client_id::data`.
+- [`src/rgw/rgw_dmclock.h`](../../src/rgw/rgw_dmclock.h): `client_id` is hardcoded as an enum of 4 daemon-level classes (`admin`, `auth`, `data`, `metadata`).
+- [`src/rgw/rgw_op.h`](../../src/rgw/rgw_op.h): All S3 object operations (`GetObj`, `PutObj`, `ListBucket`) unconditionally return `client_id::data`.
 - **Outcome**: Regardless of whether a cluster hosts 2 or 2,000 tenants, all S3 traffic competes in a single dmClock queue.
 
 ---
@@ -294,16 +294,56 @@ In production Ceph deployments, background maintenance (OSD deep-scrubs, disk re
 
 The complete working implementation is available in the Ceph tree:
 
-- **Benchmark Driver & Scheduler Code**: [`src/test/rgw/bench_rgw_scheduler.cc`](file:///home/jbakamovic/development/ceph/src/test/rgw/bench_rgw_scheduler.cc)
+- **Benchmark Driver & Scheduler Code**: [`src/test/rgw/bench_rgw_scheduler.cc`](../../src/test/rgw/bench_rgw_scheduler.cc)
   - `FineGrainedDmClockTenantScheduler`: Single ASIO strand + `PullPriorityQueue` + dynamic `update_capacity`
   - `ThrottlerTenantScheduler`: Global concurrency semaphore
   - `CoarseDmClockTenantScheduler`: Upstream Ceph 4-class dmClock
   - `run_adaptive_controller_thread`: Dedicated closed-loop AIMD telemetry monitor
 - **Scenario Configurations**:
-  - Scenario 6 (Bully Starvation): [`benchmark_suite/scenarios/6_intra_class_tenant_starvation.json`](file:///home/jbakamovic/development/ceph/benchmark_suite/scenarios/6_intra_class_tenant_starvation.json)
-  - Scenario 7 (Multi-Tier Hierarchy): [`benchmark_suite/scenarios/7_multi_tier_tenant_qos.json`](file:///home/jbakamovic/development/ceph/benchmark_suite/scenarios/7_multi_tier_tenant_qos.json)
-  - Scenario 8 (Adaptive Capacity Tuning): [`benchmark_suite/scenarios/8_adaptive_capacity_tuning.json`](file:///home/jbakamovic/development/ceph/benchmark_suite/scenarios/8_adaptive_capacity_tuning.json)
-- **Full Benchmark Analysis Report**: [`rgw-adaptive-scheduling-benchmark-analysis.md`](file:///home/jbakamovic/development/ceph/rgw-adaptive-scheduling-benchmark-analysis.md)
+  - Scenario 6 (Bully Starvation): [`benchmark_suite/scenarios/6_intra_class_tenant_starvation.json`](../../benchmark_suite/scenarios/6_intra_class_tenant_starvation.json)
+  - Scenario 7 (Multi-Tier Hierarchy): [`benchmark_suite/scenarios/7_multi_tier_tenant_qos.json`](../../benchmark_suite/scenarios/7_multi_tier_tenant_qos.json)
+  - Scenario 8 (Adaptive Capacity Tuning): [`benchmark_suite/scenarios/8_adaptive_capacity_tuning.json`](../../benchmark_suite/scenarios/8_adaptive_capacity_tuning.json)
+- **Full Benchmark Analysis Report**: [`rgw-adaptive-scheduling-benchmark-analysis.md`](benchmark-analysis.md)
+
+---
+
+## 8a. Constraint Discovered While Upstreaming: Admission Control Runs Before Auth
+
+The benchmark harness gives every request a tenant identity by construction. Real
+RGW does not, and this turns out to constrain what "per-tenant" can mean.
+
+In [`rgw_process.cc`](../../src/rgw/rgw_process.cc), `process_request()` runs in
+this order:
+
+```
+  rest->get_handler(...)      // parses the request line: bucket, object, args
+  op = handler->get_op()
+  schedule_request(...)       // <-- admission control decides here
+  op->verify_requester(...)   // <-- authentication happens only now
+```
+
+Before the handler runs, `s->set_user()` has installed an empty `rgw_user()`.
+So at the moment dmClock has to pick a queue, **there is no authenticated user
+to key on**. Deferring admission control until after authentication would mean
+doing the signature verification work for requests we are about to reject, which
+is most of what admission control exists to avoid.
+
+What *is* available, because `init_from_header()` already ran inside
+`get_handler()`, is `s->bucket_tenant` and `s->bucket_name`. So the practical
+unit of isolation at admission time is the **bucket**, not the S3 user:
+
+| Candidate key | Available pre-auth | Spoofable | Notes |
+| :-- | :-: | :-: | :-- |
+| Authenticated user / account | ✖ | — | Not yet known at admission time |
+| Bucket (tenant + name) | ✔ | ✖ | A client can only affect its own bucket's queue |
+| Declared access key from `Authorization` | ✔ | ✔ | A client could park itself in another tenant's queue |
+
+The implementation keys on the bucket, and falls back to the authenticated user
+when one happens to be set (other frontends, such as librgw, initialise
+`req_state` differently) and to the shared per-class queue when neither is
+known. Per-bucket QoS is a coherent product in its own right — it is what most
+noisy-neighbour complaints actually are — but it is not identical to per-user
+QoS, and it decides where SLA profiles should live.
 
 ---
 
@@ -312,7 +352,7 @@ The complete working implementation is available in the Ceph tree:
 To graduate this architecture into upstream production Ceph RGW:
 
 1. **Dynamic Client Identification**:
-   - Replace `rgw::dmclock::client_id` enum in [`src/rgw/rgw_dmclock.h`](file:///home/jbakamovic/development/ceph/src/rgw/rgw_dmclock.h) with a composite key: `struct RGWClientId { uint32_t tenant_id; uint8_t op_class; };`
+   - Replace `rgw::dmclock::client_id` enum in [`src/rgw/rgw_dmclock.h`](../../src/rgw/rgw_dmclock.h) with a composite key: `struct RGWClientId { uint32_t tenant_id; uint8_t op_class; };`
 2. **Metadata & Config Integration**:
    - Store per-tenant `dmclock` profiles (`reservation`, `weight`, `limit`) in Ceph RGW's user metadata (`RGWUserInfo`).
 3. **Adaptive Capacity Tuning**:

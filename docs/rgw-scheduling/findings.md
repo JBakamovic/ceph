@@ -2,22 +2,22 @@
 
 We investigated the question: *"When we say dmClock operates across the whole daemon rather than per S3 tenant/user/bucket, do dozens of different tenants get lumped into a single 'data' class?"*
 
-To demonstrate this empirically, we extended the RGW benchmark suite with a **Scenario 6** test and implemented a **True Per-Tenant Fine-Grained dmClock Scheduler** in [`src/test/rgw/bench_rgw_scheduler.cc`](file:///home/jbakamovic/development/ceph/src/test/rgw/bench_rgw_scheduler.cc).
+To demonstrate this empirically, we extended the RGW benchmark suite with a **Scenario 6** test and implemented a **True Per-Tenant Fine-Grained dmClock Scheduler** in [`src/test/rgw/bench_rgw_scheduler.cc`](../../src/test/rgw/bench_rgw_scheduler.cc).
 
 ---
 
 ## 1. Core Architecture Finding
 
 In upstream Ceph RGW:
-- [`src/rgw/rgw_dmclock.h`](file:///home/jbakamovic/development/ceph/src/rgw/rgw_dmclock.h): `client_id` is an `enum` of 4 static daemon-level classes (`admin`, `auth`, `data`, `metadata`).
-- [`src/rgw/rgw_op.h`](file:///home/jbakamovic/development/ceph/src/rgw/rgw_op.h): All S3 data operations (`GetObj`, `PutObj`, `ListBucket`) unconditionally return `client_id::data`.
+- [`src/rgw/rgw_dmclock.h`](../../src/rgw/rgw_dmclock.h): `client_id` is an `enum` of 4 static daemon-level classes (`admin`, `auth`, `data`, `metadata`).
+- [`src/rgw/rgw_op.h`](../../src/rgw/rgw_op.h): All S3 data operations (`GetObj`, `PutObj`, `ListBucket`) unconditionally return `client_id::data`.
 - **Consequence**: All S3 tenants, accounts, and buckets share **one single queue** inside `crimson::dmclock::PullPriorityQueue<client_id, Request, false>`. There is **zero isolation** between different S3 users.
 
 ---
 
 ## 2. Benchmark Scenario 6: Intra-Class Contention
 
-We constructed a realistic multi-tenant workload in [`benchmark_suite/scenarios/6_intra_class_tenant_starvation.json`](file:///home/jbakamovic/development/ceph/benchmark_suite/scenarios/6_intra_class_tenant_starvation.json):
+We constructed a realistic multi-tenant workload in [`benchmark_suite/scenarios/6_intra_class_tenant_starvation.json`](../../benchmark_suite/scenarios/6_intra_class_tenant_starvation.json):
 - **Tenant A (Bully Data)**: 60 workers, 0ms pacing, 16MB PUT / heavy ListBucket (`client_id::data`), `dmClock(R=20, W=100, L=100)`.
 - **Tenant B (Interactive Data)**: 15 workers, 2ms pacing, 4KB GET / PUT (`client_id::data`), `dmClock(R=50, W=100, L=100)`.
 - **Tenant C (Health Probe)**: 1 worker, 250ms pacing, ProbeHealth (`client_id::admin`), `dmClock(R=10, W=100, L=50)`.
@@ -49,7 +49,7 @@ We ran 10-second benchmarks against the simulated Ceph RGW backend across all th
 
 ## 4. Benchmark Scenario 7: 6-Tier Multi-Tenant Production QoS Hierarchy
 
-In [`benchmark_suite/scenarios/7_multi_tier_tenant_qos.json`](file:///home/jbakamovic/development/ceph/benchmark_suite/scenarios/7_multi_tier_tenant_qos.json), we tested 6 distinct personas:
+In [`benchmark_suite/scenarios/7_multi_tier_tenant_qos.json`](../../benchmark_suite/scenarios/7_multi_tier_tenant_qos.json), we tested 6 distinct personas:
 - **Tenant 1 (Health Probe)**: $R=10, W=100, L=50$ (1 worker, 250ms pacing)
 - **Tenant 2 (Platinum VIP)**: $R=40, W=200, L=100$ (20 workers, 2ms pacing)
 - **Tenant 3 (Gold Standard)**: $R=20, W=100, L=100$ (15 workers, 5ms pacing)
@@ -66,7 +66,7 @@ In [`benchmark_suite/scenarios/7_multi_tier_tenant_qos.json`](file:///home/jbaka
 
 ## 5. Closed-Loop Adaptive Capacity Controller (Scenario 8: OSD Scrub Spikes)
 
-To handle dynamic cluster degradation (e.g. $+45\text{ms}$ OSD scrub spikes), we implemented an **Adaptive AIMD Feedback Controller** in [`src/test/rgw/bench_rgw_scheduler.cc`](file:///home/jbakamovic/development/ceph/src/test/rgw/bench_rgw_scheduler.cc):
+To handle dynamic cluster degradation (e.g. $+45\text{ms}$ OSD scrub spikes), we implemented an **Adaptive AIMD Feedback Controller** in [`src/test/rgw/bench_rgw_scheduler.cc`](../../src/test/rgw/bench_rgw_scheduler.cc):
 - **Real-Time Telemetry**: Tracks 50ms Exponential Moving Average (EMA) of RADOS backend latency.
 - **AIMD Dynamic Scaling**: Multiplicative Decrease during latency spikes; Additive Increase upon recovery.
 - **SLA Shielding**: Shields VIP and Health reservations ($R \ge 10.0$) from excessive reduction ($70\%$ floor), while aggressively throttling background bullies.
@@ -91,4 +91,4 @@ To handle dynamic cluster degradation (e.g. $+45\text{ms}$ OSD scrub spikes), we
 3. **The Solution (`dmclock_fine`)**: By keying mClock priority queues by tenant ID (`uint32_t` / S3 account) rather than daemon-level enum, `Tenant B` is protected by its own reservation ($R=50$) and achieves **112-113 accepted requests** while Bully `Tenant A` is throttled to its reservation ($R=20$). The hybrid single-strand + multi-coroutine model scales cleanly across 8, 16, and 32 threads.
 4. **Adaptive Tuning Eliminates Tail Latency Under Degradation**: Static limits allow queue pile-ups during OSD scrubs; sub-second AIMD closed-loop telemetry dynamically adjusts dmClock limits, reducing median client latency by **over 40%** while preserving strict SLA guarantees.
 
-All detailed logs and JSON outputs are saved under [`benchmark_suite/results/`](file:///home/jbakamovic/development/ceph/benchmark_suite/results/) and fully documented in [`rgw-adaptive-scheduling-benchmark-analysis.md`](file:///home/jbakamovic/development/ceph/rgw-adaptive-scheduling-benchmark-analysis.md).
+All detailed logs and JSON outputs are saved under [`benchmark_suite/results/`](../../benchmark_suite/results/) and fully documented in [`rgw-adaptive-scheduling-benchmark-analysis.md`](benchmark-analysis.md).
