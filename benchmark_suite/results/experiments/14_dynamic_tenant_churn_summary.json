@@ -1,0 +1,444 @@
+{
+  "scenario": "benchmark_suite/scenarios/14_dynamic_tenant_churn.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787831367.2508683,
+    "git_head": "9992b2016df48d4704b1eb44a863e759ec506e1d",
+    "git_branch": "jbakamovic/rgw-dmclock-antigravity",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/14_dynamic_tenant_churn.json",
+      "-s",
+      "throttler",
+      "-s",
+      "dmclock_coarse",
+      "-s",
+      "dmclock_fine_upstream",
+      "-n",
+      "1",
+      "--runtime",
+      "6"
+    ]
+  },
+  "runtime_s": 6,
+  "repeats": 1,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/14_dynamic_tenant_churn_throttler_1.json",
+        "total_tps": 451.16204436056023,
+        "per_tenant": {
+          "VIP Enterprise App": {
+            "accepted_per_s": 38.746085323541564,
+            "drop_pct": 0.0,
+            "p50_ms": 5.1351580000000006
+          },
+          "System Health Monitor": {
+            "accepted_per_s": 4.268636518695256,
+            "drop_pct": 0.0,
+            "p50_ms": 2.4873605000000003
+          },
+          "Dynamic Tenant 01": {
+            "accepted_per_s": 26.26853242274004,
+            "drop_pct": 0.0,
+            "p50_ms": 7.212556
+          },
+          "Dynamic Tenant 02": {
+            "accepted_per_s": 26.26853242274004,
+            "drop_pct": 0.0,
+            "p50_ms": 7.339626
+          },
+          "Dynamic Tenant 03": {
+            "accepted_per_s": 25.775997439813665,
+            "drop_pct": 0.0,
+            "p50_ms": 7.238264
+          },
+          "Dynamic Tenant 04": {
+            "accepted_per_s": 30.04463395850892,
+            "drop_pct": 0.0,
+            "p50_ms": 7.341604
+          },
+          "Dynamic Tenant 05": {
+            "accepted_per_s": 20.35811262762353,
+            "drop_pct": 0.0,
+            "p50_ms": 5.2434735
+          },
+          "Dynamic Tenant 06": {
+            "accepted_per_s": 25.94017576745579,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2745655
+          },
+          "Dynamic Tenant 07": {
+            "accepted_per_s": 25.611819112171542,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2864125
+          },
+          "Dynamic Tenant 08": {
+            "accepted_per_s": 26.26853242274004,
+            "drop_pct": 0.0,
+            "p50_ms": 7.293666
+          },
+          "Dynamic Tenant 09": {
+            "accepted_per_s": 23.477500852823912,
+            "drop_pct": 0.0,
+            "p50_ms": 7.204451
+          },
+          "Dynamic Tenant 10": {
+            "accepted_per_s": 28.238672354445544,
+            "drop_pct": 0.0,
+            "p50_ms": 7.1916975
+          },
+          "Dynamic Tenant 11": {
+            "accepted_per_s": 26.104354095097918,
+            "drop_pct": 0.0,
+            "p50_ms": 7.244506
+          },
+          "Dynamic Tenant 12": {
+            "accepted_per_s": 24.790927473960913,
+            "drop_pct": 0.0,
+            "p50_ms": 7.318221
+          },
+          "Dynamic Tenant 13": {
+            "accepted_per_s": 25.775997439813665,
+            "drop_pct": 0.0,
+            "p50_ms": 7.362334
+          },
+          "Dynamic Tenant 14": {
+            "accepted_per_s": 25.447640784529415,
+            "drop_pct": 0.0,
+            "p50_ms": 7.199873
+          },
+          "Dynamic Tenant 15": {
+            "accepted_per_s": 26.761067405666417,
+            "drop_pct": 0.0,
+            "p50_ms": 7.227112
+          },
+          "Dynamic Tenant 16": {
+            "accepted_per_s": 21.014825938192033,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2707745
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": true,
+          "max_concurrent_requests": 128,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/14_dynamic_tenant_churn_dmclock_coarse_1.json",
+        "total_tps": 4.102966889182427,
+        "per_tenant": {
+          "VIP Enterprise App": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "System Health Monitor": {
+            "accepted_per_s": 3.9388482136151297,
+            "drop_pct": 7.6923076923076925,
+            "p50_ms": 2.5275904999999996
+          },
+          "Dynamic Tenant 01": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 02": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 03": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 04": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 05": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 06": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 07": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 08": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 09": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 10": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 11": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 12": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 13": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 14": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 15": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Dynamic Tenant 16": {
+            "accepted_per_s": 0.16411867556729706,
+            "drop_pct": 99.21875,
+            "p50_ms": 5.026318
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 2,
+            "limit_cost": 2,
+            "prio": 6,
+            "qlen": 0,
+            "res": 18
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 2720,
+            "limit_cost": 2720,
+            "prio": 0,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": true,
+          "max_concurrent_requests": 128,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/14_dynamic_tenant_churn_dmclock_fine_upstream_1.json",
+        "total_tps": 430.7463590770434,
+        "per_tenant": {
+          "VIP Enterprise App": {
+            "accepted_per_s": 18.877984486989327,
+            "drop_pct": 51.271186440677965,
+            "p50_ms": 5.129752
+          },
+          "System Health Monitor": {
+            "accepted_per_s": 3.9397532842412506,
+            "drop_pct": 7.6923076923076925,
+            "p50_ms": 2.5598710000000002
+          },
+          "Dynamic Tenant 01": {
+            "accepted_per_s": 26.265021894941672,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2317005000000005
+          },
+          "Dynamic Tenant 02": {
+            "accepted_per_s": 26.265021894941672,
+            "drop_pct": 0.0,
+            "p50_ms": 7.343607
+          },
+          "Dynamic Tenant 03": {
+            "accepted_per_s": 25.60839634756813,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2692095000000005
+          },
+          "Dynamic Tenant 04": {
+            "accepted_per_s": 30.040618792339536,
+            "drop_pct": 0.0,
+            "p50_ms": 7.334916
+          },
+          "Dynamic Tenant 05": {
+            "accepted_per_s": 20.355391968579795,
+            "drop_pct": 0.0,
+            "p50_ms": 5.257236
+          },
+          "Dynamic Tenant 06": {
+            "accepted_per_s": 25.9367091212549,
+            "drop_pct": 0.0,
+            "p50_ms": 7.362222
+          },
+          "Dynamic Tenant 07": {
+            "accepted_per_s": 25.60839634756813,
+            "drop_pct": 0.0,
+            "p50_ms": 7.307240500000001
+          },
+          "Dynamic Tenant 08": {
+            "accepted_per_s": 26.265021894941672,
+            "drop_pct": 0.0,
+            "p50_ms": 7.329151
+          },
+          "Dynamic Tenant 09": {
+            "accepted_per_s": 23.47436331860412,
+            "drop_pct": 0.0,
+            "p50_ms": 7.181912
+          },
+          "Dynamic Tenant 10": {
+            "accepted_per_s": 28.234898537062296,
+            "drop_pct": 0.0,
+            "p50_ms": 7.244434
+          },
+          "Dynamic Tenant 11": {
+            "accepted_per_s": 26.100865508098288,
+            "drop_pct": 0.0,
+            "p50_ms": 7.335768
+          },
+          "Dynamic Tenant 12": {
+            "accepted_per_s": 24.787614413351204,
+            "drop_pct": 0.0,
+            "p50_ms": 7.317875
+          },
+          "Dynamic Tenant 13": {
+            "accepted_per_s": 25.772552734411516,
+            "drop_pct": 0.0,
+            "p50_ms": 7.388345
+          },
+          "Dynamic Tenant 14": {
+            "accepted_per_s": 25.444239960724744,
+            "drop_pct": 0.0,
+            "p50_ms": 7.258505
+          },
+          "Dynamic Tenant 15": {
+            "accepted_per_s": 26.757491055471828,
+            "drop_pct": 0.0,
+            "p50_ms": 7.305882
+          },
+          "Dynamic Tenant 16": {
+            "accepted_per_s": 21.01201751595334,
+            "drop_pct": 0.0,
+            "p50_ms": 7.2897275
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 2,
+            "limit_cost": 2,
+            "prio": 6,
+            "qlen": 0,
+            "res": 18
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 121,
+            "limit_cost": 121,
+            "prio": 2538,
+            "qlen": 0,
+            "res": 62
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": true,
+          "max_concurrent_requests": 128,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ]
+  }
+}

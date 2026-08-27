@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include <memory>
+#include <shared_mutex>
+#include <unordered_map>
+
 #include "common/perf_counters.h"
 #include "common/ceph_context.h"
 #include "common/config.h"
@@ -90,17 +94,28 @@ void on_process(PerfCounters* c, const ClientSum& rsum, const ClientSum& psum);
 
 class ClientConfig : public md_config_obs_t {
   std::vector<ClientInfo> clients;
+  std::shared_ptr<std::shared_mutex> lock = std::make_shared<std::shared_mutex>();
+  std::shared_ptr<std::unordered_map<uint64_t, ClientInfo>> tenant_overrides =
+      std::make_shared<std::unordered_map<uint64_t, ClientInfo>>();
 
   void update(const ConfigProxy &conf);
 
 public:
   ClientConfig(CephContext *cct);
 
-  /// Resolve the (reservation, weight, limit) for a queue.  Every tenant of a
-  /// given op class currently shares that class's configured profile; the
-  /// isolation comes from each tenant having its own queue, not from differing
-  /// profiles.  Per-tenant profiles are a separate step.
+  /// Resolve the (reservation, weight, limit) for a queue.
+  /// If the tenant has an explicit override registered, its custom profile is used.
+  /// Otherwise, it falls back to the default profile configured for the op class.
   ClientInfo* operator()(const client_id& client);
+
+  /// Dynamically register or update a custom QoS profile for a specific tenant.
+  void set_tenant_profile(uint64_t tenant_id, const ClientInfo& info);
+
+  /// Remove a custom QoS profile for a tenant, reverting it to the default op-class profile.
+  void erase_tenant_profile(uint64_t tenant_id);
+
+  /// Clear all custom tenant profiles.
+  void clear_tenant_profiles();
 
   std::vector<std::string> get_tracked_keys() const noexcept override;
   void handle_conf_change(const ConfigProxy& conf,

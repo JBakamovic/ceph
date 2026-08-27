@@ -1079,7 +1079,7 @@ public:
           if (it != infos.end()) {
             return &it->second;
           }
-          static dmc::ClientInfo fallback{10.0, 50.0, 50.0};
+          static dmc::ClientInfo fallback{0.0, 100.0, 0.0};
           return &fallback;
         },
         at_limit);

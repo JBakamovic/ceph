@@ -1,0 +1,388 @@
+{
+  "benchmark": {
+    "scheduler": "throttler",
+    "max_concurrent_requests": 128,
+    "runtime_seconds": 6,
+    "thread_count": 8,
+    "allow_retries": false,
+    "max_retries": 3,
+    "at_limit": "reject",
+    "at_limit_threshold_s": 1.0,
+    "uniform_cost": true,
+    "load_model": "open_loop",
+    "capacity_relative": false,
+    "max_inflight": 10000
+  },
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 64,
+    "congestion_factor": 3.0,
+    "spike_amplitude_ms": 0.0,
+    "spike_interval_s": 5.0,
+    "spike_duration_s": 1.0,
+    "jitter_pct": 0.05
+  },
+  "dmclock": {
+    "admin": {
+      "res": 10.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "op_costs": {
+    "ProbeHealth": 1,
+    "GetSmall": 1,
+    "PutSmall": 1,
+    "GetLarge": 1,
+    "PutLarge": 1,
+    "ListBucket": 1
+  },
+  "op_latency_multipliers": {
+    "ProbeHealth": 0.5,
+    "GetSmall": 1.0,
+    "PutSmall": 1.5,
+    "GetLarge": 4.0,
+    "PutLarge": 6.0,
+    "ListBucket": 5.0
+  },
+  "tenants": [
+    {
+      "name": "VIP Enterprise App",
+      "role": "Latency-Sensitive Paid SLA",
+      "workers": 15,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "GetSmall": 60,
+        "PutSmall": 40
+      },
+      "dmclock": {
+        "res": 40.0,
+        "wgt": 500.0,
+        "lim": 80.0
+      },
+      "arrival_rate_per_s": 40.0
+    },
+    {
+      "name": "System Health Monitor",
+      "role": "Cluster Health / K8s Probe",
+      "workers": 1,
+      "client_id": "admin",
+      "pacing_ms": 250.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "ProbeHealth": 100
+      },
+      "dmclock": {
+        "res": 10.0,
+        "wgt": 100.0,
+        "lim": 50.0
+      },
+      "arrival_rate_per_s": 4.0
+    },
+    {
+      "name": "Dynamic Tenant 01",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 02",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 03",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 04",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 05",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 06",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 07",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 08",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 09",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 10",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 11",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 12",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 13",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 14",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 15",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    },
+    {
+      "name": "Dynamic Tenant 16",
+      "role": "Unprovisioned Best-Effort User",
+      "workers": 5,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutSmall": 60,
+        "GetSmall": 40
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 25.0
+    }
+  ]
+}

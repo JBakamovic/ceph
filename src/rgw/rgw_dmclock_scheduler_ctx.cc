@@ -25,7 +25,32 @@ ClientConfig::ClientConfig(CephContext *cct)
 
 ClientInfo* ClientConfig::operator()(const client_id& client)
 {
+  if (client.tenant_id != 0) {
+    std::shared_lock<std::shared_mutex> r_lock(*lock);
+    auto it = tenant_overrides->find(client.tenant_id);
+    if (it != tenant_overrides->end()) {
+      return const_cast<ClientInfo*>(&it->second);
+    }
+  }
   return &clients[static_cast<size_t>(client.op)];
+}
+
+void ClientConfig::set_tenant_profile(uint64_t tenant_id, const ClientInfo& info)
+{
+  std::unique_lock<std::shared_mutex> w_lock(*lock);
+  tenant_overrides->insert_or_assign(tenant_id, info);
+}
+
+void ClientConfig::erase_tenant_profile(uint64_t tenant_id)
+{
+  std::unique_lock<std::shared_mutex> w_lock(*lock);
+  tenant_overrides->erase(tenant_id);
+}
+
+void ClientConfig::clear_tenant_profiles()
+{
+  std::unique_lock<std::shared_mutex> w_lock(*lock);
+  tenant_overrides->clear();
 }
 
 std::vector<std::string> ClientConfig::get_tracked_keys() const noexcept
