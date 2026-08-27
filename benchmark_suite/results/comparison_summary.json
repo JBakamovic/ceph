@@ -1,0 +1,1397 @@
+{
+    "1_noisy_neighbor_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6680955697107662,
+        "new_jain_index": 0.6681337599562597,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Bulk Ingest)",
+                "old_accepted": 17854,
+                "new_accepted": 10740,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Web CRUD)",
+                "old_accepted": 18740,
+                "new_accepted": 11244,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (K8s Liveness Probe)",
+                "old_accepted": 50,
+                "new_accepted": 30,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "1_noisy_neighbor_dmclock": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.39933993399339934,
+        "new_jain_index": 0.44144144144144143,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Bulk Ingest)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99496216586564,
+                "new_drop_rate": 99.99157298636509,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Web CRUD)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (K8s Liveness Probe)",
+                "old_accepted": 50,
+                "new_accepted": 30,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "1_noisy_neighbor_none": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6667187820378833,
+        "new_jain_index": 0.6665481932615198,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Bulk Ingest)",
+                "old_accepted": 19247,
+                "new_accepted": 11829,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Web CRUD)",
+                "old_accepted": 21226,
+                "new_accepted": 13096,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (K8s Liveness Probe)",
+                "old_accepted": 50,
+                "new_accepted": 30,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "2_metadata_crawler_storm_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.9472498569534522,
+        "new_jain_index": 0.921244018087946,
+        "tenants": [
+            {
+                "name": "Tenant 1 (Search Crawler)",
+                "old_accepted": 11995,
+                "new_accepted": 7147,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 (Media Streamer)",
+                "old_accepted": 11352,
+                "new_accepted": 6769,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 (Mobile Client)",
+                "old_accepted": 18661,
+                "new_accepted": 12386,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "2_metadata_crawler_storm_dmclock": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.574712643678161,
+        "new_jain_index": 0.5747126436781608,
+        "tenants": [
+            {
+                "name": "Tenant 1 (Search Crawler)",
+                "old_accepted": 3,
+                "new_accepted": 3,
+                "old_drop_rate": 99.99496458424251,
+                "new_drop_rate": 99.99158036541215,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 (Media Streamer)",
+                "old_accepted": 7,
+                "new_accepted": 7,
+                "old_drop_rate": 99.98578131665008,
+                "new_drop_rate": 99.97609289617486,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 (Mobile Client)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "2_metadata_crawler_storm_none": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.8887885335791722,
+        "new_jain_index": 0.9458960589478677,
+        "tenants": [
+            {
+                "name": "Tenant 1 (Search Crawler)",
+                "old_accepted": 11777,
+                "new_accepted": 7197,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 (Media Streamer)",
+                "old_accepted": 11157,
+                "new_accepted": 6810,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 (Mobile Client)",
+                "old_accepted": 22925,
+                "new_accepted": 11264,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "3_backend_congestion_and_spikes_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6681854468004964,
+        "new_jain_index": 0.6753428231674047,
+        "tenants": [
+            {
+                "name": "Tenant A (Batch Ingest)",
+                "old_accepted": 18619,
+                "new_accepted": 2515,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Online Queries)",
+                "old_accepted": 19921,
+                "new_accepted": 2664,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Liveness Probe)",
+                "old_accepted": 66,
+                "new_accepted": 36,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "3_backend_congestion_and_spikes_dmclock": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.41297134238310707,
+        "new_jain_index": 0.4521098459477563,
+        "tenants": [
+            {
+                "name": "Tenant A (Batch Ingest)",
+                "old_accepted": 8,
+                "new_accepted": 7,
+                "old_drop_rate": 99.98846397877372,
+                "new_drop_rate": 99.98308851952068,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Online Queries)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Liveness Probe)",
+                "old_accepted": 66,
+                "new_accepted": 38,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "3_backend_congestion_and_spikes_none": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6691835457090681,
+        "new_jain_index": 0.6760683541525316,
+        "tenants": [
+            {
+                "name": "Tenant A (Batch Ingest)",
+                "old_accepted": 14865,
+                "new_accepted": 2493,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Online Queries)",
+                "old_accepted": 14057,
+                "new_accepted": 2549,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Liveness Probe)",
+                "old_accepted": 66,
+                "new_accepted": 36,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "4_tiered_sla_isolation_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.9984649004736939,
+        "new_jain_index": 0.9881032117755252,
+        "tenants": [
+            {
+                "name": "Tier 1 (Gold SLA - Premium)",
+                "old_accepted": 13095,
+                "new_accepted": 4461,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 2 (Silver SLA - Standard)",
+                "old_accepted": 13886,
+                "new_accepted": 3410,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 3 (Bronze SLA - Batch)",
+                "old_accepted": 12632,
+                "new_accepted": 3881,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "4_tiered_sla_isolation_dmclock": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.34334031832492856,
+        "new_jain_index": 0.35366891342798423,
+        "tenants": [
+            {
+                "name": "Tier 1 (Gold SLA - Premium)",
+                "old_accepted": 401,
+                "new_accepted": 264,
+                "old_drop_rate": 3.3734939759036147,
+                "new_drop_rate": 5.376344086021505,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 2 (Silver SLA - Standard)",
+                "old_accepted": 4,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99191755910284,
+                "new_drop_rate": 99.98306462538952,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 3 (Bronze SLA - Batch)",
+                "old_accepted": 2,
+                "new_accepted": 3,
+                "old_drop_rate": 99.99799309625111,
+                "new_drop_rate": 99.99496230122081,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "4_tiered_sla_isolation_none": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.9990132731215503,
+        "new_jain_index": 0.9869903501118336,
+        "tenants": [
+            {
+                "name": "Tier 1 (Gold SLA - Premium)",
+                "old_accepted": 13114,
+                "new_accepted": 4476,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 2 (Silver SLA - Standard)",
+                "old_accepted": 13573,
+                "new_accepted": 3377,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tier 3 (Bronze SLA - Batch)",
+                "old_accepted": 12567,
+                "new_accepted": 3883,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "5_retry_storm_dynamics_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.8628735762360263,
+        "new_jain_index": 0.9837862115427803,
+        "tenants": [
+            {
+                "name": "Batch Clients (With Retries)",
+                "old_accepted": 17405,
+                "new_accepted": 129,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 92.65471370734528,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "API Clients (With Retries)",
+                "old_accepted": 40481,
+                "new_accepted": 167,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 85.77549271636676,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "5_retry_storm_dynamics_dmclock": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.5,
+        "new_jain_index": 0.5,
+        "tenants": [
+            {
+                "name": "Batch Clients (With Retries)",
+                "old_accepted": 11,
+                "new_accepted": 13,
+                "old_drop_rate": 99.58537504711647,
+                "new_drop_rate": 99.17564996829422,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "API Clients (With Retries)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6662310262093768,
+        "new_jain_index": 0.6658427978699994,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 20107,
+                "new_accepted": 18943,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 18104,
+                "new_accepted": 16834,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_coarse": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.4153846153846153,
+        "new_jain_index": 0.41538461538461535,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99580688174568,
+                "new_drop_rate": 99.99580793641478,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_fine": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.40304683025057003,
+        "new_jain_index": 0.40178513235843977,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99580276346053,
+                "new_drop_rate": 99.99580550988222,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 431,
+                "new_accepted": 439,
+                "old_drop_rate": 3.3632286995515694,
+                "new_drop_rate": 3.303964757709251,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_throttler_t16": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6661921727706037,
+        "new_jain_index": 0.6663163464016996,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 20348,
+                "new_accepted": 20274,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 18309,
+                "new_accepted": 18307,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_coarse_t16": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.41538461538461524,
+        "new_jain_index": 0.41538461538461535,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99580828785325,
+                "new_drop_rate": 99.99580892029405,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_fine_t16": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.39770489515157587,
+        "new_jain_index": 0.3981188235963016,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.99580315099423,
+                "new_drop_rate": 99.99581148323756,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 467,
+                "new_accepted": 464,
+                "old_drop_rate": 3.112033195020747,
+                "new_drop_rate": 3.1315240083507305,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_throttler_t32": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.6664431974166034,
+        "new_jain_index": 0.6663035999961511,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 20876,
+                "new_accepted": 20524,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 18948,
+                "new_accepted": 18535,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_coarse_t32": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.41538461538461546,
+        "new_jain_index": 0.41538461538461546,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.9958087446352,
+                "new_drop_rate": 99.99580512278406,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "6_starvation_dmclock_fine_t32": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.39610039267280067,
+        "new_jain_index": 0.3967591835652516,
+        "tenants": [
+            {
+                "name": "Tenant A (Bully Data)",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.9958052635553,
+                "new_drop_rate": 99.99580445399164,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant B (Interactive Data)",
+                "old_accepted": 479,
+                "new_accepted": 474,
+                "old_drop_rate": 2.839756592292089,
+                "new_drop_rate": 3.067484662576687,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant C (Health Probe)",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "7_multi_tier_throttler": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.691419479368394,
+        "new_jain_index": 0.6925972964269707,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 39,
+                "new_accepted": 39,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 10255,
+                "new_accepted": 10604,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 6230,
+                "new_accepted": 6747,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Silver ETL",
+                "old_accepted": 1312,
+                "new_accepted": 1311,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Bronze Batch Bully",
+                "old_accepted": 6860,
+                "new_accepted": 6948,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 6 [Tier 5] Free Best-Effort",
+                "old_accepted": 8961,
+                "new_accepted": 8953,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "7_multi_tier_dmclock_coarse": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.4187490177589187,
+        "new_jain_index": 0.4229224590670375,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 18,
+                "new_accepted": 19,
+                "old_drop_rate": 99.95417981875573,
+                "new_drop_rate": 99.95134692205265,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 14,
+                "new_accepted": 14,
+                "old_drop_rate": 99.95073718287061,
+                "new_drop_rate": 99.95053877406819,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Silver ETL",
+                "old_accepted": 1,
+                "new_accepted": 1,
+                "old_drop_rate": 99.99494489940349,
+                "new_drop_rate": 99.99494438827098,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Bronze Batch Bully",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 6 [Tier 5] Free Best-Effort",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "7_multi_tier_dmclock_fine": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.37860898729500053,
+        "new_jain_index": 0.37877337026787994,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 40,
+                "new_accepted": 40,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 436,
+                "new_accepted": 434,
+                "old_drop_rate": 4.385964912280702,
+                "new_drop_rate": 4.405286343612334,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 400,
+                "new_accepted": 401,
+                "old_drop_rate": 3.6144578313253013,
+                "new_drop_rate": 3.605769230769231,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Silver ETL",
+                "old_accepted": 5,
+                "new_accepted": 5,
+                "old_drop_rate": 99.97436160393806,
+                "new_drop_rate": 99.97432210353328,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Bronze Batch Bully",
+                "old_accepted": 3,
+                "new_accepted": 3,
+                "old_drop_rate": 99.99748865710124,
+                "new_drop_rate": 99.99748991783665,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 6 [Tier 5] Free Best-Effort",
+                "old_accepted": 10,
+                "new_accepted": 10,
+                "old_drop_rate": 99.96543380573799,
+                "new_drop_rate": 99.96546245769152,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "8_static_dmclock_coarse": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.4586508213911219,
+        "new_jain_index": 0.4779261586802828,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 48,
+                "new_accepted": 45,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 19,
+                "new_accepted": 18,
+                "old_drop_rate": 99.95958564652331,
+                "new_drop_rate": 99.9616923469822,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 14,
+                "new_accepted": 14,
+                "old_drop_rate": 99.95916938870742,
+                "new_drop_rate": 99.95910617788813,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Bronze Batch Bully",
+                "old_accepted": 0,
+                "new_accepted": 1,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 99.99930337376088,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Free Best-Effort",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "8_adaptive_dmclock_coarse": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.47039945373847736,
+        "new_jain_index": 0.4670342654588421,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 48,
+                "new_accepted": 45,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 20,
+                "new_accepted": 17,
+                "old_drop_rate": 99.95745767038203,
+                "new_drop_rate": 99.96389201588751,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 15,
+                "new_accepted": 15,
+                "old_drop_rate": 99.95599108085905,
+                "new_drop_rate": 99.95586417936798,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Bronze Batch Bully",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Free Best-Effort",
+                "old_accepted": 0,
+                "new_accepted": 0,
+                "old_drop_rate": 100.0,
+                "new_drop_rate": 100.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "8_static_dmclock_fine": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.444826027852241,
+        "new_jain_index": 0.4385809299177057,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 48,
+                "new_accepted": 45,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 539,
+                "new_accepted": 580,
+                "old_drop_rate": 3.5778175313059033,
+                "new_drop_rate": 3.0100334448160537,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 508,
+                "new_accepted": 566,
+                "old_drop_rate": 2.681992337164751,
+                "new_drop_rate": 2.413793103448276,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Bronze Batch Bully",
+                "old_accepted": 3,
+                "new_accepted": 3,
+                "old_drop_rate": 99.99790695727403,
+                "new_drop_rate": 99.99790676742093,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Free Best-Effort",
+                "old_accepted": 9,
+                "new_accepted": 8,
+                "old_drop_rate": 99.97431653444438,
+                "new_drop_rate": 99.97721187261436,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    },
+    "8_adaptive_dmclock_fine": {
+        "old_throughput": 0.0,
+        "new_throughput": 0.0,
+        "old_jain_index": 0.7057341605564956,
+        "new_jain_index": 0.6712328767123289,
+        "tenants": [
+            {
+                "name": "Tenant 1 [Control] Health Probe",
+                "old_accepted": 48,
+                "new_accepted": 45,
+                "old_drop_rate": 0.0,
+                "new_drop_rate": 0.0,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 2 [Tier 1] Platinum VIP",
+                "old_accepted": 41,
+                "new_accepted": 27,
+                "old_drop_rate": 99.9079623768155,
+                "new_drop_rate": 99.94145833785043,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 3 [Tier 2] Gold Standard",
+                "old_accepted": 35,
+                "new_accepted": 21,
+                "old_drop_rate": 99.89445432888031,
+                "new_drop_rate": 99.93920444676047,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 4 [Tier 3] Bronze Batch Bully",
+                "old_accepted": 3,
+                "new_accepted": 3,
+                "old_drop_rate": 99.9979089559417,
+                "new_drop_rate": 99.99790981550638,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            },
+            {
+                "name": "Tenant 5 [Tier 4] Free Best-Effort",
+                "old_accepted": 10,
+                "new_accepted": 9,
+                "old_drop_rate": 99.97137705011879,
+                "new_drop_rate": 99.97430260114781,
+                "old_p50": 0.0,
+                "new_p50": 0.0,
+                "old_p95": 0.0,
+                "new_p95": 0.0
+            }
+        ]
+    }
+}

@@ -1,56 +1,56 @@
 {
     "cluster_capacity" : 64,
-    "elapsed_time_s" : 10.000191108999999,
-    "jains_fairness_index" : 0.86681434518372003,
+    "elapsed_time_s" : 6.0272356040000004,
+    "jains_fairness_index" : 0.94589605894786766,
     "max_concurrency" : 128,
     "scheduler" : "none",
     "server_threads" : 8,
     "tenants" : [
         {
-            "accepted" : 11682,
-            "attempted" : 11712,
+            "accepted" : 7197,
+            "attempted" : 7197,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 29.859278000000000,
+            "max_ms" : 28.990876000000000,
             "name" : "Tenant 1 (Search Crawler)",
-            "p50_ms" : 25.637321999999998,
-            "p90_ms" : 27.820353799999999,
-            "p95_ms" : 28.326266400000002,
-            "p99_ms" : 29.173837089999999,
+            "p50_ms" : 25.046831000000001,
+            "p90_ms" : 27.047524400000000,
+            "p95_ms" : 27.299854000000000,
+            "p99_ms" : 27.506179159999999,
             "retries" : 0,
             "role" : "Metadata Bucket Indexer",
-            "throughput_tps" : 1168.1776750732695
+            "throughput_tps" : 1194.0797527847892
         },
         {
-            "accepted" : 11064,
-            "attempted" : 11086,
+            "accepted" : 6810,
+            "attempted" : 6810,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 23.896252000000000,
+            "max_ms" : 22.618269999999999,
             "name" : "Tenant 2 (Media Streamer)",
-            "p50_ms" : 20.574569000000000,
-            "p90_ms" : 22.318646500000003,
-            "p95_ms" : 22.764848999999998,
-            "p99_ms" : 23.347198769999999,
+            "p50_ms" : 20.039829500000003,
+            "p90_ms" : 21.646774100000002,
+            "p95_ms" : 21.839990150000002,
+            "p99_ms" : 22.034554450000002,
             "retries" : 0,
             "role" : "High Bandwidth Reads",
-            "throughput_tps" : 1106.3788561043189
+            "throughput_tps" : 1129.8712125141608
         },
         {
-            "accepted" : 24441,
-            "attempted" : 24456,
+            "accepted" : 11264,
+            "attempted" : 11264,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 5.9878109999999998,
+            "max_ms" : 5.9619970000000002,
             "name" : "Tenant 3 (Mobile Client)",
-            "p50_ms" : 5.1495780000000000,
-            "p90_ms" : 5.5958100000000002,
-            "p95_ms" : 5.6993400000000003,
-            "p99_ms" : 5.8442085999999982,
+            "p50_ms" : 5.0164600000000004,
+            "p90_ms" : 5.4185970000000001,
+            "p95_ms" : 5.4723091500000001,
+            "p99_ms" : 5.5398597299999999,
             "retries" : 0,
             "role" : "Interactive Small Reads",
-            "throughput_tps" : 2444.0532919419434
+            "throughput_tps" : 1868.8501230190170
         }
     ],
-    "total_throughput_tps" : 4718.6098231195319
+    "total_throughput_tps" : 4192.8010883179668
 }

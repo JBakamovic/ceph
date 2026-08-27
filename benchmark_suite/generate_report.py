@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 
-RESULTS_DIR = Path("/home/jbakamovic/.gemini/antigravity-ide/brain/ad0a5e06-78cc-4ee7-ab19-be7234514483/scratch/benchmark_suite/results")
+RESULTS_DIR = Path(__file__).parent.resolve() / "results"
 
 SCENARIO_TITLES = {
     "1_noisy_neighbor": {

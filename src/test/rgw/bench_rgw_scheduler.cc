@@ -1443,18 +1443,33 @@ int main(int argc, char* argv[]) {
       if (!load_config_from_file(config_file, config)) {
         return 1;
       }
-      // Re-apply CLI overrides if explicitly passed on command line
-      if (vm.count("scheduler")) config.scheduler_type = vm["scheduler"].as<std::string>();
-      if (vm.count("max_concurrency")) config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
-      if (vm.count("runtime")) config.runtime_seconds = vm["runtime"].as<int>();
-      if (vm.count("threads")) config.thread_count = vm["threads"].as<int>();
-      if (vm.count("cluster_capacity")) config.backend.cluster_capacity = vm["cluster_capacity"].as<int>();
-      if (vm.count("cluster_base_latency_ms")) config.backend.cluster_base_latency_ms = vm["cluster_base_latency_ms"].as<double>();
-      if (vm.count("congestion_factor")) config.backend.congestion_factor = vm["congestion_factor"].as<double>();
-      if (vm.count("spike_amplitude_ms")) config.backend.spike_amplitude_ms = vm["spike_amplitude_ms"].as<double>();
-      if (vm.count("adaptive")) config.adaptive_tuning = vm["adaptive"].as<bool>();
-      if (vm.count("target_latency_ms")) config.adaptive_target_latency_ms = vm["target_latency_ms"].as<double>();
-      if (vm.count("sample_interval_ms")) config.adaptive_sample_interval_ms = vm["sample_interval_ms"].as<int>();
+      // Re-apply CLI overrides ONLY if explicitly passed on the command line
+      if (vm.count("scheduler") && !vm["scheduler"].defaulted())
+        config.scheduler_type = vm["scheduler"].as<std::string>();
+      if (vm.count("max_concurrency") && !vm["max_concurrency"].defaulted())
+        config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
+      if (vm.count("runtime") && !vm["runtime"].defaulted())
+        config.runtime_seconds = vm["runtime"].as<int>();
+      if (vm.count("threads") && !vm["threads"].defaulted())
+        config.thread_count = vm["threads"].as<int>();
+      if (vm.count("cluster_capacity") && !vm["cluster_capacity"].defaulted())
+        config.backend.cluster_capacity = vm["cluster_capacity"].as<int>();
+      if (vm.count("cluster_base_latency_ms") && !vm["cluster_base_latency_ms"].defaulted())
+        config.backend.cluster_base_latency_ms = vm["cluster_base_latency_ms"].as<double>();
+      if (vm.count("congestion_factor") && !vm["congestion_factor"].defaulted())
+        config.backend.congestion_factor = vm["congestion_factor"].as<double>();
+      if (vm.count("spike_amplitude_ms") && !vm["spike_amplitude_ms"].defaulted())
+        config.backend.spike_amplitude_ms = vm["spike_amplitude_ms"].as<double>();
+      if (vm.count("spike_interval_s") && !vm["spike_interval_s"].defaulted())
+        config.backend.spike_interval_s = vm["spike_interval_s"].as<double>();
+      if (vm.count("spike_duration_s") && !vm["spike_duration_s"].defaulted())
+        config.backend.spike_duration_s = vm["spike_duration_s"].as<double>();
+      if (vm.count("adaptive") && vm["adaptive"].as<bool>())
+        config.adaptive_tuning = true;
+      if (vm.count("target_latency_ms"))
+        config.adaptive_target_latency_ms = vm["target_latency_ms"].as<double>();
+      if (vm.count("sample_interval_ms"))
+        config.adaptive_sample_interval_ms = vm["sample_interval_ms"].as<int>();
     }
 
     if (dump_config_flag) {

@@ -1,6 +1,6 @@
 {
     "cluster_capacity" : 64,
-    "elapsed_time_s" : 10.000178214000000,
+    "elapsed_time_s" : 10.101609903000000,
     "jains_fairness_index" : 0.41538461538461535,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_coarse",
@@ -8,24 +8,24 @@
     "tenants" : [
         {
             "accepted" : 5,
-            "attempted" : 119291,
-            "drop_rate_pct" : 99.995808568961621,
-            "drops_503" : 119286,
-            "max_ms" : 905.66196400000001,
+            "attempted" : 119273,
+            "drop_rate_pct" : 99.995807936414778,
+            "drops_503" : 119268,
+            "max_ms" : 907.64168199999995,
             "name" : "Tenant A (Bully Data)",
-            "p50_ms" : 465.54163399999999,
-            "p90_ms" : 828.22895560000006,
-            "p95_ms" : 866.94545979999998,
-            "p99_ms" : 897.91866316000005,
+            "p50_ms" : 467.23043799999999,
+            "p90_ms" : 829.61826240000005,
+            "p95_ms" : 868.62997219999988,
+            "p99_ms" : 899.83934003999991,
             "retries" : 0,
             "role" : "Bulk Aggressor",
-            "throughput_tps" : 0.49999108945879833
+            "throughput_tps" : 0.49497060844876700
         },
         {
             "accepted" : 0,
-            "attempted" : 29940,
+            "attempted" : 29930,
             "drop_rate_pct" : 100.00000000000000,
-            "drops_503" : 29940,
+            "drops_503" : 29930,
             "max_ms" : 0.0000000000000000,
             "name" : "Tenant B (Interactive Data)",
             "p50_ms" : 0.0000000000000000,
@@ -41,16 +41,16 @@
             "attempted" : 40,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 2.6402260000000002,
+            "max_ms" : 2.6555849999999999,
             "name" : "Tenant C (Health Probe)",
-            "p50_ms" : 2.5217995000000002,
-            "p90_ms" : 2.6290173000000001,
-            "p95_ms" : 2.6331963500000000,
-            "p99_ms" : 2.6387022700000000,
+            "p50_ms" : 2.5354710000000003,
+            "p90_ms" : 2.6116275000000000,
+            "p95_ms" : 2.6336212500000000,
+            "p99_ms" : 2.6539715699999999,
             "retries" : 0,
             "role" : "Cluster Health / K8s Probe",
-            "throughput_tps" : 3.9999287156703867
+            "throughput_tps" : 3.9597648675901360
         }
     ],
-    "total_throughput_tps" : 4.4999198051291849
+    "total_throughput_tps" : 4.4547354760389029
 }

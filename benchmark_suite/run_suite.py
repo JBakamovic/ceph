@@ -5,8 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-BENCHMARK_BIN = "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler"
-SUITE_DIR = Path("/home/jbakamovic/.gemini/antigravity-ide/brain/ad0a5e06-78cc-4ee7-ab19-be7234514483/scratch/benchmark_suite")
+BENCHMARK_BIN = Path(__file__).parent.parent / "build-ceph/release/bin/bench_rgw_scheduler"
+if not BENCHMARK_BIN.exists():
+    BENCHMARK_BIN = Path("/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler")
+SUITE_DIR = Path(__file__).parent.resolve()
 SCENARIOS_DIR = SUITE_DIR / "scenarios"
 RESULTS_DIR = SUITE_DIR / "results"
 
