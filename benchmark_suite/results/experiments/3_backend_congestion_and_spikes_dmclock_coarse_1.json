@@ -1,0 +1,112 @@
+{
+    "cluster_capacity" : 32,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 62
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 109208,
+            "limit_cost" : 1422368,
+            "prio" : 3,
+            "qlen" : 0,
+            "res" : 2
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.058971809999999,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "load_model" : "closed_loop",
+        "max_concurrent_requests" : 128,
+        "offered_load_independent_of_scheduler" : false,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.38674937537692766,
+    "max_concurrency" : 128,
+    "scheduler" : "dmclock_coarse",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 5,
+            "attempted" : 69313,
+            "drop_rate_pct" : 99.992786345995697,
+            "drops_503" : 69308,
+            "max_ms" : 973.79158800000005,
+            "name" : "Tenant A (Batch Ingest)",
+            "p50_ms" : 610.30944099999999,
+            "p90_ms" : 838.03879320000010,
+            "p95_ms" : 905.91519059999996,
+            "p99_ms" : 960.21630852000010,
+            "retries" : 0,
+            "role" : "Bulk Ingest",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.49706869593066294
+        },
+        {
+            "accepted" : 0,
+            "attempted" : 39900,
+            "drop_rate_pct" : 100.00000000000000,
+            "drops_503" : 39900,
+            "max_ms" : 0.0000000000000000,
+            "name" : "Tenant B (Online Queries)",
+            "p50_ms" : 0.0000000000000000,
+            "p90_ms" : 0.0000000000000000,
+            "p95_ms" : 0.0000000000000000,
+            "p99_ms" : 0.0000000000000000,
+            "retries" : 0,
+            "role" : "Online Read Traffic",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.0000000000000000
+        },
+        {
+            "accepted" : 62,
+            "attempted" : 62,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 36.202224000000001,
+            "name" : "Tenant C (Liveness Probe)",
+            "p50_ms" : 3.2190270000000001,
+            "p90_ms" : 33.396170099999999,
+            "p95_ms" : 34.808757950000000,
+            "p99_ms" : 36.111082069999995,
+            "retries" : 0,
+            "role" : "Health Probe",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 6.1636518295402203
+        }
+    ],
+    "total_throughput_tps" : 6.6607205254708832
+}

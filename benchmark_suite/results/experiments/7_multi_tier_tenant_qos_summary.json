@@ -1,0 +1,502 @@
+{
+  "scenario": "benchmark_suite/scenarios/7_multi_tier_tenant_qos.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787759107.9883878,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/7_multi_tier_tenant_qos.json",
+      "-n",
+      "2",
+      "--runtime",
+      "10",
+      "--timeout",
+      "90"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 2,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_throttler_1.json",
+        "total_tps": 3330.050287422752,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.862478027881493,
+            "drop_pct": 0.0,
+            "p50_ms": 7.687948
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 1011.2759780178956,
+            "drop_pct": 0.0,
+            "p50_ms": 15.787126
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 619.7791666277534,
+            "drop_pct": 0.0,
+            "p50_ms": 17.17115
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 129.93772237385946,
+            "drop_pct": 0.0,
+            "p50_ms": 64.216539
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 679.1028676200872,
+            "drop_pct": 0.0,
+            "p50_ms": 89.792624
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 886.0920747552748,
+            "drop_pct": 0.0,
+            "p50_ms": 15.544366
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_throttler_2.json",
+        "total_tps": 3336.787456840202,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.862366391142608,
+            "drop_pct": 0.0,
+            "p50_ms": 7.648474
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 1015.9013959061762,
+            "drop_pct": 0.0,
+            "p50_ms": 15.742621
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 619.2660780465314,
+            "drop_pct": 0.0,
+            "p50_ms": 17.112244
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 129.83493176379383,
+            "drop_pct": 0.0,
+            "p50_ms": 64.008891
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 678.885169520066,
+            "drop_pct": 0.0,
+            "p50_ms": 89.780471
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 889.037515212492,
+            "drop_pct": 0.0,
+            "p50_ms": 15.510021
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_dmclock_coarse_1.json",
+        "total_tps": 7.22598050610119,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.9594413732061318,
+            "drop_pct": 0.0,
+            "p50_ms": 2.5270975
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 1.682762583612606,
+            "drop_pct": 99.95671987576058,
+            "p50_ms": 198.021477
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 1.4847905149522995,
+            "drop_pct": 99.94690641370522,
+            "p50_ms": 555.186967
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 0.0989860343301533,
+            "drop_pct": 99.99494362137837,
+            "p50_ms": 919.058238
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 40
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 236974,
+            "limit_cost": 3299055,
+            "prio": 26,
+            "qlen": 0,
+            "res": 7
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_dmclock_coarse_2.json",
+        "total_tps": 7.424492577130862,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.959729374469793,
+            "drop_pct": 0.0,
+            "p50_ms": 2.5176344999999998
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 1.9798646872348964,
+            "drop_pct": 99.94869032042895,
+            "p50_ms": 222.05125950000001
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 1.3859052810644275,
+            "drop_pct": 99.95028055969884,
+            "p50_ms": 632.5333255
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 0.09899323436174483,
+            "drop_pct": 99.99494208689495,
+            "p50_ms": 990.082641
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 40
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 236621,
+            "limit_cost": 3353087,
+            "prio": 26,
+            "qlen": 0,
+            "res": 9
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_dmclock_fine_upstream_1.json",
+        "total_tps": 93.54385146595217,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.9595281043789283,
+            "drop_pct": 0.0,
+            "p50_ms": 2.5556715
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 45.53457320035768,
+            "drop_pct": 3.9665970772442587,
+            "p50_ms": 430.58993599999997
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 42.267962514245056,
+            "drop_pct": 3.3936651583710407,
+            "p50_ms": 346.655819
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 0.49494101304736604,
+            "drop_pct": 99.97430230765278,
+            "p50_ms": 469.879428
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 0.2969646078284196,
+            "drop_pct": 99.99748857300719,
+            "p50_ms": 425.040886
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 0.9898820260947321,
+            "drop_pct": 99.96543738983168,
+            "p50_ms": 505.25750199999993
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 40
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 34,
+            "cost": 0,
+            "limit": 167826,
+            "limit_cost": 3070566,
+            "prio": 612,
+            "qlen": 0,
+            "res": 293
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/7_multi_tier_tenant_qos_dmclock_fine_upstream_2.json",
+        "total_tps": 88.7855153887251,
+        "per_tenant": {
+          "Tenant 1 [Control] Health Probe": {
+            "accepted_per_s": 3.959220307189525,
+            "drop_pct": 0.0,
+            "p50_ms": 2.548858
+          },
+          "Tenant 2 [Tier 1] Platinum VIP": {
+            "accepted_per_s": 43.45244287140504,
+            "drop_pct": 4.357298474945534,
+            "p50_ms": 453.438302
+          },
+          "Tenant 3 [Tier 2] Gold Standard": {
+            "accepted_per_s": 39.59220307189525,
+            "drop_pct": 3.6144578313253013,
+            "p50_ms": 366.948019
+          },
+          "Tenant 4 [Tier 3] Silver ETL": {
+            "accepted_per_s": 0.49490253839869064,
+            "drop_pct": 99.97436160393806,
+            "p50_ms": 419.197737
+          },
+          "Tenant 5 [Tier 4] Bronze Batch Bully": {
+            "accepted_per_s": 0.2969415230392144,
+            "drop_pct": 99.99748651094205,
+            "p50_ms": 510.411619
+          },
+          "Tenant 6 [Tier 5] Free Best-Effort": {
+            "accepted_per_s": 0.9898050767973813,
+            "drop_pct": 99.96546007184305,
+            "p50_ms": 504.8556555
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 40
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 35,
+            "cost": 0,
+            "limit": 167792,
+            "limit_cost": 3176654,
+            "prio": 571,
+            "qlen": 0,
+            "res": 286
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ]
+  }
+}

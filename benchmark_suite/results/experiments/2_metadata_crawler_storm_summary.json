@@ -1,0 +1,412 @@
+{
+  "scenario": "benchmark_suite/scenarios/2_metadata_crawler_storm.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787759107.9883878,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/2_metadata_crawler_storm.json",
+      "-n",
+      "2",
+      "--runtime",
+      "10",
+      "--timeout",
+      "90"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 2,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_throttler_1.json",
+        "total_tps": 4339.2567013593,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 1188.5560287467567,
+            "drop_pct": 0.0,
+            "p50_ms": 25.186538499999997
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 1124.730230928505,
+            "drop_pct": 0.0,
+            "p50_ms": 20.1831345
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 2025.970441684038,
+            "drop_pct": 0.0,
+            "p50_ms": 5.063413
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_throttler_2.json",
+        "total_tps": 4192.849589482733,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 1195.3207391994763,
+            "drop_pct": 0.0,
+            "p50_ms": 25.07085
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 1132.277869536281,
+            "drop_pct": 0.0,
+            "p50_ms": 20.048314
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 1865.2509807469755,
+            "drop_pct": 0.0,
+            "p50_ms": 5.021654
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_dmclock_coarse_1.json",
+        "total_tps": 0.9994639442099315,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 0.2998391832629794,
+            "drop_pct": 99.99496678075297,
+            "p50_ms": 525.796619
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 0.699624760946952,
+            "drop_pct": 99.98578766775628,
+            "p50_ms": 502.15782
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 79201,
+            "limit_cost": 847846,
+            "prio": 5,
+            "qlen": 0,
+            "res": 2
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 59601,
+            "limit_cost": 1192020,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_dmclock_coarse_2.json",
+        "total_tps": 0.9996854103977615,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 0.29990562311932845,
+            "drop_pct": 99.99496289331408,
+            "p50_ms": 523.256816
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 0.699779787278433,
+            "drop_pct": 99.98577495986507,
+            "p50_ms": 498.797564
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 79127,
+            "limit_cost": 847082,
+            "prio": 5,
+            "qlen": 0,
+            "res": 2
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 59555,
+            "limit_cost": 1191100,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_dmclock_fine_upstream_1.json",
+        "total_tps": 25.785355112158236,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 0.2998297106064911,
+            "drop_pct": 99.99496509129968,
+            "p50_ms": 427.352924
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 0.39977294747532144,
+            "drop_pct": 99.99191265669228,
+            "p50_ms": 500.346446
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 25.08575245407642,
+            "drop_pct": 5.283018867924528,
+            "p50_ms": 598.299451
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 14,
+            "cost": 0,
+            "limit": 49456,
+            "limit_cost": 791296,
+            "prio": 203,
+            "qlen": 0,
+            "res": 52
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 59581,
+            "limit_cost": 1191620,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/2_metadata_crawler_storm_dmclock_fine_upstream_2.json",
+        "total_tps": 25.69191354728673,
+        "per_tenant": {
+          "Tenant 1 (Search Crawler)": {
+            "accepted_per_s": 0.29990560561035096,
+            "drop_pct": 99.99496711850759,
+            "p50_ms": 428.699458
+          },
+          "Tenant 2 (Media Streamer)": {
+            "accepted_per_s": 0.3998741408138013,
+            "drop_pct": 99.99191608900387,
+            "p50_ms": 501.2168475
+          },
+          "Tenant 3 (Mobile Client)": {
+            "accepted_per_s": 24.99213380086258,
+            "drop_pct": 5.660377358490566,
+            "p50_ms": 598.715695
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 49477,
+            "limit_cost": 791632,
+            "prio": 203,
+            "qlen": 0,
+            "res": 51
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 59605,
+            "limit_cost": 1192100,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ]
+  }
+}

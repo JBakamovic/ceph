@@ -1,0 +1,382 @@
+{
+  "scenario": "benchmark_suite/scenarios/5_retry_storm_dynamics.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787759107.9883878,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/5_retry_storm_dynamics.json",
+      "-n",
+      "2",
+      "--runtime",
+      "10",
+      "--timeout",
+      "90"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 2,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_throttler_1.json",
+        "total_tps": 18.724516575351224,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 8.963864317987287,
+            "drop_pct": 96.75090252707581,
+            "p50_ms": 28.7415425
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 9.760652257363937,
+            "drop_pct": 94.81105470953187,
+            "p50_ms": 6.455442
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_throttler_2.json",
+        "total_tps": 12.901148877704651,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 6.053616011846029,
+            "drop_pct": 97.7745348412988,
+            "p50_ms": 28.198295
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 6.847532865858622,
+            "drop_pct": 96.15825688073394,
+            "p50_ms": 6.658862
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_dmclock_coarse_1.json",
+        "total_tps": 0.7956040249740091,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 0.7956040249740091,
+            "drop_pct": 99.69992498124532,
+            "p50_ms": 425.945033
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 21540,
+            "limit_cost": 219906,
+            "prio": 4,
+            "qlen": 0,
+            "res": 4
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_dmclock_coarse_2.json",
+        "total_tps": 0.6946886404580599,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 0.6946886404580599,
+            "drop_pct": 99.7379258704605,
+            "p50_ms": 330.628199
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 21623,
+            "limit_cost": 215196,
+            "prio": 5,
+            "qlen": 0,
+            "res": 2
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_dmclock_fine_upstream_1.json",
+        "total_tps": 2.778622102625233,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 0.3969460146607476,
+            "drop_pct": 99.85069055617768,
+            "p50_ms": 98.56653700000001
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 2.3816760879644856,
+            "drop_pct": 98.52216748768473,
+            "p50_ms": 487.783349
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 21287,
+            "limit_cost": 246102,
+            "prio": 22,
+            "qlen": 0,
+            "res": 6
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/5_retry_storm_dynamics_dmclock_fine_upstream_2.json",
+        "total_tps": 3.3741649716760644,
+        "per_tenant": {
+          "Batch Clients (With Retries)": {
+            "accepted_per_s": 0.8931613160318994,
+            "drop_pct": 99.66254218222723,
+            "p50_ms": 250.002626
+          },
+          "API Clients (With Retries)": {
+            "accepted_per_s": 2.481003655644165,
+            "drop_pct": 98.4548825710754,
+            "p50_ms": 506.111286
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 21167,
+            "limit_cost": 249622,
+            "prio": 24,
+            "qlen": 0,
+            "res": 10
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 64,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ]
+  }
+}

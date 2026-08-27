@@ -1,0 +1,516 @@
+{
+    "1_noisy_neighbor": {
+        "description": "Aggressive Bulk Uploader (16MB PUTs) vs Interactive CRUD (4KB) vs K8s Health Probe",
+        "results": {
+            "throttler": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000136452,
+                "jains_fairness_index": 0.6737396167447982,
+                "max_concurrency": 128,
+                "scheduler": "throttler",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 68,
+                        "attempted": 99636,
+                        "drop_rate_pct": 99.93175157573567,
+                        "drops_503": 99568,
+                        "max_ms": 33.006486,
+                        "name": "Tenant A (Bully Bulk Ingest)",
+                        "p50_ms": 28.6231785,
+                        "p90_ms": 32.2070791,
+                        "p95_ms": 32.463797150000005,
+                        "p99_ms": 32.93952419,
+                        "retries": 0,
+                        "role": "Bulk Aggressor",
+                        "throughput_tps": 6.799907213906085
+                    },
+                    {
+                        "accepted": 59,
+                        "attempted": 29948,
+                        "drop_rate_pct": 99.80299185254441,
+                        "drops_503": 29889,
+                        "max_ms": 8.203129,
+                        "name": "Tenant B (Interactive Web CRUD)",
+                        "p50_ms": 5.276342,
+                        "p90_ms": 7.917049400000001,
+                        "p95_ms": 8.073568099999997,
+                        "p99_ms": 8.200543940000001,
+                        "retries": 0,
+                        "role": "Latency Sensitive",
+                        "throughput_tps": 5.899919494418515
+                    },
+                    {
+                        "accepted": 1,
+                        "attempted": 1959,
+                        "drop_rate_pct": 99.94895354772844,
+                        "drops_503": 1958,
+                        "max_ms": 2.315572,
+                        "name": "Tenant C (K8s Liveness Probe)",
+                        "p50_ms": 2.315572,
+                        "p90_ms": 2.315572,
+                        "p95_ms": 2.315572,
+                        "p99_ms": 2.315572,
+                        "retries": 0,
+                        "role": "Control Plane Health",
+                        "throughput_tps": 0.0999986354986189
+                    }
+                ],
+                "total_throughput_tps": 12.799825343823219
+            },
+            "none": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.00072422,
+                "jains_fairness_index": 0.6668562628149344,
+                "max_concurrency": 128,
+                "scheduler": "none",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 19062,
+                        "attempted": 19112,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 33.177769,
+                        "name": "Tenant A (Bully Bulk Ingest)",
+                        "p50_ms": 28.134281,
+                        "p90_ms": 32.0600539,
+                        "p95_ms": 32.53746045,
+                        "p99_ms": 32.91331891,
+                        "retries": 0,
+                        "role": "Bulk Aggressor",
+                        "throughput_tps": 1906.0619591807922
+                    },
+                    {
+                        "accepted": 20944,
+                        "attempted": 20952,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 8.275162,
+                        "name": "Tenant B (Interactive Web CRUD)",
+                        "p50_ms": 5.210837,
+                        "p90_ms": 7.722758000000001,
+                        "p95_ms": 7.986836699999999,
+                        "p99_ms": 8.20063707,
+                        "retries": 0,
+                        "role": "Latency Sensitive",
+                        "throughput_tps": 2094.2483303474196
+                    },
+                    {
+                        "accepted": 50,
+                        "attempted": 50,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 2.796728,
+                        "name": "Tenant C (K8s Liveness Probe)",
+                        "p50_ms": 2.5962085,
+                        "p90_ms": 2.7437071,
+                        "p95_ms": 2.75761345,
+                        "p99_ms": 2.7826390299999995,
+                        "retries": 0,
+                        "role": "Control Plane Health",
+                        "throughput_tps": 4.999637916222831
+                    }
+                ],
+                "total_throughput_tps": 4005.309927444435
+            }
+        }
+    },
+    "2_metadata_crawler_storm": {
+        "description": "Catalog Index Crawler (ListBucket lock storm) vs Media Streaming vs Mobile Apps",
+        "results": {
+            "throttler": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000220428,
+                "jains_fairness_index": 0.9679782583008387,
+                "max_concurrency": 128,
+                "scheduler": "throttler",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 33,
+                        "attempted": 59824,
+                        "drop_rate_pct": 99.94483819202995,
+                        "drops_503": 59791,
+                        "max_ms": 27.425911,
+                        "name": "Tenant 1 (Search Crawler)",
+                        "p50_ms": 25.443332,
+                        "p90_ms": 27.076253,
+                        "p95_ms": 27.236378600000002,
+                        "p99_ms": 27.41827164,
+                        "retries": 0,
+                        "role": "Metadata Bucket Indexer",
+                        "throughput_tps": 3.299927260363385
+                    },
+                    {
+                        "accepted": 43,
+                        "attempted": 49820,
+                        "drop_rate_pct": 99.91368928141308,
+                        "drops_503": 49777,
+                        "max_ms": 21.993672,
+                        "name": "Tenant 2 (Media Streamer)",
+                        "p50_ms": 20.318629,
+                        "p90_ms": 21.6900494,
+                        "p95_ms": 21.7572557,
+                        "p99_ms": 21.91270272,
+                        "retries": 0,
+                        "role": "High Bandwidth Reads",
+                        "throughput_tps": 4.299905218049259
+                    },
+                    {
+                        "accepted": 52,
+                        "attempted": 29952,
+                        "drop_rate_pct": 99.82638888888889,
+                        "drops_503": 29900,
+                        "max_ms": 5.712465,
+                        "name": "Tenant 3 (Mobile Client)",
+                        "p50_ms": 5.2044440000000005,
+                        "p90_ms": 5.537222100000001,
+                        "p95_ms": 5.56534675,
+                        "p99_ms": 5.678819280000001,
+                        "retries": 0,
+                        "role": "Interactive Small Reads",
+                        "throughput_tps": 5.199885379966546
+                    }
+                ],
+                "total_throughput_tps": 12.79971785837919
+            },
+            "none": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000191109,
+                "jains_fairness_index": 0.86681434518372,
+                "max_concurrency": 128,
+                "scheduler": "none",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 11682,
+                        "attempted": 11712,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 29.859278,
+                        "name": "Tenant 1 (Search Crawler)",
+                        "p50_ms": 25.637321999999998,
+                        "p90_ms": 27.8203538,
+                        "p95_ms": 28.3262664,
+                        "p99_ms": 29.17383709,
+                        "retries": 0,
+                        "role": "Metadata Bucket Indexer",
+                        "throughput_tps": 1168.1776750732695
+                    },
+                    {
+                        "accepted": 11064,
+                        "attempted": 11086,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 23.896252,
+                        "name": "Tenant 2 (Media Streamer)",
+                        "p50_ms": 20.574569,
+                        "p90_ms": 22.318646500000003,
+                        "p95_ms": 22.764848999999998,
+                        "p99_ms": 23.34719877,
+                        "retries": 0,
+                        "role": "High Bandwidth Reads",
+                        "throughput_tps": 1106.3788561043189
+                    },
+                    {
+                        "accepted": 24441,
+                        "attempted": 24456,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 5.987811,
+                        "name": "Tenant 3 (Mobile Client)",
+                        "p50_ms": 5.149578,
+                        "p90_ms": 5.59581,
+                        "p95_ms": 5.69934,
+                        "p99_ms": 5.844208599999998,
+                        "retries": 0,
+                        "role": "Interactive Small Reads",
+                        "throughput_tps": 2444.0532919419434
+                    }
+                ],
+                "total_throughput_tps": 4718.609823119532
+            }
+        }
+    },
+    "3_backend_congestion_and_spikes": {
+        "description": "Severe Backend Bottleneck (Capacity Knee = 32) with Periodic 30ms OSD Scrub Spikes",
+        "results": {
+            "throttler": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000212958,
+                "jains_fairness_index": 0.6767451466336224,
+                "max_concurrency": 128,
+                "scheduler": "throttler",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 62,
+                        "attempted": 69773,
+                        "drop_rate_pct": 99.91114041248048,
+                        "drops_503": 69711,
+                        "max_ms": 32.976576,
+                        "name": "Tenant A (Batch Ingest)",
+                        "p50_ms": 27.5337075,
+                        "p90_ms": 31.3599837,
+                        "p95_ms": 32.17047245,
+                        "p99_ms": 32.948519049999994,
+                        "retries": 0,
+                        "role": "Bulk Ingest",
+                        "throughput_tps": 6.199867968851708
+                    },
+                    {
+                        "accepted": 65,
+                        "attempted": 39910,
+                        "drop_rate_pct": 99.8371335504886,
+                        "drops_503": 39845,
+                        "max_ms": 21.85226,
+                        "name": "Tenant B (Online Queries)",
+                        "p50_ms": 5.07458,
+                        "p90_ms": 18.9363156,
+                        "p95_ms": 20.491311,
+                        "p99_ms": 21.29308048,
+                        "retries": 0,
+                        "role": "Online Read Traffic",
+                        "throughput_tps": 6.499861580247759
+                    },
+                    {
+                        "accepted": 1,
+                        "attempted": 1969,
+                        "drop_rate_pct": 99.94921279837482,
+                        "drops_503": 1968,
+                        "max_ms": 2.284394,
+                        "name": "Tenant C (Liveness Probe)",
+                        "p50_ms": 2.284394,
+                        "p90_ms": 2.284394,
+                        "p95_ms": 2.284394,
+                        "p99_ms": 2.284394,
+                        "retries": 0,
+                        "role": "Health Probe",
+                        "throughput_tps": 0.09999787046535014
+                    }
+                ],
+                "total_throughput_tps": 12.799727419564817
+            },
+            "none": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000263177,
+                "jains_fairness_index": 0.6694445269477828,
+                "max_concurrency": 128,
+                "scheduler": "none",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 15190,
+                        "attempted": 15225,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 33.015244,
+                        "name": "Tenant A (Batch Ingest)",
+                        "p50_ms": 28.615772,
+                        "p90_ms": 32.0712752,
+                        "p95_ms": 32.54637805,
+                        "p99_ms": 32.91292391,
+                        "retries": 0,
+                        "role": "Bulk Ingest",
+                        "throughput_tps": 1518.960024465764
+                    },
+                    {
+                        "accepted": 14727,
+                        "attempted": 14743,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 22.007454,
+                        "name": "Tenant B (Online Queries)",
+                        "p50_ms": 5.474876,
+                        "p90_ms": 21.1661038,
+                        "p95_ms": 21.5786384,
+                        "p99_ms": 21.9133876,
+                        "retries": 0,
+                        "role": "Online Read Traffic",
+                        "throughput_tps": 1472.6612429432064
+                    },
+                    {
+                        "accepted": 66,
+                        "attempted": 66,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 2.767223,
+                        "name": "Tenant C (Liveness Probe)",
+                        "p50_ms": 2.4848635000000003,
+                        "p90_ms": 2.7169605,
+                        "p95_ms": 2.7363012500000004,
+                        "p99_ms": 2.75063695,
+                        "retries": 0,
+                        "role": "Health Probe",
+                        "throughput_tps": 6.59982630775118
+                    }
+                ],
+                "total_throughput_tps": 2998.2210937167215
+            }
+        }
+    },
+    "4_tiered_sla_isolation": {
+        "description": "Multi-Tenant SLA Isolation: Gold (admin) vs Silver (metadata) vs Bronze (data)",
+        "results": {
+            "throttler": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000280432,
+                "jains_fairness_index": 0.9631981187536741,
+                "max_concurrency": 128,
+                "scheduler": "throttler",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 31,
+                        "attempted": 29950,
+                        "drop_rate_pct": 99.89649415692821,
+                        "drops_503": 29919,
+                        "max_ms": 13.1379,
+                        "name": "Tier 1 (Gold SLA - Premium)",
+                        "p50_ms": 7.958507,
+                        "p90_ms": 12.607033,
+                        "p95_ms": 13.1046485,
+                        "p99_ms": 13.1332533,
+                        "retries": 0,
+                        "role": "Mission Critical",
+                        "throughput_tps": 3.0999130685178367
+                    },
+                    {
+                        "accepted": 47,
+                        "attempted": 49859,
+                        "drop_rate_pct": 99.90573417036042,
+                        "drops_503": 49812,
+                        "max_ms": 44.165055,
+                        "name": "Tier 2 (Silver SLA - Standard)",
+                        "p50_ms": 8.34543,
+                        "p90_ms": 34.7791162,
+                        "p95_ms": 37.553046599999995,
+                        "p99_ms": 43.92541386,
+                        "retries": 0,
+                        "role": "Standard Business",
+                        "throughput_tps": 4.699868200656075
+                    },
+                    {
+                        "accepted": 50,
+                        "attempted": 99704,
+                        "drop_rate_pct": 99.94985156061944,
+                        "drops_503": 99654,
+                        "max_ms": 49.113883,
+                        "name": "Tier 3 (Bronze SLA - Batch)",
+                        "p50_ms": 28.931131999999998,
+                        "p90_ms": 44.838332699999995,
+                        "p95_ms": 45.928727699999996,
+                        "p99_ms": 48.838731339999995,
+                        "retries": 0,
+                        "role": "Best Effort Bulk",
+                        "throughput_tps": 4.999859787931995
+                    }
+                ],
+                "total_throughput_tps": 12.799641057105907
+            },
+            "none": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000154565,
+                "jains_fairness_index": 0.9914316296253,
+                "max_concurrency": 128,
+                "scheduler": "none",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 12258,
+                        "attempted": 12272,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 14.65952,
+                        "name": "Tier 1 (Gold SLA - Premium)",
+                        "p50_ms": 9.758569999999999,
+                        "p90_ms": 13.0912773,
+                        "p95_ms": 13.457049649999998,
+                        "p99_ms": 14.03226553,
+                        "retries": 0,
+                        "role": "Mission Critical",
+                        "throughput_tps": 1225.7810537151431
+                    },
+                    {
+                        "accepted": 9755,
+                        "attempted": 9779,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 48.859673,
+                        "name": "Tier 2 (Silver SLA - Standard)",
+                        "p50_ms": 32.60123,
+                        "p90_ms": 43.531832,
+                        "p95_ms": 44.8710216,
+                        "p99_ms": 46.5938932,
+                        "retries": 0,
+                        "role": "Standard Business",
+                        "throughput_tps": 975.4849224172966
+                    },
+                    {
+                        "accepted": 11332,
+                        "attempted": 11382,
+                        "drop_rate_pct": 0.0,
+                        "drops_503": 0,
+                        "max_ms": 58.485758,
+                        "name": "Tier 3 (Bronze SLA - Batch)",
+                        "p50_ms": 46.7245275,
+                        "p90_ms": 52.8897245,
+                        "p95_ms": 54.167711049999994,
+                        "p99_ms": 55.96314586999999,
+                        "retries": 0,
+                        "role": "Best Effort Bulk",
+                        "throughput_tps": 1133.182484964921
+                    }
+                ],
+                "total_throughput_tps": 3334.448461097361
+            }
+        }
+    },
+    "5_retry_storm_dynamics": {
+        "description": "503 Overload Under Client Exponential Backoff Retries vs Fast Drop",
+        "results": {
+            "throttler": {
+                "cluster_capacity": 64,
+                "elapsed_time_s": 10.000235173,
+                "jains_fairness_index": 0.9881785283474065,
+                "max_concurrency": 128,
+                "scheduler": "throttler",
+                "server_threads": 8,
+                "tenants": [
+                    {
+                        "accepted": 57,
+                        "attempted": 2737,
+                        "drop_rate_pct": 97.91742784070149,
+                        "drops_503": 2680,
+                        "max_ms": 32.925677,
+                        "name": "Batch Clients (With Retries)",
+                        "p50_ms": 28.641873,
+                        "p90_ms": 32.0696032,
+                        "p95_ms": 32.5867466,
+                        "p99_ms": 32.83515971999999,
+                        "retries": 10681,
+                        "role": "Heavy Load with Retries",
+                        "throughput_tps": 5.699865954542387
+                    },
+                    {
+                        "accepted": 71,
+                        "attempted": 1746,
+                        "drop_rate_pct": 95.93356242840778,
+                        "drops_503": 1675,
+                        "max_ms": 8.207525,
+                        "name": "API Clients (With Retries)",
+                        "p50_ms": 5.138667,
+                        "p90_ms": 7.347132,
+                        "p95_ms": 7.917061,
+                        "p99_ms": 8.0998419,
+                        "retries": 6700,
+                        "role": "Interactive with Retries",
+                        "throughput_tps": 7.099833031096658
+                    }
+                ],
+                "total_throughput_tps": 12.799698985639045
+            }
+        }
+    }
+}

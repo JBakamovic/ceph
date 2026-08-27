@@ -1,0 +1,412 @@
+{
+  "scenario": "benchmark_suite/scenarios/4_tiered_sla_isolation.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787759107.9883878,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/4_tiered_sla_isolation.json",
+      "-n",
+      "2",
+      "--runtime",
+      "10",
+      "--timeout",
+      "90"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 2,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_throttler_1.json",
+        "total_tps": 2284.3811609988293,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 794.0245759995063,
+            "drop_pct": 0.0,
+            "p50_ms": 15.105172
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 783.5221296486269,
+            "drop_pct": 0.0,
+            "p50_ms": 14.8803915
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 706.834455350696,
+            "drop_pct": 0.0,
+            "p50_ms": 62.677212
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_throttler_2.json",
+        "total_tps": 2017.3671677305301,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 753.3551343280471,
+            "drop_pct": 0.0,
+            "p50_ms": 15.832102
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 606.6465276298436,
+            "drop_pct": 0.0,
+            "p50_ms": 15.7650205
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 657.3655057726392,
+            "drop_pct": 0.0,
+            "p50_ms": 81.319036
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_dmclock_coarse_1.json",
+        "total_tps": 41.278209621156165,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 40.67852618840329,
+            "drop_pct": 3.5545023696682465,
+            "p50_ms": 366.793926
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 0.3997889551685827,
+            "drop_pct": 99.99192799773984,
+            "p50_ms": 348.3837505
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 0.19989447758429135,
+            "drop_pct": 99.99799051523189,
+            "p50_ms": 325.0706855
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 292,
+            "qlen": 0,
+            "res": 115
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 99526,
+            "limit_cost": 2079272,
+            "prio": 1,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 49550,
+            "limit_cost": 488548,
+            "prio": 2,
+            "qlen": 0,
+            "res": 2
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_dmclock_coarse_2.json",
+        "total_tps": 41.9744787068388,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 41.27490406172482,
+            "drop_pct": 3.278688524590164,
+            "p50_ms": 360.860616
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 0.4996961750814143,
+            "drop_pct": 99.98987772289254,
+            "p50_ms": 672.805157
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 0.1998784700325657,
+            "drop_pct": 99.99799214930378,
+            "p50_ms": 330.7044555
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 14,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 299,
+            "qlen": 0,
+            "res": 114
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 99607,
+            "limit_cost": 2080840,
+            "prio": 1,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 49391,
+            "limit_cost": 491632,
+            "prio": 2,
+            "qlen": 0,
+            "res": 3
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_dmclock_fine_upstream_1.json",
+        "total_tps": 21.987514249313435,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 20.888138536847766,
+            "drop_pct": 6.696428571428571,
+            "p50_ms": 715.217283
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 0.7995459727023068,
+            "drop_pct": 99.9837123602826,
+            "p50_ms": 477.273057
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 0.299829739763365,
+            "drop_pct": 99.99698686272147,
+            "p50_ms": 342.141166
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 160,
+            "qlen": 0,
+            "res": 49
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 99561,
+            "limit_cost": 2014088,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 49109,
+            "limit_cost": 426502,
+            "prio": 4,
+            "qlen": 0,
+            "res": 4
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/4_tiered_sla_isolation_dmclock_fine_upstream_2.json",
+        "total_tps": 22.69287001597462,
+        "per_tenant": {
+          "Tier 1 (Gold SLA - Premium)": {
+            "accepted_per_s": 21.69318411218719,
+            "drop_pct": 6.4655172413793105,
+            "p50_ms": 679.299398
+          },
+          "Tier 2 (Silver SLA - Standard)": {
+            "accepted_per_s": 0.6997801326511996,
+            "drop_pct": 99.98579689560718,
+            "p50_ms": 486.506021
+          },
+          "Tier 3 (Bronze SLA - Batch)": {
+            "accepted_per_s": 0.29990577113622846,
+            "drop_pct": 99.99698534879515,
+            "p50_ms": 341.270777
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 167,
+            "qlen": 0,
+            "res": 50
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 99511,
+            "limit_cost": 2007560,
+            "prio": 2,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 49278,
+            "limit_cost": 430908,
+            "prio": 4,
+            "qlen": 0,
+            "res": 3
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ]
+  }
+}

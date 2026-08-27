@@ -1,0 +1,96 @@
+{
+    "cluster_capacity" : 48,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 21167,
+            "limit_cost" : 249622,
+            "prio" : 24,
+            "qlen" : 0,
+            "res" : 10
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.076567175999999,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "load_model" : "closed_loop",
+        "max_concurrent_requests" : 64,
+        "offered_load_independent_of_scheduler" : false,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.81869688385269124,
+    "max_concurrency" : 64,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 9,
+            "attempted" : 2667,
+            "drop_rate_pct" : 99.662542182227227,
+            "drops_503" : 2658,
+            "max_ms" : 909.13799100000006,
+            "name" : "Batch Clients (With Retries)",
+            "p50_ms" : 250.00262599999999,
+            "p90_ms" : 832.88334700000019,
+            "p95_ms" : 871.01066900000001,
+            "p99_ms" : 901.51252660000000,
+            "retries" : 10626,
+            "role" : "Heavy Load with Retries",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.89316131603189941
+        },
+        {
+            "accepted" : 25,
+            "attempted" : 1618,
+            "drop_rate_pct" : 98.454882571075402,
+            "drops_503" : 1593,
+            "max_ms" : 1005.3442360000000,
+            "name" : "API Clients (With Retries)",
+            "p50_ms" : 506.11128600000001,
+            "p90_ms" : 910.44221460000006,
+            "p95_ms" : 958.50861419999990,
+            "p99_ms" : 996.03080607999982,
+            "retries" : 6355,
+            "role" : "Interactive with Retries",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 2.4810036556441650
+        }
+    ],
+    "total_throughput_tps" : 3.3741649716760644
+}

@@ -1,0 +1,112 @@
+{
+    "cluster_capacity" : 48,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 15,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 167,
+            "qlen" : 0,
+            "res" : 50
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 99511,
+            "limit_cost" : 2007560,
+            "prio" : 2,
+            "qlen" : 0,
+            "res" : 1
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 49278,
+            "limit_cost" : 430908,
+            "prio" : 4,
+            "qlen" : 0,
+            "res" : 3
+        }
+    },
+    "elapsed_time_s" : 10.003141949000000,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "load_model" : "closed_loop",
+        "max_concurrent_requests" : 128,
+        "offered_load_independent_of_scheduler" : false,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.36431444913426791,
+    "max_concurrency" : 128,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 217,
+            "attempted" : 232,
+            "drop_rate_pct" : 6.4655172413793105,
+            "drops_503" : 15,
+            "max_ms" : 760.37593300000003,
+            "name" : "Tier 1 (Gold SLA - Premium)",
+            "p50_ms" : 679.29939800000000,
+            "p90_ms" : 722.14408019999996,
+            "p95_ms" : 738.36701399999993,
+            "p99_ms" : 757.32833271999993,
+            "retries" : 0,
+            "role" : "Mission Critical",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 21.693184112187190
+        },
+        {
+            "accepted" : 7,
+            "attempted" : 49285,
+            "drop_rate_pct" : 99.985796895607180,
+            "drops_503" : 49278,
+            "max_ms" : 944.23072500000001,
+            "name" : "Tier 2 (Silver SLA - Standard)",
+            "p50_ms" : 486.50602099999998,
+            "p90_ms" : 932.58603960000005,
+            "p95_ms" : 938.40838230000008,
+            "p99_ms" : 943.06625645999998,
+            "retries" : 0,
+            "role" : "Standard Business",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.69978013265119965
+        },
+        {
+            "accepted" : 3,
+            "attempted" : 99514,
+            "drop_rate_pct" : 99.996985348795150,
+            "drops_503" : 99511,
+            "max_ms" : 828.16121599999997,
+            "name" : "Tier 3 (Bronze SLA - Batch)",
+            "p50_ms" : 341.27077700000001,
+            "p90_ms" : 730.78312819999996,
+            "p95_ms" : 779.47217209999985,
+            "p99_ms" : 818.42340721999994,
+            "retries" : 0,
+            "role" : "Best Effort Bulk",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.29990577113622846
+        }
+    ],
+    "total_throughput_tps" : 22.692870015974616
+}

@@ -1,0 +1,112 @@
+{
+    "cluster_capacity" : 64,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 1,
+            "qlen" : 0,
+            "res" : 41
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 51625,
+            "limit_cost" : 51625,
+            "prio" : 1268,
+            "qlen" : 0,
+            "res" : 2
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.004709344000000,
+    "fidelity" : {
+        "at_limit" : "reject",
+        "at_limit_matches_production" : true,
+        "capacity_estimate_ops_s" : 1900.0000000000000,
+        "capacity_relative" : true,
+        "cost_model_matches_production" : true,
+        "load_model" : "open_loop",
+        "max_concurrent_requests" : 128,
+        "offered_load_independent_of_scheduler" : true,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : true
+    },
+    "jains_fairness_index" : 0.35591593543763528,
+    "max_concurrency" : 128,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 1,
+            "attempted" : 42943,
+            "drop_rate_pct" : 99.997671331765360,
+            "drops_503" : 42942,
+            "max_ms" : 30.293989000000000,
+            "name" : "Tenant A (Bully Data)",
+            "p50_ms" : 30.293989000000000,
+            "p90_ms" : 30.293989000000000,
+            "p95_ms" : 30.293989000000000,
+            "p99_ms" : 30.293989000000000,
+            "retries" : 0,
+            "role" : "Bulk Aggressor",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.099952928727481474
+        },
+        {
+            "accepted" : 1269,
+            "attempted" : 9952,
+            "drop_rate_pct" : 87.248794212218655,
+            "drops_503" : 8683,
+            "max_ms" : 7.9032890000000000,
+            "name" : "Tenant B (Interactive Data)",
+            "p50_ms" : 5.2633219999999996,
+            "p90_ms" : 7.7300690000000003,
+            "p95_ms" : 7.8085596000000006,
+            "p99_ms" : 7.8835209200000005,
+            "retries" : 0,
+            "role" : "Latency-Sensitive S3 App",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 126.84026655517400
+        },
+        {
+            "accepted" : 42,
+            "attempted" : 42,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 2.6525010000000000,
+            "name" : "Tenant C (Health Probe)",
+            "p50_ms" : 2.5018650000000000,
+            "p90_ms" : 2.6219599000000002,
+            "p95_ms" : 2.6387007000000002,
+            "p99_ms" : 2.6490623300000000,
+            "retries" : 0,
+            "role" : "Cluster Health / K8s Probe",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 4.1980230065542221
+        }
+    ],
+    "total_throughput_tps" : 131.13824249045570
+}

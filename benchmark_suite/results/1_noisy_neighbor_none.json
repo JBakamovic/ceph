@@ -1,0 +1,56 @@
+{
+    "cluster_capacity" : 64,
+    "elapsed_time_s" : 10.000724220000000,
+    "jains_fairness_index" : 0.66685626281493438,
+    "max_concurrency" : 128,
+    "scheduler" : "none",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 19062,
+            "attempted" : 19112,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 33.177768999999998,
+            "name" : "Tenant A (Bully Bulk Ingest)",
+            "p50_ms" : 28.134281000000001,
+            "p90_ms" : 32.060053900000000,
+            "p95_ms" : 32.537460449999998,
+            "p99_ms" : 32.913318910000001,
+            "retries" : 0,
+            "role" : "Bulk Aggressor",
+            "throughput_tps" : 1906.0619591807922
+        },
+        {
+            "accepted" : 20944,
+            "attempted" : 20952,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 8.2751619999999999,
+            "name" : "Tenant B (Interactive Web CRUD)",
+            "p50_ms" : 5.2108369999999997,
+            "p90_ms" : 7.7227580000000007,
+            "p95_ms" : 7.9868366999999987,
+            "p99_ms" : 8.2006370700000009,
+            "retries" : 0,
+            "role" : "Latency Sensitive",
+            "throughput_tps" : 2094.2483303474196
+        },
+        {
+            "accepted" : 50,
+            "attempted" : 50,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 2.7967279999999999,
+            "name" : "Tenant C (K8s Liveness Probe)",
+            "p50_ms" : 2.5962084999999999,
+            "p90_ms" : 2.7437071000000000,
+            "p95_ms" : 2.7576134500000000,
+            "p99_ms" : 2.7826390299999995,
+            "retries" : 0,
+            "role" : "Control Plane Health",
+            "throughput_tps" : 4.9996379162228308
+        }
+    ],
+    "total_throughput_tps" : 4005.3099274444348
+}

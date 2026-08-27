@@ -1,0 +1,112 @@
+{
+    "cluster_capacity" : 64,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 79201,
+            "limit_cost" : 847846,
+            "prio" : 5,
+            "qlen" : 0,
+            "res" : 2
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 59601,
+            "limit_cost" : 1192020,
+            "prio" : 2,
+            "qlen" : 0,
+            "res" : 1
+        }
+    },
+    "elapsed_time_s" : 10.005363432999999,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "load_model" : "closed_loop",
+        "max_concurrent_requests" : 128,
+        "offered_load_independent_of_scheduler" : false,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.57471264367816088,
+    "max_concurrency" : 128,
+    "scheduler" : "dmclock_coarse",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 3,
+            "attempted" : 59604,
+            "drop_rate_pct" : 99.994966780752975,
+            "drops_503" : 59601,
+            "max_ms" : 1023.7070310000000,
+            "name" : "Tenant 1 (Search Crawler)",
+            "p50_ms" : 525.79661899999996,
+            "p90_ms" : 924.12494860000004,
+            "p95_ms" : 973.91598979999992,
+            "p99_ms" : 1013.7488227599999,
+            "retries" : 0,
+            "role" : "Metadata Bucket Indexer",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.29983918326297943
+        },
+        {
+            "accepted" : 7,
+            "attempted" : 49253,
+            "drop_rate_pct" : 99.985787667756284,
+            "drops_503" : 49246,
+            "max_ms" : 982.03085299999998,
+            "name" : "Tenant 2 (Media Streamer)",
+            "p50_ms" : 502.15782000000002,
+            "p90_ms" : 885.32270240000003,
+            "p95_ms" : 933.67677769999989,
+            "p99_ms" : 972.36003793999998,
+            "retries" : 0,
+            "role" : "High Bandwidth Reads",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.69962476094695203
+        },
+        {
+            "accepted" : 0,
+            "attempted" : 29955,
+            "drop_rate_pct" : 100.00000000000000,
+            "drops_503" : 29955,
+            "max_ms" : 0.0000000000000000,
+            "name" : "Tenant 3 (Mobile Client)",
+            "p50_ms" : 0.0000000000000000,
+            "p90_ms" : 0.0000000000000000,
+            "p95_ms" : 0.0000000000000000,
+            "p99_ms" : 0.0000000000000000,
+            "retries" : 0,
+            "role" : "Interactive Small Reads",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.0000000000000000
+        }
+    ],
+    "total_throughput_tps" : 0.99946394420993145
+}

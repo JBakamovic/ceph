@@ -1,0 +1,603 @@
+{
+  "scenario": "benchmark_suite/experiments/no_limit_res_wgt_only.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787757784.958669,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/experiments/no_limit_res_wgt_only.json",
+      "-n",
+      "3",
+      "--runtime",
+      "10",
+      "--timeout",
+      "120"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 3,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_throttler_1.json",
+        "total_tps": 1319.7518517442825,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1072.1193472668544,
+            "drop_pct": 74.71815894903568,
+            "p50_ms": 116.48129750000001
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 246.5459637717034,
+            "drop_pct": 74.92465340566606,
+            "p50_ms": 20.9841105
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 1.0865407057246543,
+            "drop_pct": 73.80952380952381,
+            "p50_ms": 9.846383
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_throttler_2.json",
+        "total_tps": 1312.3155061972861,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1071.1529562742585,
+            "drop_pct": 74.79249494315408,
+            "p50_ms": 116.68852949999999
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 239.9769904805547,
+            "drop_pct": 75.61489810260014,
+            "p50_ms": 20.9361
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 1.1855594424728926,
+            "drop_pct": 71.42857142857143,
+            "p50_ms": 10.169399
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 3,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_throttler_3.json",
+        "total_tps": 1311.7645092094815,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1071.0438684757837,
+            "drop_pct": 74.71728029472801,
+            "p50_ms": 116.78639
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 239.5353113579061,
+            "drop_pct": 75.63548678790315,
+            "p50_ms": 27.814771
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 1.1853293757917003,
+            "drop_pct": 71.42857142857143,
+            "p50_ms": 9.8416395
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_coarse_1.json",
+        "total_tps": 1314.4684430041325,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1064.9208142932248,
+            "drop_pct": 74.60691083702099,
+            "p50_ms": 3790.724024
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 245.40166336048912,
+            "drop_pct": 74.93193506100636,
+            "p50_ms": 3766.1896255
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.145965350418561,
+            "drop_pct": 0.0,
+            "p50_ms": 10.816048
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 39127,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 6626,
+            "qlen": 0,
+            "res": 6648
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_coarse_2.json",
+        "total_tps": 1314.2902692594405,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1064.6303569586566,
+            "drop_pct": 74.52438275976019,
+            "p50_ms": 3781.701083
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 245.51699791254487,
+            "drop_pct": 74.8864897588538,
+            "p50_ms": 3742.690267
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.142914388239006,
+            "drop_pct": 0.0,
+            "p50_ms": 11.15041
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 38995,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 6634,
+            "qlen": 0,
+            "res": 6648
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 3,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_coarse_3.json",
+        "total_tps": 1315.8934744445662,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 1065.7453826034161,
+            "drop_pct": 74.43160287987874,
+            "p50_ms": 3781.3913700000003
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 246.0019908714073,
+            "drop_pct": 74.83082516917483,
+            "p50_ms": 3741.3248585
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.14610096974282,
+            "drop_pct": 0.0,
+            "p50_ms": 11.147054
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 38837,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 6640,
+            "qlen": 0,
+            "res": 6648
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_fine_upstream_1.json",
+        "total_tps": 1839.4657691090767,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 917.6600802429216,
+            "drop_pct": 78.00099382409313,
+            "p50_ms": 3975.633055
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 917.6600802429216,
+            "drop_pct": 6.109876792567158,
+            "p50_ms": 242.63144
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.145608623233592,
+            "drop_pct": 0.0,
+            "p50_ms": 10.8121145
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 33569,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 12039,
+            "qlen": 0,
+            "res": 6555
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_fine_upstream_2.json",
+        "total_tps": 1841.456829930124,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 918.7044020427754,
+            "drop_pct": 77.91622166844665,
+            "p50_ms": 3973.411376
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 918.605669705103,
+            "drop_pct": 6.001212366134572,
+            "p50_ms": 237.0147075
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.146758182245735,
+            "drop_pct": 0.0,
+            "p50_ms": 10.688763
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 33424,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 12056,
+            "qlen": 0,
+            "res": 6553
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      },
+      {
+        "run": 3,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/no_limit_res_wgt_only_dmclock_fine_upstream_3.json",
+        "total_tps": 1842.0060390125027,
+        "per_tenant": {
+          "Tenant A (Bully Data)": {
+            "accepted_per_s": 918.8796411437631,
+            "drop_pct": 77.97192035419182,
+            "p50_ms": 3962.035368
+          },
+          "Tenant B (Interactive Data)": {
+            "accepted_per_s": 918.9784029280648,
+            "drop_pct": 6.01959398040602,
+            "p50_ms": 234.291335
+          },
+          "Tenant C (Health Probe)": {
+            "accepted_per_s": 4.147994940674769,
+            "drop_pct": 0.0,
+            "p50_ms": 10.684830000000002
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 1,
+            "qlen": 0,
+            "res": 41
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 33529,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 12058,
+            "qlen": 0,
+            "res": 6551
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject",
+          "at_limit_matches_production": true,
+          "capacity_estimate_ops_s": 1900.0,
+          "capacity_relative": true,
+          "cost_model_matches_production": true,
+          "load_model": "open_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": true,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": true
+        }
+      }
+    ]
+  }
+}

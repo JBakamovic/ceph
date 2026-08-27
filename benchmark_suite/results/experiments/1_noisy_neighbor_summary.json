@@ -1,0 +1,412 @@
+{
+  "scenario": "benchmark_suite/scenarios/1_noisy_neighbor.json",
+  "provenance": {
+    "binary": "/home/jbakamovic/development/build-ceph/release/bin/bench_rgw_scheduler",
+    "binary_mtime": 1787759107.9883878,
+    "git_head": "279be772833a606099c960edce6ea7536acc1863",
+    "git_branch": "jbakamovic/rgw-fine-grained-dmclock",
+    "git_dirty": true,
+    "argv": [
+      "benchmark_suite/run_experiment.py",
+      "benchmark_suite/scenarios/1_noisy_neighbor.json",
+      "-n",
+      "2",
+      "--runtime",
+      "10",
+      "--timeout",
+      "90"
+    ]
+  },
+  "runtime_s": 10,
+  "repeats": 2,
+  "runs": {
+    "throttler": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_throttler_1.json",
+        "total_tps": 4014.9922779876974,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 1913.739586819792,
+            "drop_pct": 0.0,
+            "p50_ms": 27.794708
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 2096.3155372882816,
+            "drop_pct": 0.0,
+            "p50_ms": 5.192518
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.937153879623838,
+            "drop_pct": 0.0,
+            "p50_ms": 2.5247634999999997
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_throttler_2.json",
+        "total_tps": 4124.198676306851,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 1950.5637843430916,
+            "drop_pct": 0.0,
+            "p50_ms": 27.350006
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 2168.6975057835757,
+            "drop_pct": 0.0,
+            "p50_ms": 5.1751249999999995
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.937386180182989,
+            "drop_pct": 0.0,
+            "p50_ms": 2.514179
+          }
+        },
+        "dmclock_counters": null,
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_coarse": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_dmclock_coarse_1.json",
+        "total_tps": 5.431720779359474,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 0.49379279812358856,
+            "drop_pct": 99.99496713539412,
+            "p50_ms": 510.942769
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.937927981235886,
+            "drop_pct": 0.0,
+            "p50_ms": 2.497802
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 50
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 129297,
+            "limit_cost": 2135507,
+            "prio": 4,
+            "qlen": 0,
+            "res": 1
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_dmclock_coarse_2.json",
+        "total_tps": 5.431592826910406,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 0.4937811660827642,
+            "drop_pct": 99.99496976830753,
+            "p50_ms": 512.854139
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 0.0,
+            "drop_pct": 100.0,
+            "p50_ms": 0.0
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.9378116608276414,
+            "drop_pct": 0.0,
+            "p50_ms": 2.4828045000000003
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 50
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 129349,
+            "limit_cost": 2137281,
+            "prio": 3,
+            "qlen": 0,
+            "res": 2
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ],
+    "dmclock_fine_upstream": [
+      {
+        "run": 1,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_dmclock_fine_upstream_1.json",
+        "total_tps": 28.041279392827345,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 0.29621069781155646,
+            "drop_pct": 99.99698386367064,
+            "p50_ms": 342.413374
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 22.808223731489846,
+            "drop_pct": 6.097560975609756,
+            "p50_ms": 639.301889
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.936844963525941,
+            "drop_pct": 0.0,
+            "p50_ms": 2.584742
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 50
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 99462,
+            "limit_cost": 1987272,
+            "prio": 183,
+            "qlen": 0,
+            "res": 51
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      },
+      {
+        "run": 2,
+        "status": "ok",
+        "result_file": "/home/jbakamovic/development/ceph/benchmark_suite/results/experiments/1_noisy_neighbor_dmclock_fine_upstream_2.json",
+        "total_tps": 27.350070145633282,
+        "per_tenant": {
+          "Tenant A (Bully Bulk Ingest)": {
+            "accepted_per_s": 0.2962101459815879,
+            "drop_pct": 99.9969841971933,
+            "p50_ms": 510.329014
+          },
+          "Tenant B (Interactive Web CRUD)": {
+            "accepted_per_s": 22.117024233291897,
+            "drop_pct": 6.2761506276150625,
+            "p50_ms": 660.5947245
+          },
+          "Tenant C (K8s Liveness Probe)": {
+            "accepted_per_s": 4.936835766359798,
+            "drop_pct": 0.0,
+            "p50_ms": 2.549225
+          }
+        },
+        "dmclock_counters": {
+          "admin": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 50
+          },
+          "auth": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          },
+          "data": {
+            "cancel": 15,
+            "cost": 0,
+            "limit": 99473,
+            "limit_cost": 2069544,
+            "prio": 177,
+            "qlen": 0,
+            "res": 50
+          },
+          "metadata": {
+            "cancel": 0,
+            "cost": 0,
+            "limit": 0,
+            "limit_cost": 0,
+            "prio": 0,
+            "qlen": 0,
+            "res": 0
+          }
+        },
+        "fidelity": {
+          "at_limit": "reject_threshold",
+          "at_limit_matches_production": false,
+          "capacity_estimate_ops_s": 0.0,
+          "capacity_relative": false,
+          "cost_model_matches_production": false,
+          "load_model": "closed_loop",
+          "max_concurrent_requests": 128,
+          "offered_load_independent_of_scheduler": false,
+          "production_max_concurrent_requests_default": 1024,
+          "production_rgw_thread_pool_size_default": 128,
+          "scheduler_is_production_code": true,
+          "thread_count": 8,
+          "uniform_cost": false
+        }
+      }
+    ]
+  }
+}

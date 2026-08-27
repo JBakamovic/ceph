@@ -1,0 +1,56 @@
+{
+    "cluster_capacity" : 64,
+    "elapsed_time_s" : 10.000280432000000,
+    "jains_fairness_index" : 0.96319811875367412,
+    "max_concurrency" : 128,
+    "scheduler" : "throttler",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 31,
+            "attempted" : 29950,
+            "drop_rate_pct" : 99.896494156928213,
+            "drops_503" : 29919,
+            "max_ms" : 13.137900000000000,
+            "name" : "Tier 1 (Gold SLA - Premium)",
+            "p50_ms" : 7.9585070000000000,
+            "p90_ms" : 12.607032999999999,
+            "p95_ms" : 13.104648500000000,
+            "p99_ms" : 13.133253300000000,
+            "retries" : 0,
+            "role" : "Mission Critical",
+            "throughput_tps" : 3.0999130685178367
+        },
+        {
+            "accepted" : 47,
+            "attempted" : 49859,
+            "drop_rate_pct" : 99.905734170360418,
+            "drops_503" : 49812,
+            "max_ms" : 44.165055000000002,
+            "name" : "Tier 2 (Silver SLA - Standard)",
+            "p50_ms" : 8.3454300000000003,
+            "p90_ms" : 34.779116199999997,
+            "p95_ms" : 37.553046599999995,
+            "p99_ms" : 43.925413859999999,
+            "retries" : 0,
+            "role" : "Standard Business",
+            "throughput_tps" : 4.6998682006560752
+        },
+        {
+            "accepted" : 50,
+            "attempted" : 99704,
+            "drop_rate_pct" : 99.949851560619436,
+            "drops_503" : 99654,
+            "max_ms" : 49.113883000000001,
+            "name" : "Tier 3 (Bronze SLA - Batch)",
+            "p50_ms" : 28.931131999999998,
+            "p90_ms" : 44.838332699999995,
+            "p95_ms" : 45.928727699999996,
+            "p99_ms" : 48.838731339999995,
+            "retries" : 0,
+            "role" : "Best Effort Bulk",
+            "throughput_tps" : 4.9998597879319950
+        }
+    ],
+    "total_throughput_tps" : 12.799641057105907
+}

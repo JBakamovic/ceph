@@ -1,0 +1,112 @@
+{
+    "cluster_capacity" : 64,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 50
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 15,
+            "cost" : 0,
+            "limit" : 99462,
+            "limit_cost" : 1987272,
+            "prio" : 183,
+            "qlen" : 0,
+            "res" : 51
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.127925906000000,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "load_model" : "closed_loop",
+        "max_concurrent_requests" : 128,
+        "offered_load_independent_of_scheduler" : false,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.48121233816598052,
+    "max_concurrency" : 128,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 3,
+            "attempted" : 99465,
+            "drop_rate_pct" : 99.996983863670636,
+            "drops_503" : 99462,
+            "max_ms" : 827.58367899999996,
+            "name" : "Tenant A (Bully Bulk Ingest)",
+            "p50_ms" : 342.41337399999998,
+            "p90_ms" : 730.54961800000001,
+            "p95_ms" : 779.06664849999993,
+            "p99_ms" : 817.88027289999991,
+            "retries" : 0,
+            "role" : "Bulk Aggressor",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 0.29621069781155646
+        },
+        {
+            "accepted" : 231,
+            "attempted" : 246,
+            "drop_rate_pct" : 6.0975609756097562,
+            "drops_503" : 15,
+            "max_ms" : 740.75420999999994,
+            "name" : "Tenant B (Interactive Web CRUD)",
+            "p50_ms" : 639.30188899999996,
+            "p90_ms" : 680.77065300000004,
+            "p95_ms" : 699.42250199999989,
+            "p99_ms" : 732.25418769999987,
+            "retries" : 0,
+            "role" : "Latency Sensitive",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 22.808223731489846
+        },
+        {
+            "accepted" : 50,
+            "attempted" : 50,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 2.7693509999999999,
+            "name" : "Tenant C (K8s Liveness Probe)",
+            "p50_ms" : 2.5847419999999999,
+            "p90_ms" : 2.7132931999999998,
+            "p95_ms" : 2.7403300000000002,
+            "p99_ms" : 2.7598415699999999,
+            "retries" : 0,
+            "role" : "Control Plane Health",
+            "shed_backpressure" : 0,
+            "throughput_tps" : 4.9368449635259406
+        }
+    ],
+    "total_throughput_tps" : 28.041279392827342
+}
