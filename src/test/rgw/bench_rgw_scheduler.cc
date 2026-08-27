@@ -96,34 +96,34 @@ inline std::optional<OpType> parse_op_type(const std::string& name) {
   return std::nullopt;
 }
 
-inline const char* client_id_to_str(dmc::client_id c) {
+inline const char* op_class_to_str(dmc::op_class c) {
   switch (c) {
-    case dmc::client_id::admin:    return "admin";
-    case dmc::client_id::auth:     return "auth";
-    case dmc::client_id::data:     return "data";
-    case dmc::client_id::metadata: return "metadata";
+    case dmc::op_class::admin:    return "admin";
+    case dmc::op_class::auth:     return "auth";
+    case dmc::op_class::data:     return "data";
+    case dmc::op_class::metadata: return "metadata";
     default: return "data";
   }
 }
 
-inline std::optional<dmc::client_id> parse_client_id(const std::string& str) {
-  if (str == "admin")    return dmc::client_id::admin;
-  if (str == "auth")     return dmc::client_id::auth;
-  if (str == "data")     return dmc::client_id::data;
-  if (str == "metadata") return dmc::client_id::metadata;
+inline std::optional<dmc::op_class> parse_op_class(const std::string& str) {
+  if (str == "admin")    return dmc::op_class::admin;
+  if (str == "auth")     return dmc::op_class::auth;
+  if (str == "data")     return dmc::op_class::data;
+  if (str == "metadata") return dmc::op_class::metadata;
   return std::nullopt;
 }
 
-inline dmc::client_id default_op_to_dmc_client(OpType op) {
+inline dmc::op_class default_op_to_dmc_client(OpType op) {
   switch (op) {
-    case OpType::ProbeHealth: return dmc::client_id::admin;
+    case OpType::ProbeHealth: return dmc::op_class::admin;
     case OpType::GetSmall:
     case OpType::PutSmall:
     case OpType::GetLarge:
-    case OpType::PutLarge:    return dmc::client_id::data;
-    case OpType::ListBucket:  return dmc::client_id::metadata;
+    case OpType::PutLarge:    return dmc::op_class::data;
+    case OpType::ListBucket:  return dmc::op_class::metadata;
   }
-  return dmc::client_id::data;
+  return dmc::op_class::data;
 }
 
 // ============================================================================
@@ -203,7 +203,7 @@ struct TenantConfig {
   std::string name;
   std::string role_desc = "custom";
   int workers = 10;
-  dmc::client_id client_id = dmc::client_id::data;
+  dmc::op_class client_id = dmc::op_class::data;
   double pacing_ms = 0.0;
   PacingDistribution pacing_dist = PacingDistribution::Constant;
   std::vector<std::pair<OpType, int>> op_weights; // OpType -> weight
@@ -224,11 +224,11 @@ struct BenchConfig {
   int adaptive_sample_interval_ms = 100;
 
   BackendConfig backend;
-  std::map<dmc::client_id, DmClockProfile> dmclock_profiles = {
-    {dmc::client_id::admin,    {10.0, 100.0, 50.0}},
-    {dmc::client_id::auth,     { 5.0,  50.0, 25.0}},
-    {dmc::client_id::data,     {20.0, 100.0, 100.0}},
-    {dmc::client_id::metadata, {10.0,  50.0, 50.0}}
+  std::map<dmc::op_class, DmClockProfile> dmclock_profiles = {
+    {dmc::op_class::admin,    {10.0, 100.0, 50.0}},
+    {dmc::op_class::auth,     { 5.0,  50.0, 25.0}},
+    {dmc::op_class::data,     {20.0, 100.0, 100.0}},
+    {dmc::op_class::metadata, {10.0,  50.0, 50.0}}
   };
   OpModelConfig op_model;
   std::vector<TenantConfig> tenants;
@@ -249,7 +249,7 @@ inline std::vector<TenantConfig> default_tenants(int bully_workers = 60,
   bully.name = "Tenant A (Bully)";
   bully.role_desc = "Bulk Aggressor";
   bully.workers = bully_workers;
-  bully.client_id = dmc::client_id::data;
+  bully.client_id = dmc::op_class::data;
   bully.pacing_ms = 0.0;
   bully.pacing_dist = PacingDistribution::Constant;
   bully.op_weights = {
@@ -264,7 +264,7 @@ inline std::vector<TenantConfig> default_tenants(int bully_workers = 60,
   interactive.name = "Tenant B (Interactive)";
   interactive.role_desc = "Latency Sensitive";
   interactive.workers = interactive_workers;
-  interactive.client_id = dmc::client_id::data;
+  interactive.client_id = dmc::op_class::data;
   interactive.pacing_ms = 2.0;
   interactive.pacing_dist = PacingDistribution::Constant;
   interactive.op_weights = {
@@ -279,7 +279,7 @@ inline std::vector<TenantConfig> default_tenants(int bully_workers = 60,
   probe.name = "Tenant C (Health Probe)";
   probe.role_desc = "Health Monitor";
   probe.workers = 1;
-  probe.client_id = dmc::client_id::admin;
+  probe.client_id = dmc::op_class::admin;
   probe.pacing_ms = static_cast<double>(probe_interval_ms);
   probe.pacing_dist = PacingDistribution::Constant;
   probe.op_weights = {
@@ -328,7 +328,7 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
     p["res"] = prof.reservation;
     p["wgt"] = prof.weight;
     p["lim"] = prof.limit;
-    dmclock_obj[client_id_to_str(cid)] = p;
+    dmclock_obj[op_class_to_str(cid)] = p;
   }
   root["dmclock"] = dmclock_obj;
 
@@ -353,7 +353,7 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
     t_obj["name"] = t.name;
     t_obj["role"] = t.role_desc;
     t_obj["workers"] = t.workers;
-    t_obj["client_id"] = client_id_to_str(t.client_id);
+    t_obj["client_id"] = op_class_to_str(t.client_id);
     t_obj["pacing_ms"] = t.pacing_ms;
     t_obj["pacing_distribution"] = pacing_dist_to_str(t.pacing_dist);
 
@@ -446,7 +446,7 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
   // 3. dmClock profiles
   if (auto it = root.find("dmclock"); it != root.end() && it->second.type() == json_spirit::obj_type) {
     for (const auto& [client_name, prof_val] : it->second.get_obj()) {
-      if (auto cid = parse_client_id(client_name); cid && prof_val.type() == json_spirit::obj_type) {
+      if (auto cid = parse_op_class(client_name); cid && prof_val.type() == json_spirit::obj_type) {
         const auto& p = prof_val.get_obj();
         DmClockProfile prof;
         if (auto v = p.find("res"); v != p.end()) prof.reservation = v->second.get_real();
@@ -493,7 +493,7 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
         t.workers = v->second.get_int();
       }
       if (auto v = t_obj.find("client_id"); v != t_obj.end() && v->second.type() == json_spirit::str_type) {
-        if (auto cid = parse_client_id(v->second.get_str())) {
+        if (auto cid = parse_op_class(v->second.get_str())) {
           t.client_id = *cid;
         }
       }
@@ -666,7 +666,7 @@ public:
   virtual void update_capacity(double /*scale_factor*/) {}
   virtual std::pair<int, dmc::SchedulerCompleter> schedule_request(
       uint32_t tenant_idx,
-      dmc::client_id op_class,
+      dmc::op_class op_class,
       const dmc::ReqParams& params,
       const dmc::Time& time,
       dmc::Cost cost,
@@ -687,7 +687,7 @@ public:
 
   std::pair<int, dmc::SchedulerCompleter> schedule_request(
       uint32_t,
-      dmc::client_id op_class,
+      dmc::op_class op_class,
       const dmc::ReqParams& params,
       const dmc::Time& time,
       dmc::Cost cost,
@@ -709,20 +709,22 @@ public:
       CephContext *cct,
       boost::asio::io_context& context,
       dmc::ClientCounters& counters,
-      const std::map<dmc::client_id, DmClockProfile>& profiles,
+      const std::map<dmc::op_class, DmClockProfile>& profiles,
       int64_t max_concurrency = 128)
     : cct(cct), profiles(profiles), base_max(max_concurrency),
       scheduler(std::make_shared<dmc::AsyncScheduler>(
           cct, context, std::ref(counters), nullptr,
-          [this](dmc::client_id client) -> dmc::ClientInfo* {
+          // the queue is keyed by client_id; upstream's coarse mode leaves
+          // tenant_id at 0, so only the op class distinguishes queues here
+          [this](const dmc::client_id& client) -> dmc::ClientInfo* {
             static dmc::ClientInfo client_infos[4] = {
               {10.0, 50.0, 50.0},
               {10.0, 50.0, 50.0},
               {10.0, 50.0, 50.0},
               {10.0, 50.0, 50.0}
             };
-            auto it = this->profiles.find(client);
-            size_t idx = static_cast<size_t>(client);
+            auto it = this->profiles.find(client.op);
+            size_t idx = static_cast<size_t>(client.op);
             if (it != this->profiles.end() && idx < 4) {
               client_infos[idx] = dmc::ClientInfo{it->second.reservation, it->second.weight, it->second.limit};
             }
@@ -741,7 +743,7 @@ public:
 
   std::pair<int, dmc::SchedulerCompleter> schedule_request(
       uint32_t,
-      dmc::client_id op_class,
+      dmc::op_class op_class,
       const dmc::ReqParams& params,
       const dmc::Time& time,
       dmc::Cost cost,
@@ -752,7 +754,7 @@ public:
 
 private:
   CephContext *cct;
-  std::map<dmc::client_id, DmClockProfile> profiles;
+  std::map<dmc::op_class, DmClockProfile> profiles;
   int64_t base_max;
   std::shared_ptr<dmc::AsyncScheduler> scheduler;
 };
@@ -922,7 +924,7 @@ public:
 
   std::pair<int, dmc::SchedulerCompleter> schedule_request(
       uint32_t tenant_idx,
-      dmc::client_id,
+      dmc::op_class,
       const dmc::ReqParams& params,
       const dmc::Time& time,
       dmc::Cost cost,
@@ -966,7 +968,7 @@ class NoOpTenantScheduler : public TenantScheduler {
 public:
   std::pair<int, dmc::SchedulerCompleter> schedule_request(
       uint32_t,
-      dmc::client_id,
+      dmc::op_class,
       const dmc::ReqParams&,
       const dmc::Time&,
       dmc::Cost,
@@ -1082,7 +1084,7 @@ void run_tenant_worker(boost::asio::io_context& ioc,
       stats->total_attempted++;
 
       OpType op = selector.select_op(rng);
-      dmc::client_id cid = tenant_cfg.client_id;
+      dmc::op_class cid = tenant_cfg.client_id;
       dmc::Cost cost = config.op_model.get_cost(op);
       auto dmc_time = dmc::get_time();
 
@@ -1144,7 +1146,10 @@ void run_tenant_worker(boost::asio::io_context& ioc,
       backend->simulate_storage_io(op, yield, ioc, backend_lat_ms);
 
       // Completer destructor releases the scheduler throttle slot
-      completer = dmc::SchedulerCompleter{};
+      // Release by DESTROYING the completer. Assigning an empty one does not
+      // work: Completer's move-assignment is defaulted, so it overwrites the
+      // stored callback without ever invoking it, and the slot is leaked.
+      { dmc::SchedulerCompleter release = std::move(completer); }
 
       auto end_time = std::chrono::steady_clock::now();
       double total_lat_ms = std::chrono::duration<double, std::milli>(
@@ -1440,17 +1445,17 @@ int main(int argc, char* argv[]) {
         return 1;
       }
       // Re-apply CLI overrides if explicitly passed on command line
-      if (vm.count("scheduler")) config.scheduler_type = vm["scheduler"].as<std::string>();
-      if (vm.count("max_concurrency")) config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
-      if (vm.count("runtime")) config.runtime_seconds = vm["runtime"].as<int>();
-      if (vm.count("threads")) config.thread_count = vm["threads"].as<int>();
-      if (vm.count("cluster_capacity")) config.backend.cluster_capacity = vm["cluster_capacity"].as<int>();
-      if (vm.count("cluster_base_latency_ms")) config.backend.cluster_base_latency_ms = vm["cluster_base_latency_ms"].as<double>();
-      if (vm.count("congestion_factor")) config.backend.congestion_factor = vm["congestion_factor"].as<double>();
-      if (vm.count("spike_amplitude_ms")) config.backend.spike_amplitude_ms = vm["spike_amplitude_ms"].as<double>();
-      if (vm.count("adaptive")) config.adaptive_tuning = vm["adaptive"].as<bool>();
-      if (vm.count("target_latency_ms")) config.adaptive_target_latency_ms = vm["target_latency_ms"].as<double>();
-      if (vm.count("sample_interval_ms")) config.adaptive_sample_interval_ms = vm["sample_interval_ms"].as<int>();
+      if (vm.count("scheduler") && !vm["scheduler"].defaulted()) config.scheduler_type = vm["scheduler"].as<std::string>();
+      if (vm.count("max_concurrency") && !vm["max_concurrency"].defaulted()) config.max_concurrent_requests = vm["max_concurrency"].as<int64_t>();
+      if (vm.count("runtime") && !vm["runtime"].defaulted()) config.runtime_seconds = vm["runtime"].as<int>();
+      if (vm.count("threads") && !vm["threads"].defaulted()) config.thread_count = vm["threads"].as<int>();
+      if (vm.count("cluster_capacity") && !vm["cluster_capacity"].defaulted()) config.backend.cluster_capacity = vm["cluster_capacity"].as<int>();
+      if (vm.count("cluster_base_latency_ms") && !vm["cluster_base_latency_ms"].defaulted()) config.backend.cluster_base_latency_ms = vm["cluster_base_latency_ms"].as<double>();
+      if (vm.count("congestion_factor") && !vm["congestion_factor"].defaulted()) config.backend.congestion_factor = vm["congestion_factor"].as<double>();
+      if (vm.count("spike_amplitude_ms") && !vm["spike_amplitude_ms"].defaulted()) config.backend.spike_amplitude_ms = vm["spike_amplitude_ms"].as<double>();
+      if (vm.count("adaptive") && !vm["adaptive"].defaulted()) config.adaptive_tuning = vm["adaptive"].as<bool>();
+      if (vm.count("target_latency_ms") && !vm["target_latency_ms"].defaulted()) config.adaptive_target_latency_ms = vm["target_latency_ms"].as<double>();
+      if (vm.count("sample_interval_ms") && !vm["sample_interval_ms"].defaulted()) config.adaptive_sample_interval_ms = vm["sample_interval_ms"].as<int>();
     }
 
     if (dump_config_flag) {
@@ -1526,7 +1531,7 @@ int main(int argc, char* argv[]) {
     all_stats.push_back(t_stats);
 
     std::cout << "    -> Tenant [" << t_idx << "] '" << t_cfg.name << "': " << t_cfg.workers
-              << " workers, client_id=" << client_id_to_str(t_cfg.client_id)
+              << " workers, client_id=" << op_class_to_str(t_cfg.client_id)
               << ", pacing=" << t_cfg.pacing_ms << "ms (" << pacing_dist_to_str(t_cfg.pacing_dist)
               << "), dmClock(R=" << t_cfg.dmclock_profile.reservation
               << ", W=" << t_cfg.dmclock_profile.weight
