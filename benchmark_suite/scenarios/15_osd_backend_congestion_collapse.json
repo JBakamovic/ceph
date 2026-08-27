@@ -1,0 +1,120 @@
+{
+  "benchmark": {
+    "scheduler": "throttler",
+    "max_concurrent_requests": 64,
+    "runtime_seconds": 10,
+    "thread_count": 8,
+    "allow_retries": false,
+    "max_retries": 3,
+    "adaptive_tuning": false,
+    "adaptive_target_latency_ms": 6.0,
+    "adaptive_sample_interval_ms": 50,
+    "at_limit": "reject",
+    "at_limit_threshold_s": 1.0,
+    "uniform_cost": false,
+    "load_model": "closed_loop",
+    "capacity_relative": false
+  },
+  "backend": {
+    "cluster_base_latency_ms": 5.0,
+    "cluster_capacity": 32,
+    "congestion_factor": 3.0,
+    "spike_amplitude_ms": 50.0,
+    "spike_interval_s": 4.0,
+    "spike_duration_s": 2.0,
+    "jitter_pct": 0.05
+  },
+  "dmclock": {
+    "admin": {
+      "res": 10.0,
+      "wgt": 100.0,
+      "lim": 50.0
+    },
+    "auth": {
+      "res": 5.0,
+      "wgt": 50.0,
+      "lim": 25.0
+    },
+    "data": {
+      "res": 20.0,
+      "wgt": 100.0,
+      "lim": 100.0
+    },
+    "metadata": {
+      "res": 10.0,
+      "wgt": 50.0,
+      "lim": 50.0
+    }
+  },
+  "op_costs": {
+    "ProbeHealth": 1,
+    "GetSmall": 2,
+    "PutSmall": 3,
+    "GetLarge": 16,
+    "PutLarge": 24,
+    "ListBucket": 20
+  },
+  "op_latency_multipliers": {
+    "ProbeHealth": 0.5,
+    "GetSmall": 1.0,
+    "PutSmall": 1.5,
+    "GetLarge": 4.0,
+    "PutLarge": 6.0,
+    "ListBucket": 5.0
+  },
+  "tenants": [
+    {
+      "name": "VIP Latency-Sensitive App",
+      "role": "Mission-Critical Paid SLA",
+      "workers": 12,
+      "client_id": "data",
+      "pacing_ms": 2.0,
+      "pacing_distribution": "exponential",
+      "op_weights": {
+        "GetSmall": 70,
+        "PutSmall": 30
+      },
+      "dmclock": {
+        "res": 30.0,
+        "wgt": 500.0,
+        "lim": 80.0
+      },
+      "arrival_rate_per_s": 60.0
+    },
+    {
+      "name": "Bulk Ingestion Bully",
+      "role": "Background Data Ingestion",
+      "workers": 40,
+      "client_id": "data",
+      "pacing_ms": 0.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "PutLarge": 80,
+        "ListBucket": 20
+      },
+      "dmclock": {
+        "res": 0.0,
+        "wgt": 100.0,
+        "lim": 0.0
+      },
+      "arrival_rate_per_s": 200.0
+    },
+    {
+      "name": "System Health Monitor",
+      "role": "Cluster Health / K8s Probe",
+      "workers": 1,
+      "client_id": "admin",
+      "pacing_ms": 250.0,
+      "pacing_distribution": "constant",
+      "op_weights": {
+        "ProbeHealth": 100
+      },
+      "dmclock": {
+        "res": 10.0,
+        "wgt": 100.0,
+        "lim": 50.0
+      },
+      "arrival_rate_per_s": 4.0
+    }
+  ]
+}

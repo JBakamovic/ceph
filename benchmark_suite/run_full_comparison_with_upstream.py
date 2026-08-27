@@ -26,6 +26,7 @@ SCENARIOS = [
     ("12_high_throughput_scale.json", "Scenario 12: High-Throughput Multi-Tenant Scale", 10),
     ("13_proportional_tier_iop_scaling.json", "Scenario 13: Proportional Tier IOP Scaling", 10),
     ("14_dynamic_tenant_churn.json", "Scenario 14: Dynamic Tenant Churn & Profile Resolution", 6),
+    ("15_osd_backend_congestion_collapse.json", "Scenario 15: OSD Backend Congestion Collapse", 10),
 ]
 
 SCHEDULERS = ["throttler", "dmclock_coarse", "dmclock_fine", "dmclock_fine_upstream"]
