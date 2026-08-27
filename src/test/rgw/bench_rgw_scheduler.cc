@@ -224,6 +224,13 @@ struct BenchConfig {
   double adaptive_target_latency_ms = 5.0;
   int adaptive_sample_interval_ms = 100;
 
+  // Fidelity knobs
+  std::string at_limit = "reject_threshold";
+  double at_limit_threshold_s = 1.0;
+  bool uniform_cost = false;
+  bool capacity_relative = false;
+  double capacity_estimate_ops_s = 0.0;
+
   BackendConfig backend;
   std::map<dmc::op_class, DmClockProfile> dmclock_profiles = {
     {dmc::op_class::admin,    {10.0, 100.0, 50.0}},
@@ -309,6 +316,11 @@ inline std::string dump_config_to_json(const BenchConfig& config) {
   bench_obj["adaptive_tuning"] = config.adaptive_tuning;
   bench_obj["adaptive_target_latency_ms"] = config.adaptive_target_latency_ms;
   bench_obj["adaptive_sample_interval_ms"] = config.adaptive_sample_interval_ms;
+  bench_obj["at_limit"] = config.at_limit;
+  bench_obj["at_limit_threshold_s"] = config.at_limit_threshold_s;
+  bench_obj["uniform_cost"] = config.uniform_cost;
+  bench_obj["capacity_relative"] = config.capacity_relative;
+  bench_obj["capacity_estimate_ops_s"] = config.capacity_estimate_ops_s;
   root["benchmark"] = bench_obj;
 
   // Backend
@@ -415,6 +427,21 @@ inline bool load_config_from_json(const std::string& json_str, BenchConfig& conf
     }
     if (auto v = b.find("adaptive_sample_interval_ms"); v != b.end() && v->second.type() == json_spirit::int_type) {
       config.adaptive_sample_interval_ms = v->second.get_int();
+    }
+    if (auto v = b.find("at_limit"); v != b.end() && v->second.type() == json_spirit::str_type) {
+      config.at_limit = v->second.get_str();
+    }
+    if (auto v = b.find("at_limit_threshold_s"); v != b.end()) {
+      config.at_limit_threshold_s = v->second.get_real();
+    }
+    if (auto v = b.find("uniform_cost"); v != b.end() && v->second.type() == json_spirit::bool_type) {
+      config.uniform_cost = v->second.get_bool();
+    }
+    if (auto v = b.find("capacity_relative"); v != b.end() && v->second.type() == json_spirit::bool_type) {
+      config.capacity_relative = v->second.get_bool();
+    }
+    if (auto v = b.find("capacity_estimate_ops_s"); v != b.end()) {
+      config.capacity_estimate_ops_s = v->second.get_real();
     }
   }
 
@@ -662,6 +689,40 @@ struct TenantRequest {
   virtual ~TenantRequest() = default;
 };
 
+// cluster can actually do". Weight stays a pure ratio -- dmClock already treats
+// it as relative -- so only res and lim are scaled. A limit of 0 keeps its
+// special meaning of "unlimited" and is left alone.
+inline void resolve_capacity_relative_profiles(BenchConfig& config) {
+  if (!config.capacity_relative) return;
+  static bool resolved = false;
+  if (resolved) return;
+  resolved = true;
+  const double cap = config.capacity_estimate_ops_s > 0.0
+      ? config.capacity_estimate_ops_s
+      : static_cast<double>(config.backend.cluster_capacity);
+  if (cap <= 0.0) {
+    std::cerr << "[-] capacity_relative requires capacity > 0\n";
+    return;
+  }
+  auto scale = [cap](DmClockProfile& p) {
+    p.reservation *= cap;
+    if (p.limit > 0.0) p.limit *= cap;
+  };
+  for (auto& [cls, prof] : config.dmclock_profiles) scale(prof);
+  for (auto& t : config.tenants) scale(t.dmclock_profile);
+}
+
+inline crimson::dmclock::AtLimitParam make_at_limit(const std::string& mode,
+                                                    double threshold_s) {
+  if (mode == "wait")  return crimson::dmclock::AtLimit::Wait;
+  if (mode == "allow") return crimson::dmclock::AtLimit::Allow;
+  if (mode == "reject_threshold") {
+    return crimson::dmclock::AtLimitParam(
+        crimson::dmclock::RejectThreshold{threshold_s});
+  }
+  return crimson::dmclock::AtLimit::Reject; // production default
+}
+
 class TenantScheduler {
 public:
   virtual ~TenantScheduler() = default;
@@ -713,7 +774,8 @@ public:
       boost::asio::io_context& context,
       dmc::ClientCounters& counters,
       const std::map<dmc::op_class, DmClockProfile>& profiles,
-      int64_t max_concurrency = 128)
+      int64_t max_concurrency = 128,
+      crimson::dmclock::AtLimitParam at_limit = crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))
     : cct(cct), profiles(profiles), base_max(max_concurrency),
       scheduler(std::make_shared<dmc::AsyncScheduler>(
           cct, context, std::ref(counters), nullptr,
@@ -731,7 +793,7 @@ public:
             }
             return &client_infos[idx];
           },
-          crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))) {}
+          at_limit)) {}
 
   void cancel() override {
     scheduler->cancel();
@@ -772,7 +834,8 @@ public:
       CephContext *cct,
       boost::asio::io_context& context,
       const std::vector<TenantConfig>& tenant_configs,
-      int64_t max_reqs)
+      int64_t max_reqs,
+      crimson::dmclock::AtLimitParam at_limit = crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))
     : cct(cct),
       strand(boost::asio::make_strand(context)),
       timer(strand),
@@ -786,7 +849,7 @@ public:
           static dmc::ClientInfo default_info{10.0, 50.0, 50.0};
           return &default_info;
         },
-        crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))
+        at_limit)
   {
     client_infos.reserve(tenant_configs.size());
     base_profiles.reserve(tenant_configs.size());
@@ -976,7 +1039,8 @@ public:
       boost::asio::io_context& context,
       dmc::ClientCounters& counters,
       const std::vector<TenantConfig>& tenant_configs,
-      int64_t max_concurrency = 128)
+      int64_t max_concurrency = 128,
+      crimson::dmclock::AtLimitParam at_limit = crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}))
     : cct(cct), base_max(max_concurrency)
   {
     for (size_t i = 0; i < tenant_configs.size(); ++i) {
@@ -994,7 +1058,7 @@ public:
           static dmc::ClientInfo fallback{10.0, 50.0, 50.0};
           return &fallback;
         },
-        crimson::dmclock::AtLimitParam(crimson::dmclock::RejectThreshold{1.0}));
+        at_limit);
   }
 
   void cancel() override {
@@ -1161,7 +1225,7 @@ void run_tenant_worker(boost::asio::io_context& ioc,
 
       OpType op = selector.select_op(rng);
       dmc::client_id cid = tenant_cfg.client_id;
-      dmc::Cost cost = config.op_model.get_cost(op);
+      dmc::Cost cost = config.uniform_cost ? dmc::Cost{1} : config.op_model.get_cost(op);
       auto dmc_time = dmc::get_time();
 
       int ret = 0;
@@ -1253,10 +1317,36 @@ void run_tenant_worker(boost::asio::io_context& ioc,
 // ============================================================================
 // Metrics Exporters (JSON & CSV)
 // ============================================================================
+// dmClock's own view of what happened, per op class.
+inline json_spirit::mObject dmclock_counters_to_json(dmc::ClientCounters& counters) {
+  json_spirit::mObject out;
+  const std::pair<const char*, dmc::op_class> classes[] = {
+    {"admin",    dmc::op_class::admin},
+    {"auth",     dmc::op_class::auth},
+    {"data",     dmc::op_class::data},
+    {"metadata", dmc::op_class::metadata},
+  };
+  for (const auto& [name, oc] : classes) {
+    PerfCounters* c = counters(oc);
+    if (!c) continue;
+    json_spirit::mObject o;
+    o["qlen"]       = static_cast<int64_t>(c->get(queue_counters::l_qlen));
+    o["cost"]       = static_cast<int64_t>(c->get(queue_counters::l_cost));
+    o["res"]        = static_cast<int64_t>(c->get(queue_counters::l_res));
+    o["prio"]       = static_cast<int64_t>(c->get(queue_counters::l_prio));
+    o["limit"]      = static_cast<int64_t>(c->get(queue_counters::l_limit));
+    o["limit_cost"] = static_cast<int64_t>(c->get(queue_counters::l_limit_cost));
+    o["cancel"]     = static_cast<int64_t>(c->get(queue_counters::l_cancel));
+    out[name] = o;
+  }
+  return out;
+}
+
 inline void export_results_to_json(const std::string& filepath,
                                    const std::vector<std::shared_ptr<TenantStats>>& all_stats,
                                    const BenchConfig& config,
-                                   double elapsed_s) {
+                                   double elapsed_s,
+                                   dmc::ClientCounters* counters = nullptr) {
   json_spirit::mObject root;
   root["scheduler"] = config.scheduler_type;
   root["elapsed_time_s"] = elapsed_s;
@@ -1313,6 +1403,29 @@ inline void export_results_to_json(const std::string& filepath,
   double jains = (sum_sq_tps > 0.0 && n > 0) ? ((sum_tps * sum_tps) / (n * sum_sq_tps)) : 1.0;
   root["jains_fairness_index"] = jains;
 
+  if (counters) {
+    root["dmclock_counters"] = dmclock_counters_to_json(*counters);
+  }
+
+  // Fidelity manifest
+  json_spirit::mObject fid;
+  fid["at_limit"] = config.at_limit;
+  fid["at_limit_matches_production"] = (config.at_limit == "reject");
+  fid["uniform_cost"] = config.uniform_cost;
+  fid["cost_model_matches_production"] = config.uniform_cost;
+  fid["max_concurrent_requests"] = static_cast<int64_t>(config.max_concurrent_requests);
+  fid["production_max_concurrent_requests_default"] = 1024;
+  fid["thread_count"] = config.thread_count;
+  fid["production_rgw_thread_pool_size_default"] = 128;
+  fid["scheduler_is_production_code"] =
+      (config.scheduler_type == "throttler" ||
+       config.scheduler_type == "dmclock" ||
+       config.scheduler_type == "dmclock_coarse" ||
+       config.scheduler_type == "dmclock_fine_upstream");
+  fid["capacity_relative"] = config.capacity_relative;
+  fid["capacity_estimate_ops_s"] = config.capacity_estimate_ops_s;
+  root["fidelity"] = fid;
+
   std::ofstream fout(filepath);
   if (fout.is_open()) {
     fout << json_spirit::write_formatted(root) << "\n";
@@ -1351,7 +1464,8 @@ inline void export_results_to_csv(const std::string& filepath,
 // ============================================================================
 void print_report(const std::vector<std::shared_ptr<TenantStats>>& all_stats,
                   const BenchConfig& config,
-                  double elapsed_s) {
+                  double elapsed_s,
+                  dmc::ClientCounters* counters = nullptr) {
   std::cout << "\n"
             << "====================================================================================================\n"
             << "                         RGW WORKLOAD SCHEDULING BENCHMARK REPORT                                   \n"
@@ -1437,7 +1551,7 @@ void print_report(const std::vector<std::shared_ptr<TenantStats>>& all_stats,
   std::cout << "====================================================================================================\n\n";
 
   if (!config.export_json_path.empty()) {
-    export_results_to_json(config.export_json_path, all_stats, config, elapsed_s);
+    export_results_to_json(config.export_json_path, all_stats, config, elapsed_s, counters);
   }
   if (!config.export_csv_path.empty()) {
     export_results_to_csv(config.export_csv_path, all_stats);
@@ -1502,7 +1616,17 @@ int main(int argc, char* argv[]) {
       ("target_latency_ms", po::value<double>(&config.adaptive_target_latency_ms),
        "Target backend latency in ms for adaptive capacity controller")
       ("sample_interval_ms", po::value<int>(&config.adaptive_sample_interval_ms),
-       "Sampling interval in ms for adaptive capacity controller");
+       "Sampling interval in ms for adaptive capacity controller")
+      ("at_limit", po::value<std::string>(&config.at_limit)->default_value("reject_threshold"),
+       "dmClock at-limit behavior: reject | reject_threshold | wait | allow")
+      ("at_limit_threshold_s", po::value<double>(&config.at_limit_threshold_s)->default_value(1.0),
+       "Threshold in seconds for reject_threshold at-limit mode")
+      ("uniform_cost", po::value<bool>(&config.uniform_cost),
+       "Treat all operations as uniform cost 1 (matching production RGWOp default)")
+      ("capacity_relative", po::value<bool>(&config.capacity_relative),
+       "Scale dmClock profiles relative to estimated cluster knee capacity")
+      ("capacity_estimate_ops_s", po::value<double>(&config.capacity_estimate_ops_s),
+       "Estimated cluster capacity in ops/s for capacity_relative scaling");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -1548,9 +1672,20 @@ int main(int argc, char* argv[]) {
         config.adaptive_target_latency_ms = vm["target_latency_ms"].as<double>();
       if (vm.count("sample_interval_ms"))
         config.adaptive_sample_interval_ms = vm["sample_interval_ms"].as<int>();
+      if (vm.count("at_limit") && !vm["at_limit"].defaulted())
+        config.at_limit = vm["at_limit"].as<std::string>();
+      if (vm.count("at_limit_threshold_s") && !vm["at_limit_threshold_s"].defaulted())
+        config.at_limit_threshold_s = vm["at_limit_threshold_s"].as<double>();
+      if (vm.count("uniform_cost"))
+        config.uniform_cost = vm["uniform_cost"].as<bool>();
+      if (vm.count("capacity_relative"))
+        config.capacity_relative = vm["capacity_relative"].as<bool>();
+      if (vm.count("capacity_estimate_ops_s"))
+        config.capacity_estimate_ops_s = vm["capacity_estimate_ops_s"].as<double>();
     }
 
     if (dump_config_flag) {
+      resolve_capacity_relative_profiles(config);
       std::cout << dump_config_to_json(config) << "\n";
       return 0;
     }
@@ -1574,20 +1709,28 @@ int main(int argc, char* argv[]) {
   work.emplace(boost::asio::make_work_guard(context));
 
   // Instantiate Scheduler
+  resolve_capacity_relative_profiles(config);
+
   std::shared_ptr<TenantScheduler> scheduler;
   dmc::ClientCounters counters(g_ceph_context);
+  const auto at_limit = make_at_limit(config.at_limit, config.at_limit_threshold_s);
+  const bool uses_dmclock = config.scheduler_type == "dmclock"
+                         || config.scheduler_type == "dmclock_coarse"
+                         || config.scheduler_type == "dmclock_fine"
+                         || config.scheduler_type == "dmclock_per_tenant"
+                         || config.scheduler_type == "dmclock_fine_upstream";
 
   if (config.scheduler_type == "throttler") {
     scheduler = std::make_shared<ThrottlerTenantScheduler>(g_ceph_context, config.max_concurrent_requests);
   } else if (config.scheduler_type == "dmclock" || config.scheduler_type == "dmclock_coarse") {
     scheduler = std::make_shared<CoarseDmClockTenantScheduler>(
-        g_ceph_context, context, counters, config.dmclock_profiles, config.max_concurrent_requests);
+        g_ceph_context, context, counters, config.dmclock_profiles, config.max_concurrent_requests, at_limit);
   } else if (config.scheduler_type == "dmclock_fine_upstream") {
     scheduler = std::make_shared<UpstreamFineDmClockTenantScheduler>(
-        g_ceph_context, context, counters, config.tenants, config.max_concurrent_requests);
+        g_ceph_context, context, counters, config.tenants, config.max_concurrent_requests, at_limit);
   } else if (config.scheduler_type == "dmclock_fine" || config.scheduler_type == "dmclock_per_tenant") {
     scheduler = std::make_shared<FineGrainedDmClockTenantScheduler>(
-        g_ceph_context, context, config.tenants, config.max_concurrent_requests);
+        g_ceph_context, context, config.tenants, config.max_concurrent_requests, at_limit);
   } else if (config.scheduler_type == "none") {
     scheduler = std::make_shared<NoOpTenantScheduler>();
   } else {
@@ -1669,7 +1812,7 @@ int main(int argc, char* argv[]) {
   auto end_time = std::chrono::steady_clock::now();
   double elapsed_s = std::chrono::duration<double>(end_time - start_time).count();
 
-  print_report(all_stats, config, elapsed_s);
+  print_report(all_stats, config, elapsed_s, uses_dmclock ? &counters : nullptr);
 
   return 0;
 }
