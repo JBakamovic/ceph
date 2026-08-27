@@ -111,10 +111,10 @@ def main():
                     dr = t_data["drop_rate_pct"]
                     p50 = t_data["p50_ms"]
                     rps = t_data.get("throughput_tps", 0.0)
-                    if "9_high" in scenario_file or "10_prop" in scenario_file:
+                    if "12_high" in scenario_file or "13_prop" in scenario_file:
                         row.append(f"{acc:,} ({rps:,.1f} r/s, {p50:.1f}ms)")
                     else:
-                        row.append(f"{acc} ({dr:.1f}%, {p50:.1f}ms)")
+                        row.append(f"{acc:,} ({dr:.1f}%, {p50:.1f}ms)")
                 else:
                     row.append("N/A")
             rows.append(row)

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 550" width="1100" height="550" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif;">
+<text x="550.0" y="36" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">Scenario 15: Latency Under Periodic OSD Deep Scrub Spikes (+50ms)</text>
+<rect x="110" y="48" width="14" height="14" rx="3" fill="#888888" />
+<text x="130" y="60" font-size="12" fill="#34495e">Throttler (Static FIFO)</text>
+<rect x="340" y="48" width="14" height="14" rx="3" fill="#e74c3c" />
+<text x="360" y="60" font-size="12" fill="#34495e">dmClock Coarse (Per-Op)</text>
+<rect x="570" y="48" width="14" height="14" rx="3" fill="#3498db" />
+<text x="590" y="60" font-size="12" fill="#34495e">dmClock Fine (Per-Tenant)</text>
+<rect x="800" y="48" width="14" height="14" rx="3" fill="#2ecc71" />
+<text x="820" y="60" font-size="12" fill="#34495e">dmClock Fine Upstream</text>
+<line x1="90" y1="420.0" x2="1060" y2="420.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="424.0" text-anchor="end" font-size="11" fill="#7f8c8d">0</text>
+<line x1="90" y1="350.0" x2="1060" y2="350.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="354.0" text-anchor="end" font-size="11" fill="#7f8c8d">14</text>
+<line x1="90" y1="280.0" x2="1060" y2="280.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="284.0" text-anchor="end" font-size="11" fill="#7f8c8d">28</text>
+<line x1="90" y1="210.0" x2="1060" y2="210.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="214.0" text-anchor="end" font-size="11" fill="#7f8c8d">42</text>
+<line x1="90" y1="140.0" x2="1060" y2="140.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="144.0" text-anchor="end" font-size="11" fill="#7f8c8d">56</text>
+<line x1="90" y1="70.0" x2="1060" y2="70.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="74.0" text-anchor="end" font-size="11" fill="#7f8c8d">71</text>
+<text transform="rotate(-90)" x="-245.0" y="28" text-anchor="middle" font-size="13" font-weight="600" fill="#7f8c8d">Latency (ms) - Lower is Better</text>
+<rect x="100.0" y="152.3" width="112.2" height="267.7" rx="2" fill="#888888" />
+<rect x="216.2" y="407.2" width="112.2" height="12.8" rx="2" fill="#e74c3c" />
+<rect x="332.5" y="167.1" width="112.2" height="252.9" rx="2" fill="#3498db" />
+<rect x="448.8" y="407.2" width="112.2" height="12.8" rx="2" fill="#2ecc71" />
+<text transform="translate(332.5, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">Health Probe Latency (ms)</text>
+<rect x="585.0" y="70.0" width="112.2" height="350.0" rx="2" fill="#888888" />
+<rect x="701.2" y="134.1" width="112.2" height="285.9" rx="2" fill="#e74c3c" />
+<rect x="817.5" y="382.0" width="112.2" height="38.0" rx="2" fill="#3498db" />
+<rect x="933.8" y="383.5" width="112.2" height="36.5" rx="2" fill="#2ecc71" />
+<text transform="translate(817.5, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">VIP Latency p99 (ms)</text>
+<line x1="90" y1="420" x2="1060" y2="420" stroke="#bdc3c7" stroke-width="1.5" />
+<line x1="90" y1="70" x2="90" y2="420" stroke="#bdc3c7" stroke-width="1.5" />
+</svg>

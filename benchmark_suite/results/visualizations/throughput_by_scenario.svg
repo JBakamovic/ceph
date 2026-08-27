@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 550" width="1100" height="550" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif;">
+<text x="550.0" y="36" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">Ceph RGW Scheduler Throughput Comparison (Scenarios 0-15)</text>
+<rect x="110" y="48" width="14" height="14" rx="3" fill="#888888" />
+<text x="130" y="60" font-size="12" fill="#34495e">Throttler (Static FIFO)</text>
+<rect x="340" y="48" width="14" height="14" rx="3" fill="#e74c3c" />
+<text x="360" y="60" font-size="12" fill="#34495e">dmClock Coarse (Per-Op)</text>
+<rect x="570" y="48" width="14" height="14" rx="3" fill="#3498db" />
+<text x="590" y="60" font-size="12" fill="#34495e">dmClock Fine (Per-Tenant)</text>
+<rect x="800" y="48" width="14" height="14" rx="3" fill="#2ecc71" />
+<text x="820" y="60" font-size="12" fill="#34495e">dmClock Fine Upstream</text>
+<line x1="90" y1="420.0" x2="1060" y2="420.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="424.0" text-anchor="end" font-size="11" fill="#7f8c8d">0</text>
+<line x1="90" y1="350.0" x2="1060" y2="350.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="354.0" text-anchor="end" font-size="11" fill="#7f8c8d">21,043</text>
+<line x1="90" y1="280.0" x2="1060" y2="280.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="284.0" text-anchor="end" font-size="11" fill="#7f8c8d">42,086</text>
+<line x1="90" y1="210.0" x2="1060" y2="210.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="214.0" text-anchor="end" font-size="11" fill="#7f8c8d">63,129</text>
+<line x1="90" y1="140.0" x2="1060" y2="140.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="144.0" text-anchor="end" font-size="11" fill="#7f8c8d">84,172</text>
+<line x1="90" y1="70.0" x2="1060" y2="70.0" stroke="#ecf0f1" stroke-width="1" />
+<text x="78" y="74.0" text-anchor="end" font-size="11" fill="#7f8c8d">105,215</text>
+<text transform="rotate(-90)" x="-245.0" y="28" text-anchor="middle" font-size="13" font-weight="600" fill="#7f8c8d">Total Throughput (Req/sec)</text>
+<rect x="100.0" y="408.4" width="6.2" height="11.6" rx="2" fill="#888888" />
+<rect x="110.2" y="408.4" width="6.2" height="11.6" rx="2" fill="#e74c3c" />
+<rect x="120.3" y="408.4" width="6.2" height="11.6" rx="2" fill="#3498db" />
+<rect x="130.5" y="408.4" width="6.2" height="11.6" rx="2" fill="#2ecc71" />
+<text transform="translate(120.3, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S0</text>
+<rect x="160.6" y="407.9" width="6.2" height="12.1" rx="2" fill="#888888" />
+<rect x="170.8" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="180.9" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="191.1" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(180.9, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S1</text>
+<rect x="221.2" y="406.1" width="6.2" height="13.9" rx="2" fill="#888888" />
+<rect x="231.4" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="241.6" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="251.7" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(241.6, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S2</text>
+<rect x="281.9" y="416.7" width="6.2" height="3.3" rx="2" fill="#888888" />
+<rect x="292.0" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="302.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="312.3" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(302.2, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S3</text>
+<rect x="342.5" y="413.5" width="6.2" height="6.5" rx="2" fill="#888888" />
+<rect x="352.7" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="362.8" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="373.0" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(362.8, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S4</text>
+<rect x="403.1" y="418.0" width="6.2" height="2.0" rx="2" fill="#888888" />
+<rect x="413.3" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="423.4" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="433.6" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(423.4, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S5</text>
+<rect x="463.8" y="408.4" width="6.2" height="11.6" rx="2" fill="#888888" />
+<rect x="473.9" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="484.1" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="494.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(484.1, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S6</text>
+<rect x="524.4" y="408.9" width="6.2" height="11.1" rx="2" fill="#888888" />
+<rect x="534.5" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="544.7" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="554.8" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(544.7, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S7</text>
+<rect x="585.0" y="410.5" width="6.2" height="9.5" rx="2" fill="#888888" />
+<rect x="595.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="605.3" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="615.5" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(605.3, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S8</text>
+<rect x="645.6" y="418.0" width="6.2" height="2.0" rx="2" fill="#888888" />
+<rect x="655.8" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="665.9" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="676.1" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(665.9, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S9</text>
+<rect x="706.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#888888" />
+<rect x="716.4" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="726.6" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="736.7" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(726.6, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S10</text>
+<rect x="766.9" y="415.6" width="6.2" height="4.4" rx="2" fill="#888888" />
+<rect x="777.0" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="787.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="797.3" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(787.2, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S11</text>
+<rect x="827.5" y="149.5" width="6.2" height="270.5" rx="2" fill="#888888" />
+<rect x="837.7" y="417.0" width="6.2" height="3.0" rx="2" fill="#e74c3c" />
+<rect x="847.8" y="388.2" width="6.2" height="31.8" rx="2" fill="#3498db" />
+<rect x="858.0" y="388.2" width="6.2" height="31.8" rx="2" fill="#2ecc71" />
+<text transform="translate(847.8, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S12</text>
+<rect x="888.1" y="70.0" width="6.2" height="350.0" rx="2" fill="#888888" />
+<rect x="898.3" y="403.5" width="6.2" height="16.5" rx="2" fill="#e74c3c" />
+<rect x="908.4" y="362.2" width="6.2" height="57.8" rx="2" fill="#3498db" />
+<rect x="918.6" y="362.2" width="6.2" height="57.8" rx="2" fill="#2ecc71" />
+<text transform="translate(908.4, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S13</text>
+<rect x="948.8" y="418.0" width="6.2" height="2.0" rx="2" fill="#888888" />
+<rect x="958.9" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="969.1" y="418.0" width="6.2" height="2.0" rx="2" fill="#3498db" />
+<rect x="979.2" y="418.0" width="6.2" height="2.0" rx="2" fill="#2ecc71" />
+<text transform="translate(969.1, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S14</text>
+<rect x="1009.4" y="417.0" width="6.2" height="3.0" rx="2" fill="#888888" />
+<rect x="1019.5" y="418.0" width="6.2" height="2.0" rx="2" fill="#e74c3c" />
+<rect x="1029.7" y="417.7" width="6.2" height="2.3" rx="2" fill="#3498db" />
+<rect x="1039.8" y="417.4" width="6.2" height="2.6" rx="2" fill="#2ecc71" />
+<text transform="translate(1029.7, 436) rotate(35)" font-size="11" fill="#2c3e50" font-weight="500">S15</text>
+<line x1="90" y1="420" x2="1060" y2="420" stroke="#bdc3c7" stroke-width="1.5" />
+<line x1="90" y1="70" x2="90" y2="420" stroke="#bdc3c7" stroke-width="1.5" />
+</svg>
