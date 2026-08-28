@@ -1,56 +1,107 @@
 {
     "cluster_capacity" : 32,
-    "elapsed_time_s" : 6.0089743940000000,
-    "jains_fairness_index" : 0.63198959687906364,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 38
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 64559,
+            "limit_cost" : 674705,
+            "prio" : 7,
+            "qlen" : 0,
+            "res" : 7
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 6.0315487760000002,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 128,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.58150537634408628,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine_upstream",
     "server_threads" : 8,
     "tenants" : [
         {
             "accepted" : 5,
-            "attempted" : 41712,
-            "drop_rate_pct" : 99.988013041810504,
-            "drops_503" : 41707,
-            "max_ms" : 693.43516499999998,
+            "attempted" : 41466,
+            "drop_rate_pct" : 99.987941928326819,
+            "drops_503" : 41461,
+            "max_ms" : 668.85793400000000,
             "name" : "Tenant A (Batch Ingest)",
-            "p50_ms" : 129.25899000000001,
-            "p90_ms" : 492.06515620000005,
-            "p95_ms" : 592.75016059999984,
-            "p99_ms" : 673.29816412000002,
+            "p50_ms" : 518.87180000000001,
+            "p90_ms" : 645.14259400000003,
+            "p95_ms" : 657.00026400000002,
+            "p99_ms" : 666.48640000000000,
             "retries" : 0,
             "role" : "Bulk Ingest",
-            "throughput_tps" : 0.83208875128383519
+            "throughput_tps" : 0.82897447831233451
         },
         {
-            "accepted" : 12,
-            "attempted" : 22808,
-            "drop_rate_pct" : 99.947386881795865,
-            "drops_503" : 22796,
-            "max_ms" : 1006.1088480000000,
+            "accepted" : 9,
+            "attempted" : 23107,
+            "drop_rate_pct" : 99.961050763837804,
+            "drops_503" : 23098,
+            "max_ms" : 863.09616800000003,
             "name" : "Tenant B (Online Queries)",
-            "p50_ms" : 495.39569299999999,
-            "p90_ms" : 862.83210540000005,
-            "p95_ms" : 928.29473304999988,
-            "p99_ms" : 990.54602501000011,
+            "p50_ms" : 447.26897100000002,
+            "p90_ms" : 849.21408480000002,
+            "p95_ms" : 856.15512639999997,
+            "p99_ms" : 861.70795967999993,
             "retries" : 0,
             "role" : "Online Read Traffic",
-            "throughput_tps" : 1.9970130030812043
+            "throughput_tps" : 1.4921540609622022
         },
         {
-            "accepted" : 37,
-            "attempted" : 37,
+            "accepted" : 38,
+            "attempted" : 38,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 36.312007999999999,
+            "max_ms" : 36.244290999999997,
             "name" : "Tenant C (Liveness Probe)",
-            "p50_ms" : 3.1735199999999999,
-            "p90_ms" : 35.336185200000003,
-            "p95_ms" : 35.919332199999999,
-            "p99_ms" : 36.240446120000001,
+            "p50_ms" : 3.1637759999999999,
+            "p90_ms" : 35.272059200000001,
+            "p95_ms" : 35.886626050000004,
+            "p99_ms" : 36.124650389999999,
             "retries" : 0,
             "role" : "Health Probe",
-            "throughput_tps" : 6.1574567595003797
+            "throughput_tps" : 6.3002060351737423
         }
     ],
-    "total_throughput_tps" : 8.9865585138654183
+    "total_throughput_tps" : 8.6213345744482801
 }

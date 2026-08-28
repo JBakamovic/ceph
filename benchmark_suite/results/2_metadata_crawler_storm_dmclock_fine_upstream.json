@@ -1,6 +1,57 @@
 {
     "cluster_capacity" : 64,
-    "elapsed_time_s" : 6.0052742099999996,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 13,
+            "cost" : 0,
+            "limit" : 29511,
+            "limit_cost" : 472176,
+            "prio" : 124,
+            "qlen" : 0,
+            "res" : 32
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 35650,
+            "limit_cost" : 713000,
+            "prio" : 2,
+            "qlen" : 0,
+            "res" : 1
+        }
+    },
+    "elapsed_time_s" : 6.0057325580000001,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 128,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
     "jains_fairness_index" : 0.36434778849063942,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine_upstream",
@@ -8,49 +59,49 @@
     "tenants" : [
         {
             "accepted" : 3,
-            "attempted" : 35657,
-            "drop_rate_pct" : 99.991586504753627,
-            "drops_503" : 35654,
-            "max_ms" : 824.15593300000000,
+            "attempted" : 35653,
+            "drop_rate_pct" : 99.991585560822372,
+            "drops_503" : 35650,
+            "max_ms" : 823.34547999999995,
             "name" : "Tenant 1 (Search Crawler)",
-            "p50_ms" : 427.47861100000000,
-            "p90_ms" : 744.82046860000003,
-            "p95_ms" : 784.48820079999996,
-            "p99_ms" : 816.22238655999990,
+            "p50_ms" : 426.98681299999998,
+            "p90_ms" : 744.07374659999994,
+            "p95_ms" : 783.70961330000000,
+            "p99_ms" : 815.41830665999998,
             "retries" : 0,
             "role" : "Metadata Bucket Indexer",
-            "throughput_tps" : 0.49956086851194764
+            "throughput_tps" : 0.49952274281741332
         },
         {
             "accepted" : 4,
-            "attempted" : 29523,
-            "drop_rate_pct" : 99.986451241405007,
-            "drops_503" : 29519,
-            "max_ms" : 978.42996100000005,
+            "attempted" : 29515,
+            "drop_rate_pct" : 99.986447569032691,
+            "drops_503" : 29511,
+            "max_ms" : 982.12140699999998,
             "name" : "Tenant 2 (Media Streamer)",
-            "p50_ms" : 498.84215349999999,
-            "p90_ms" : 882.35284450000017,
-            "p95_ms" : 930.39140274999988,
-            "p99_ms" : 968.82224934999988,
+            "p50_ms" : 501.46904299999994,
+            "p90_ms" : 886.27665160000004,
+            "p95_ms" : 934.19902929999978,
+            "p99_ms" : 972.53693145999989,
             "retries" : 0,
             "role" : "High Bandwidth Reads",
-            "throughput_tps" : 0.66608115801593015
+            "throughput_tps" : 0.66603032375655113
         },
         {
             "accepted" : 152,
             "attempted" : 165,
             "drop_rate_pct" : 7.8787878787878789,
             "drops_503" : 13,
-            "max_ms" : 601.41421500000001,
+            "max_ms" : 636.49776299999996,
             "name" : "Tenant 3 (Mobile Client)",
-            "p50_ms" : 599.11912600000005,
-            "p90_ms" : 600.66442640000002,
-            "p95_ms" : 600.85105595000005,
-            "p99_ms" : 601.25119982999990,
+            "p50_ms" : 597.62482649999993,
+            "p90_ms" : 599.97240880000004,
+            "p95_ms" : 600.43402014999992,
+            "p99_ms" : 600.99439327000005,
             "retries" : 0,
             "role" : "Interactive Small Reads",
-            "throughput_tps" : 25.311084004605348
+            "throughput_tps" : 25.309152302748942
         }
     ],
-    "total_throughput_tps" : 26.476726031133225
+    "total_throughput_tps" : 26.474705369322905
 }

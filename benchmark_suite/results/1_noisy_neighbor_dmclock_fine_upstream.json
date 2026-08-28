@@ -1,56 +1,107 @@
 {
     "cluster_capacity" : 64,
-    "elapsed_time_s" : 6.0771847330000002,
-    "jains_fairness_index" : 0.49846153846153846,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 30
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 15,
+            "cost" : 0,
+            "limit" : 59632,
+            "limit_cost" : 1334624,
+            "prio" : 100,
+            "qlen" : 0,
+            "res" : 31
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 6.0768862680000000,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 128,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.49964340099076698,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine_upstream",
     "server_threads" : 8,
     "tenants" : [
         {
             "accepted" : 3,
-            "attempted" : 59623,
-            "drop_rate_pct" : 99.994968384683759,
-            "drops_503" : 59620,
-            "max_ms" : 830.37295900000004,
+            "attempted" : 59635,
+            "drop_rate_pct" : 99.994969397166088,
+            "drops_503" : 59632,
+            "max_ms" : 827.95991100000003,
             "name" : "Tenant A (Bully Bulk Ingest)",
-            "p50_ms" : 339.31550800000002,
-            "p90_ms" : 732.16146879999997,
-            "p95_ms" : 781.26721390000000,
-            "p99_ms" : 820.55180998000003,
+            "p50_ms" : 341.63020899999998,
+            "p90_ms" : 730.69397060000006,
+            "p95_ms" : 779.32694079999999,
+            "p99_ms" : 818.23331696000002,
             "retries" : 0,
             "role" : "Bulk Aggressor",
-            "throughput_tps" : 0.49364963084132724
+            "throughput_tps" : 0.49367387633985582
         },
         {
-            "accepted" : 129,
+            "accepted" : 128,
             "attempted" : 143,
-            "drop_rate_pct" : 9.7902097902097900,
-            "drops_503" : 14,
-            "max_ms" : 802.09982600000001,
+            "drop_rate_pct" : 10.489510489510490,
+            "drops_503" : 15,
+            "max_ms" : 796.16611699999999,
             "name" : "Tenant B (Interactive Web CRUD)",
-            "p50_ms" : 680.68683099999998,
-            "p90_ms" : 760.56371479999996,
-            "p95_ms" : 778.39751539999997,
-            "p99_ms" : 798.29973816000006,
+            "p50_ms" : 699.06476350000003,
+            "p90_ms" : 742.09343749999994,
+            "p95_ms" : 758.67604889999996,
+            "p99_ms" : 782.04387973000007,
             "retries" : 0,
             "role" : "Latency Sensitive",
-            "throughput_tps" : 21.226934126177071
+            "throughput_tps" : 21.063418723833848
         },
         {
             "accepted" : 30,
             "attempted" : 30,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 2.7698809999999998,
+            "max_ms" : 2.9321229999999998,
             "name" : "Tenant C (K8s Liveness Probe)",
-            "p50_ms" : 2.5026840000000004,
-            "p90_ms" : 2.7529856000000001,
-            "p95_ms" : 2.7616021499999999,
-            "p99_ms" : 2.7676932399999998,
+            "p50_ms" : 2.5441039999999999,
+            "p90_ms" : 2.7384959000000002,
+            "p95_ms" : 2.7616293000000001,
+            "p99_ms" : 2.8837742000000000,
             "retries" : 0,
             "role" : "Control Plane Health",
-            "throughput_tps" : 4.9364963084132727
+            "throughput_tps" : 4.9367387633985587
         }
     ],
-    "total_throughput_tps" : 26.657080065431671
+    "total_throughput_tps" : 26.493831363572262
 }

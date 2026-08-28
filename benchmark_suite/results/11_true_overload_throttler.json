@@ -1,0 +1,69 @@
+{
+    "cluster_capacity" : 64,
+    "elapsed_time_s" : 10.125797417999999,
+    "fidelity" : {
+        "at_limit" : "reject",
+        "at_limit_matches_production" : true,
+        "capacity_estimate_ops_s" : 1900.0000000000000,
+        "capacity_relative" : true,
+        "cost_model_matches_production" : true,
+        "max_concurrent_requests" : 128,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : true
+    },
+    "jains_fairness_index" : 0.48082072829199590,
+    "max_concurrency" : 128,
+    "scheduler" : "throttler",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 10835,
+            "attempted" : 42915,
+            "drop_rate_pct" : 74.752417569614352,
+            "drops_503" : 32080,
+            "max_ms" : 126.00718999999999,
+            "name" : "Tenant A (Bully Data)",
+            "p50_ms" : 116.60896300000000,
+            "p90_ms" : 123.70074160000000,
+            "p95_ms" : 124.85421009999999,
+            "p99_ms" : 125.74150396000000,
+            "retries" : 0,
+            "role" : "Bulk Aggressor",
+            "throughput_tps" : 1070.0391833574802
+        },
+        {
+            "accepted" : 2511,
+            "attempted" : 9953,
+            "drop_rate_pct" : 74.771425700793728,
+            "drops_503" : 7442,
+            "max_ms" : 31.506577000000000,
+            "name" : "Tenant B (Interactive Data)",
+            "p50_ms" : 20.983968999999998,
+            "p90_ms" : 30.764962000000001,
+            "p95_ms" : 31.135694000000001,
+            "p99_ms" : 31.439931600000001,
+            "retries" : 0,
+            "role" : "Latency-Sensitive S3 App",
+            "throughput_tps" : 247.98046971948617
+        },
+        {
+            "accepted" : 12,
+            "attempted" : 42,
+            "drop_rate_pct" : 71.428571428571431,
+            "drops_503" : 30,
+            "max_ms" : 10.372818000000001,
+            "name" : "Tenant C (Health Probe)",
+            "p50_ms" : 9.6979670000000002,
+            "p90_ms" : 10.160205899999999,
+            "p95_ms" : 10.264154500000000,
+            "p99_ms" : 10.351085300000001,
+            "retries" : 0,
+            "role" : "Cluster Health / K8s Probe",
+            "throughput_tps" : 1.1850918505112840
+        }
+    ],
+    "total_throughput_tps" : 1319.2047449274776
+}

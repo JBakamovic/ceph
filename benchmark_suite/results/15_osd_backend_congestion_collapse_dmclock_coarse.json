@@ -1,0 +1,107 @@
+{
+    "cluster_capacity" : 32,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 37
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 103737,
+            "limit_cost" : 1905749,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 1
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.088045730999999,
+    "fidelity" : {
+        "at_limit" : "reject",
+        "at_limit_matches_production" : true,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 64,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 8,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.35133819951338197,
+    "max_concurrency" : 64,
+    "scheduler" : "dmclock_coarse",
+    "server_threads" : 8,
+    "tenants" : [
+        {
+            "accepted" : 1,
+            "attempted" : 23933,
+            "drop_rate_pct" : 99.995821668825471,
+            "drops_503" : 23932,
+            "max_ms" : 60.545402000000003,
+            "name" : "VIP Latency-Sensitive App",
+            "p50_ms" : 60.545402000000003,
+            "p90_ms" : 60.545402000000003,
+            "p95_ms" : 60.545402000000003,
+            "p99_ms" : 60.545402000000003,
+            "retries" : 0,
+            "role" : "Mission-Critical Paid SLA",
+            "throughput_tps" : 0.099127227082947897
+        },
+        {
+            "accepted" : 0,
+            "attempted" : 79805,
+            "drop_rate_pct" : 100.00000000000000,
+            "drops_503" : 79805,
+            "max_ms" : 0.0000000000000000,
+            "name" : "Bulk Ingestion Bully",
+            "p50_ms" : 0.0000000000000000,
+            "p90_ms" : 0.0000000000000000,
+            "p95_ms" : 0.0000000000000000,
+            "p99_ms" : 0.0000000000000000,
+            "retries" : 0,
+            "role" : "Background Data Ingestion",
+            "throughput_tps" : 0.0000000000000000
+        },
+        {
+            "accepted" : 37,
+            "attempted" : 37,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 54.284272000000001,
+            "name" : "System Health Monitor",
+            "p50_ms" : 2.6220659999999998,
+            "p90_ms" : 52.997380199999995,
+            "p95_ms" : 53.617039599999998,
+            "p99_ms" : 54.060665200000003,
+            "retries" : 0,
+            "role" : "Cluster Health / K8s Probe",
+            "throughput_tps" : 3.6677074020690719
+        }
+    ],
+    "total_throughput_tps" : 3.7668346291520196
+}

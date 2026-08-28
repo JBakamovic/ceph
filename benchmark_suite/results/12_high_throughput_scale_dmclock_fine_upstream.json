@@ -1,0 +1,137 @@
+{
+    "cluster_capacity" : 256,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 197,
+            "qlen" : 0,
+            "res" : 197
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 93,
+            "cost" : 0,
+            "limit" : 157062,
+            "limit_cost" : 1790128,
+            "prio" : 47608,
+            "qlen" : 0,
+            "res" : 47735
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.010766442000000,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 512,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 16,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.40835832704074054,
+    "max_concurrency" : 512,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 16,
+    "tenants" : [
+        {
+            "accepted" : 394,
+            "attempted" : 394,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 5.7674079999999996,
+            "name" : "Tenant 1 [Control] Health Monitor",
+            "p50_ms" : 0.77543800000000007,
+            "p90_ms" : 0.80947870000000000,
+            "p95_ms" : 0.81578954999999997,
+            "p99_ms" : 0.87248311999999895,
+            "retries" : 0,
+            "role" : "Cluster Health / K8s Liveness Probe",
+            "throughput_tps" : 39.357625840413149
+        },
+        {
+            "accepted" : 62510,
+            "attempted" : 62563,
+            "drop_rate_pct" : 0.084714607675463127,
+            "drops_503" : 53,
+            "max_ms" : 14.632572000000000,
+            "name" : "Tenant 2 [Tier 1] High-Scale Ingestion VIP",
+            "p50_ms" : 10.248155000000001,
+            "p90_ms" : 10.825464100000000,
+            "p95_ms" : 10.981954999999999,
+            "p99_ms" : 11.261968219999998,
+            "retries" : 0,
+            "role" : "Enterprise High-Throughput Ingestion (Platinum)",
+            "throughput_tps" : 6244.2771352391528
+        },
+        {
+            "accepted" : 21050,
+            "attempted" : 21076,
+            "drop_rate_pct" : 0.12336306699563485,
+            "drops_503" : 26,
+            "max_ms" : 29.448105000000002,
+            "name" : "Tenant 3 [Tier 2] Real-Time Web & Search",
+            "p50_ms" : 14.877037999999999,
+            "p90_ms" : 19.769693199999999,
+            "p95_ms" : 21.211865100000001,
+            "p99_ms" : 23.931634619999997,
+            "retries" : 0,
+            "role" : "Production Query Microservices (Gold)",
+            "throughput_tps" : 2102.7361013723271
+        },
+        {
+            "accepted" : 11757,
+            "attempted" : 11771,
+            "drop_rate_pct" : 0.11893636904256223,
+            "drops_503" : 14,
+            "max_ms" : 17.624517999999998,
+            "name" : "Tenant 4 [Tier 3] Internal Metrics & Logs",
+            "p50_ms" : 13.657451000000000,
+            "p90_ms" : 14.942057399999999,
+            "p95_ms" : 15.179791199999999,
+            "p99_ms" : 15.762703480000003,
+            "retries" : 0,
+            "role" : "Standard Internal Logging (Silver)",
+            "throughput_tps" : 1174.4355507759833
+        },
+        {
+            "accepted" : 26,
+            "attempted" : 157088,
+            "drop_rate_pct" : 99.983448767569769,
+            "drops_503" : 157062,
+            "max_ms" : 971.12907399999995,
+            "name" : "Tenant 5 [Tier 4] Free-Tier Bulk Flood",
+            "p50_ms" : 474.47214550000001,
+            "p90_ms" : 871.41735500000004,
+            "p95_ms" : 916.24397199999999,
+            "p99_ms" : 959.47796699999992,
+            "retries" : 0,
+            "role" : "Uncapped Free-Tier Aggressive Crawler (Bronze)",
+            "throughput_tps" : 2.5972037356617816
+        }
+    ],
+    "total_throughput_tps" : 9563.4036169635383
+}

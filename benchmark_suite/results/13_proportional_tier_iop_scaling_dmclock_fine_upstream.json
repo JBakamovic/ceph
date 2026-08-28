@@ -1,0 +1,137 @@
+{
+    "cluster_capacity" : 256,
+    "dmclock_counters" : {
+        "admin" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 100
+        },
+        "auth" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        },
+        "data" : {
+            "cancel" : 135,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 96109,
+            "qlen" : 0,
+            "res" : 79001
+        },
+        "metadata" : {
+            "cancel" : 0,
+            "cost" : 0,
+            "limit" : 0,
+            "limit_cost" : 0,
+            "prio" : 0,
+            "qlen" : 0,
+            "res" : 0
+        }
+    },
+    "elapsed_time_s" : 10.079318068999999,
+    "fidelity" : {
+        "at_limit" : "reject_threshold",
+        "at_limit_matches_production" : false,
+        "capacity_estimate_ops_s" : 0.0000000000000000,
+        "capacity_relative" : false,
+        "cost_model_matches_production" : false,
+        "max_concurrent_requests" : 512,
+        "production_max_concurrent_requests_default" : 1024,
+        "production_rgw_thread_pool_size_default" : 128,
+        "scheduler_is_production_code" : true,
+        "thread_count" : 16,
+        "uniform_cost" : false
+    },
+    "jains_fairness_index" : 0.47422405471046064,
+    "max_concurrency" : 512,
+    "scheduler" : "dmclock_fine_upstream",
+    "server_threads" : 16,
+    "tenants" : [
+        {
+            "accepted" : 100,
+            "attempted" : 100,
+            "drop_rate_pct" : 0.0000000000000000,
+            "drops_503" : 0,
+            "max_ms" : 1.4665490000000001,
+            "name" : "Tenant 1 [Control] Health Monitor",
+            "p50_ms" : 0.77210150000000000,
+            "p90_ms" : 0.80507210000000007,
+            "p95_ms" : 0.81082014999999996,
+            "p99_ms" : 0.83562101000000322,
+            "retries" : 0,
+            "role" : "Cluster Health / K8s Liveness Probe",
+            "throughput_tps" : 9.9213061156945219
+        },
+        {
+            "accepted" : 100111,
+            "attempted" : 100136,
+            "drop_rate_pct" : 0.024966046177199008,
+            "drops_503" : 25,
+            "max_ms" : 5.7697839999999996,
+            "name" : "Tenant 2 [Tier 1] Platinum VIP",
+            "p50_ms" : 3.9938370000000001,
+            "p90_ms" : 4.1046940000000003,
+            "p95_ms" : 4.1375359999999999,
+            "p99_ms" : 4.2080849999999996,
+            "retries" : 0,
+            "role" : "Enterprise VIP (R=5000, 6.25x Silver)",
+            "throughput_tps" : 9932.3187654829435
+        },
+        {
+            "accepted" : 49995,
+            "attempted" : 50028,
+            "drop_rate_pct" : 0.065963060686015831,
+            "drops_503" : 33,
+            "max_ms" : 9.1500450000000004,
+            "name" : "Tenant 3 [Tier 2] Gold Standard",
+            "p50_ms" : 8.0011200000000002,
+            "p90_ms" : 8.1210599999999999,
+            "p95_ms" : 8.1602899999999998,
+            "p99_ms" : 8.2409194599999989,
+            "retries" : 0,
+            "role" : "Gold Standard (R=2000, 2.5x Silver)",
+            "throughput_tps" : 4960.1569925414769
+        },
+        {
+            "accepted" : 20003,
+            "attempted" : 20041,
+            "drop_rate_pct" : 0.18961129684147499,
+            "drops_503" : 38,
+            "max_ms" : 21.017724000000001,
+            "name" : "Tenant 4 [Tier 3] Silver Standard",
+            "p50_ms" : 19.998621000000000,
+            "p90_ms" : 20.119673800000001,
+            "p95_ms" : 20.164458000000000,
+            "p99_ms" : 20.413166959999998,
+            "retries" : 0,
+            "role" : "Silver Standard (R=800, 1.0x Base)",
+            "throughput_tps" : 1984.5588623223755
+        },
+        {
+            "accepted" : 5001,
+            "attempted" : 5040,
+            "drop_rate_pct" : 0.77380952380952384,
+            "drops_503" : 39,
+            "max_ms" : 80.413297999999998,
+            "name" : "Tenant 5 [Tier 4] Bronze Standard",
+            "p50_ms" : 80.001659000000004,
+            "p90_ms" : 80.117997000000003,
+            "p95_ms" : 80.154584999999997,
+            "p99_ms" : 80.221870999999993,
+            "retries" : 0,
+            "role" : "Bronze Standard (R=100, 0.125x Silver)",
+            "throughput_tps" : 496.16451884588309
+        }
+    ],
+    "total_throughput_tps" : 17383.120445308374
+}
