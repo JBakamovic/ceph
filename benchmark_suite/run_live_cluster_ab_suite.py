@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Master Live Cluster A/B Evaluation Suite.
-Directly compares 'throttler' vs 'dmclock' (fine-grained per-tenant)
-across a comprehensive 6-workload catalog on the actual live running Ceph cluster.
+Directly executes the COMPLETE catalog of all 7 multi-tenant workloads comparing
+'throttler' vs tuned 'dmclock' (fine-grained per-tenant + closed-loop adaptive AIMD)
+on the actual live running Ceph cluster (1 MON, 1 MGR, 1 BlueStore OSD, Beast RGW).
 """
 
 import sys
@@ -69,7 +70,7 @@ def restart_rgw(scheduler_type="dmclock", per_tenant="true", adaptive="false"):
             pass
     raise RuntimeError(f"Failed to bring up radosgw with scheduler={scheduler_type}")
 
-# Workload Definitions
+# Complete 7-Workload Catalog Definitions
 def get_workload_1_noisy_neighbor():
     return [
         {
@@ -101,7 +102,38 @@ def get_workload_1_noisy_neighbor():
         }
     ]
 
-def get_workload_2_proportional_tiers():
+def get_workload_2_metadata_crawler():
+    return [
+        {
+            "name": "Metadata Crawler (Small Ops)",
+            "access_key": "CRAWLERKEY",
+            "secret_key": "CRAWLERSECRET123456789",
+            "bucket": "crawler-live-bucket",
+            "concurrency": 16,
+            "pacing_s": 0.0,
+            "payload_bytes": 256
+        },
+        {
+            "name": "Media Streamer (128KB Writes)",
+            "access_key": "STREAMERKEY",
+            "secret_key": "STREAMERSECRET123456789",
+            "bucket": "streamer-live-bucket",
+            "concurrency": 8,
+            "pacing_s": 0.0,
+            "payload_bytes": 131072
+        },
+        {
+            "name": "Mobile Client (Interactive)",
+            "access_key": "MOBILEKEY",
+            "secret_key": "MOBILESECRET123456789",
+            "bucket": "mobile-live-bucket",
+            "concurrency": 2,
+            "pacing_s": 0.05,
+            "payload_bytes": 1024
+        }
+    ]
+
+def get_workload_3_tiered_sla_qos():
     return [
         {
             "name": "Tier 1: Platinum VIP",
@@ -140,6 +172,15 @@ def get_workload_2_proportional_tiers():
             "payload_bytes": 4096
         },
         {
+            "name": "Tier 5: Free Bulk",
+            "access_key": "FREEKEY",
+            "secret_key": "FREESECRET123456789",
+            "bucket": "free-live-bucket",
+            "concurrency": 2,
+            "pacing_s": 0.0,
+            "payload_bytes": 4096
+        },
+        {
             "name": "System Health Monitor",
             "access_key": "HEALTHACCESSKEY",
             "secret_key": "HEALTHSECRETKEY123456789",
@@ -150,7 +191,7 @@ def get_workload_2_proportional_tiers():
         }
     ]
 
-def get_workload_3_dynamic_churn():
+def get_workload_4_dynamic_churn():
     tenants = [
         {
             "name": "VIP Enterprise App",
@@ -183,37 +224,6 @@ def get_workload_3_dynamic_churn():
         })
     return tenants
 
-def get_workload_4_metadata_crawler():
-    return [
-        {
-            "name": "Metadata Crawler (Small Ops)",
-            "access_key": "CRAWLERKEY",
-            "secret_key": "CRAWLERSECRET123456789",
-            "bucket": "crawler-live-bucket",
-            "concurrency": 16,
-            "pacing_s": 0.0,
-            "payload_bytes": 256
-        },
-        {
-            "name": "Media Streamer (128KB Writes)",
-            "access_key": "STREAMERKEY",
-            "secret_key": "STREAMERSECRET123456789",
-            "bucket": "streamer-live-bucket",
-            "concurrency": 8,
-            "pacing_s": 0.0,
-            "payload_bytes": 131072
-        },
-        {
-            "name": "Mobile Client (Interactive)",
-            "access_key": "MOBILEKEY",
-            "secret_key": "MOBILESECRET123456789",
-            "bucket": "mobile-live-bucket",
-            "concurrency": 2,
-            "pacing_s": 0.05,
-            "payload_bytes": 1024
-        }
-    ]
-
 def get_workload_5_intra_class_starvation():
     return [
         {
@@ -245,12 +255,74 @@ def get_workload_5_intra_class_starvation():
         }
     ]
 
+def get_workload_6_osd_scrub_congestion():
+    return [
+        {
+            "name": "VIP Latency-Sensitive App",
+            "access_key": "VIPACCESSKEY",
+            "secret_key": "VIPSECRETKEY123456789",
+            "bucket": "vip-live-bucket",
+            "concurrency": 4,
+            "pacing_s": 0.05,
+            "payload_bytes": 1024
+        },
+        {
+            "name": "Bulk Ingestion Bully",
+            "access_key": "BULLYACCESSKEY",
+            "secret_key": "BULLYSECRETKEY123456789",
+            "bucket": "bully-live-bucket",
+            "concurrency": 16,
+            "pacing_s": 0.0,
+            "payload_bytes": 4096
+        },
+        {
+            "name": "Cluster Health Monitor",
+            "access_key": "HEALTHACCESSKEY",
+            "secret_key": "HEALTHSECRETKEY123456789",
+            "bucket": "health-live-bucket",
+            "concurrency": 1,
+            "pacing_s": 0.20,
+            "payload_bytes": 128
+        }
+    ]
+
+def get_workload_7_line_rate_saturation():
+    return [
+        {
+            "name": "Tenant A (Concurrent Flood)",
+            "access_key": "PLATINUMKEY",
+            "secret_key": "PLATINUMSECRET123456789",
+            "bucket": "sat-a-bucket",
+            "concurrency": 32,
+            "pacing_s": 0.0,
+            "payload_bytes": 4096
+        },
+        {
+            "name": "Tenant B (Concurrent Flood)",
+            "access_key": "GOLDKEY",
+            "secret_key": "GOLDSECRET123456789",
+            "bucket": "sat-b-bucket",
+            "concurrency": 32,
+            "pacing_s": 0.0,
+            "payload_bytes": 4096
+        },
+        {
+            "name": "Control Health Probe",
+            "access_key": "HEALTHACCESSKEY",
+            "secret_key": "HEALTHSECRETKEY123456789",
+            "bucket": "sat-health-bucket",
+            "concurrency": 1,
+            "pacing_s": 0.10,
+            "payload_bytes": 128
+        }
+    ]
+
 def format_ab_table(title, throttler_res, dmclock_res):
     print("\n" + "="*110)
     print(f" LIVE A/B COMPARISON: {title}")
     print("="*110)
-    header = f"| {'Tenant Persona':<30} | {'Throttler TPS':<14} | {'Throttler p50':<14} | {'dmClock TPS':<14} | {'dmClock p50':<14} | {'TPS Ratio':<10} |"
-    sep = "+" + "-"*32 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*12 + "+"
+    header = f"| {'Tenant Persona':<32} | {'Throttler TPS':<14} | {'Throttler p50':<14} | {'dmClock TPS':<14} | {'dmClock p50':<14} | {'TPS Ratio':<10} |"
+    sep = "+" + "-"*34 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*16 + "+" + "-"*12 + "+"
     print(sep)
     print(header)
     print(sep)
@@ -264,38 +336,46 @@ def format_ab_table(title, throttler_res, dmclock_res):
         t_tps = t["tps"]
         d_tps = d["tps"]
         ratio = f"{d_tps / t_tps:.2f}x" if t_tps > 0 else "N/A"
-        row = f"| {name:<30} | {t_tps:<14.1f} | {t['p50_ms']:<12.1f}ms | {d_tps:<14.1f} | {d['p50_ms']:<12.1f}ms | {ratio:<10} |"
+        row = f"| {name:<32} | {t_tps:<14.1f} | {t['p50_ms']:<12.1f}ms | {d_tps:<14.1f} | {d['p50_ms']:<12.1f}ms | {ratio:<10} |"
         print(row)
     print(sep)
 
 def main():
     print("#"*110)
-    print(" STARTING EXPANDED 5-WORKLOAD LIVE CEPH CLUSTER A/B BENCHMARK (THROTTLER VS DMCLOCK)")
+    print(" STARTING COMPLETE 7-WORKLOAD LIVE CEPH CLUSTER A/B BENCHMARK (THROTTLER VS DMCLOCK)")
     print("#"*110)
 
     workloads = [
         ("Workload 1: Noisy Neighbor Overload", get_workload_1_noisy_neighbor(), 8),
-        ("Workload 2: 4-Tier Proportional Sharing", get_workload_2_proportional_tiers(), 8),
-        ("Workload 3: Dynamic Tenant Churn", get_workload_3_dynamic_churn(), 8),
-        ("Workload 4: Metadata Crawler vs Media Streamer", get_workload_4_metadata_crawler(), 8),
-        ("Workload 5: Intra-Class Data Starvation Isolation", get_workload_5_intra_class_starvation(), 8)
+        ("Workload 2: Metadata Crawler vs Media Streamer", get_workload_2_metadata_crawler(), 8),
+        ("Workload 3: 5-Tier Multi-Tenant SLA QoS", get_workload_3_tiered_sla_qos(), 8),
+        ("Workload 4: Dynamic Tenant Surplus Sharing & Churn", get_workload_4_dynamic_churn(), 8),
+        ("Workload 5: Intra-Class Data Starvation Isolation", get_workload_5_intra_class_starvation(), 8),
+        ("Workload 6: Live OSD Scrub Congestion Spike", get_workload_6_osd_scrub_congestion(), 8),
+        ("Workload 7: Line-Rate Disk Saturation (64 Workers)", get_workload_7_line_rate_saturation(), 8),
     ]
 
     all_results = {}
 
     for sched in ["throttler", "dmclock"]:
         per_tenant = "true" if sched == "dmclock" else "false"
-        restart_rgw(scheduler_type=sched, per_tenant=per_tenant)
+        adaptive = "true" if sched == "dmclock" else "false"
+        restart_rgw(scheduler_type=sched, per_tenant=per_tenant, adaptive=adaptive)
         all_results[sched] = {}
         
         for name, config, runtime in workloads:
+            if "Scrub" in name:
+                print(f"[*] Injecting live OSD deep scrub on osd.0 for {name}...")
+                subprocess.run([CEPH_BIN, "-c", CEPH_CONF, "tell", "osd.0", "scrub"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
             print(f"\n>>> Running '{name}' under live Ceph scheduler: {sched} ({runtime}s)...")
             res = run_live_scenario(f"{name} [{sched}]", config, runtime=runtime)
             all_results[sched][name] = res
 
     # Generate Final Side-by-Side A/B Reports
     print("\n\n" + "#"*110)
-    print(" FINAL EXPANDED LIVE CEPH CLUSTER A/B COMPARATIVE RESULTS")
+    print(" COMPLETE 7-WORKLOAD LIVE CEPH CLUSTER A/B COMPARATIVE RESULTS")
     print("#"*110)
 
     for name, _, _ in workloads:
@@ -304,7 +384,7 @@ def main():
     out_file = "/home/jbakamovic/development/ceph/benchmark_suite/results/LIVE_CLUSTER_AB_REPORT.md"
     with open(out_file, "w") as f:
         f.write("# Live Ceph Cluster A/B Benchmark Report: Throttler vs Fine-Grained dmClock\n\n")
-        f.write("Executed directly on the live running Ceph cluster (1 MON, 1 MGR, 1 BlueStore OSD, Beast RGW).\n\n")
+        f.write("Executed directly on the live running Ceph cluster (1 MON, 1 MGR, 1 BlueStore OSD, Beast RGW on port 8000).\n\n")
         for name, _, _ in workloads:
             t_res = all_results["throttler"][name]
             d_res = all_results["dmclock"][name]
@@ -322,7 +402,7 @@ def main():
                 f.write(f"| {t_name} | {t_tps:.1f} | {t['p50_ms']:.1f}ms | {d_tps:.1f} | {d['p50_ms']:.1f}ms | {ratio} |\n")
             f.write("\n")
 
-    print(f"\n[+] Full live report saved to {out_file}")
+    print(f"\n[+] Full 7-workload live report saved to {out_file}")
 
 if __name__ == "__main__":
     main()
