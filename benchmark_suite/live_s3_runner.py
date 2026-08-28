@@ -143,19 +143,24 @@ def run_live_scenario(scenario_name, tenants_config, runtime=10, endpoint="http:
     total_duration = time.time() - start_t
 
     # Format Summary Table
+    ret_results = []
     rows = []
     for t in tenants_config:
         name = t["name"]
         res = tenant_results[name]
         total_reqs = len(res)
         if total_reqs == 0:
+            ret_results.append({
+                "name": name, "accepted": 0, "drop_pct": 0.0, "tps": 0.0,
+                "p50_ms": 0.0, "p95_ms": 0.0, "p99_ms": 0.0
+            })
             rows.append([name, "0", "0.0%", "0.0", "0.0", "0.0", "0.0"])
             continue
         
         successes = [lat for status, lat in res if status in [200, 201]]
         throttled = [lat for status, lat in res if status in [503, 429, 500]]
-        drop_rate = (len(throttled) / total_reqs) * 100.0
-        tps = len(successes) / total_duration
+        drop_rate = (len(throttled) / total_reqs) * 100.0 if total_reqs > 0 else 0.0
+        tps = len(successes) / total_duration if total_duration > 0 else 0.0
 
         if successes:
             successes.sort()
@@ -164,6 +169,11 @@ def run_live_scenario(scenario_name, tenants_config, runtime=10, endpoint="http:
             p99 = successes[int(len(successes) * 0.99)]
         else:
             p50, p95, p99 = 0.0, 0.0, 0.0
+
+        ret_results.append({
+            "name": name, "accepted": len(successes), "drop_pct": drop_rate, "tps": tps,
+            "p50_ms": p50, "p95_ms": p95, "p99_ms": p99
+        })
 
         rows.append([
             name,
@@ -188,6 +198,7 @@ def run_live_scenario(scenario_name, tenants_config, runtime=10, endpoint="http:
     for r in rows:
         print("| " + " | ".join(f"{str(c):<{col_widths[i]}}" for i, c in enumerate(r)) + " |")
     print(sep)
+    return ret_results
 
 if __name__ == "__main__":
     pass
