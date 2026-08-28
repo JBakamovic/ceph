@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 6.0044898499999997,
+    "elapsed_time_s" : 6.0052449970000001,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -52,56 +52,56 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.36476507584165735,
+    "jains_fairness_index" : 0.36476507584165746,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine",
     "server_threads" : 8,
     "tenants" : [
         {
             "accepted" : 3,
-            "attempted" : 35659,
-            "drop_rate_pct" : 99.991586976639837,
-            "drops_503" : 35656,
-            "max_ms" : 824.26837499999999,
+            "attempted" : 35689,
+            "drop_rate_pct" : 99.991594048586393,
+            "drops_503" : 35686,
+            "max_ms" : 827.43772899999999,
             "name" : "Tenant 1 (Search Crawler)",
-            "p50_ms" : 427.03186199999999,
-            "p90_ms" : 744.82107240000005,
-            "p95_ms" : 784.54472369999996,
-            "p99_ms" : 816.32364473999996,
+            "p50_ms" : 426.86034300000000,
+            "p90_ms" : 747.32225180000000,
+            "p95_ms" : 787.37999040000000,
+            "p99_ms" : 819.42618127999992,
             "retries" : 0,
             "role" : "Metadata Bucket Indexer",
-            "throughput_tps" : 0.49962612560665753
+            "throughput_tps" : 0.49956329866619759
         },
         {
             "accepted" : 4,
-            "attempted" : 29529,
-            "drop_rate_pct" : 99.986453994378408,
-            "drops_503" : 29525,
-            "max_ms" : 982.60440900000003,
+            "attempted" : 29554,
+            "drop_rate_pct" : 99.986465453068959,
+            "drops_503" : 29550,
+            "max_ms" : 982.74142700000004,
             "name" : "Tenant 2 (Media Streamer)",
-            "p50_ms" : 502.45012500000001,
-            "p90_ms" : 886.54582350000010,
-            "p95_ms" : 934.57511624999995,
-            "p99_ms" : 972.99855044999993,
+            "p50_ms" : 503.05809049999993,
+            "p90_ms" : 886.80559130000006,
+            "p95_ms" : 934.77350914999988,
+            "p99_ms" : 973.14784342999997,
             "retries" : 0,
             "role" : "High Bandwidth Reads",
-            "throughput_tps" : 0.66616816747554330
+            "throughput_tps" : 0.66608439822159682
         },
         {
             "accepted" : 150,
             "attempted" : 165,
             "drop_rate_pct" : 9.0909090909090917,
             "drops_503" : 15,
-            "max_ms" : 600.79914399999996,
+            "max_ms" : 600.73738800000001,
             "name" : "Tenant 3 (Mobile Client)",
-            "p50_ms" : 597.74523599999998,
-            "p90_ms" : 599.63985099999991,
-            "p95_ms" : 600.05468584999994,
-            "p99_ms" : 600.67622654000002,
+            "p50_ms" : 597.71128049999993,
+            "p90_ms" : 599.49604909999994,
+            "p95_ms" : 599.89880649999998,
+            "p99_ms" : 600.55331351999996,
             "retries" : 0,
             "role" : "Interactive Small Reads",
-            "throughput_tps" : 24.981306280332877
+            "throughput_tps" : 24.978164933309881
         }
     ],
-    "total_throughput_tps" : 26.147100573415077
+    "total_throughput_tps" : 26.143812630197676
 }

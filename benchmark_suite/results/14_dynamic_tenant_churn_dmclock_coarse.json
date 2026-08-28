@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 6.0973207040000004,
+    "elapsed_time_s" : 6.0923988849999997,
     "fidelity" : {
         "at_limit" : "reject",
         "at_limit_matches_production" : true,
@@ -77,15 +77,15 @@
             "attempted" : 26,
             "drop_rate_pct" : 7.6923076923076925,
             "drops_503" : 2,
-            "max_ms" : 2.8299539999999999,
+            "max_ms" : 2.6774060000000000,
             "name" : "System Health Monitor",
-            "p50_ms" : 2.5840755000000000,
-            "p90_ms" : 2.6832693000000001,
-            "p95_ms" : 2.7110090500000004,
-            "p99_ms" : 2.8034106199999997,
+            "p50_ms" : 2.5633385000000000,
+            "p90_ms" : 2.6676500000000001,
+            "p95_ms" : 2.6699328500000004,
+            "p99_ms" : 2.6757168799999995,
             "retries" : 0,
             "role" : "Cluster Health / K8s Probe",
-            "throughput_tps" : 3.9361551023969228
+            "throughput_tps" : 3.9393349734683372
         },
         {
             "accepted" : 0,
@@ -317,16 +317,16 @@
             "attempted" : 128,
             "drop_rate_pct" : 99.218750000000000,
             "drops_503" : 127,
-            "max_ms" : 5.0147740000000001,
+            "max_ms" : 5.0657740000000002,
             "name" : "Dynamic Tenant 16",
-            "p50_ms" : 5.0147740000000001,
-            "p90_ms" : 5.0147740000000001,
-            "p95_ms" : 5.0147740000000001,
-            "p99_ms" : 5.0147740000000001,
+            "p50_ms" : 5.0657740000000002,
+            "p90_ms" : 5.0657740000000002,
+            "p95_ms" : 5.0657740000000002,
+            "p99_ms" : 5.0657740000000002,
             "retries" : 0,
             "role" : "Unprovisioned Best-Effort User",
-            "throughput_tps" : 0.16400646259987178
+            "throughput_tps" : 0.16413895722784738
         }
     ],
-    "total_throughput_tps" : 4.1001615649967942
+    "total_throughput_tps" : 4.1034739306961843
 }

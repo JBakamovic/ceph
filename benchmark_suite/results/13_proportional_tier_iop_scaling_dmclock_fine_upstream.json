@@ -20,13 +20,13 @@
             "res" : 0
         },
         "data" : {
-            "cancel" : 135,
+            "cancel" : 132,
             "cost" : 0,
             "limit" : 0,
             "limit_cost" : 0,
-            "prio" : 96109,
+            "prio" : 96108,
             "qlen" : 0,
-            "res" : 79001
+            "res" : 79000
         },
         "metadata" : {
             "cancel" : 0,
@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 10.079318068999999,
+    "elapsed_time_s" : 10.079569885000000,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -52,7 +52,7 @@
         "thread_count" : 16,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.47422405471046064,
+    "jains_fairness_index" : 0.47422614528158274,
     "max_concurrency" : 512,
     "scheduler" : "dmclock_fine_upstream",
     "server_threads" : 16,
@@ -62,76 +62,76 @@
             "attempted" : 100,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 1.4665490000000001,
+            "max_ms" : 1.2831750000000000,
             "name" : "Tenant 1 [Control] Health Monitor",
-            "p50_ms" : 0.77210150000000000,
-            "p90_ms" : 0.80507210000000007,
-            "p95_ms" : 0.81082014999999996,
-            "p99_ms" : 0.83562101000000322,
+            "p50_ms" : 0.77992899999999998,
+            "p90_ms" : 0.81196520000000005,
+            "p95_ms" : 0.81639860000000009,
+            "p99_ms" : 0.82511190000000245,
             "retries" : 0,
             "role" : "Cluster Health / K8s Liveness Probe",
-            "throughput_tps" : 9.9213061156945219
+            "throughput_tps" : 9.9210582535685248
         },
         {
-            "accepted" : 100111,
-            "attempted" : 100136,
-            "drop_rate_pct" : 0.024966046177199008,
+            "accepted" : 100109,
+            "attempted" : 100134,
+            "drop_rate_pct" : 0.024966544829927897,
             "drops_503" : 25,
-            "max_ms" : 5.7697839999999996,
+            "max_ms" : 5.6079020000000002,
             "name" : "Tenant 2 [Tier 1] Platinum VIP",
-            "p50_ms" : 3.9938370000000001,
-            "p90_ms" : 4.1046940000000003,
-            "p95_ms" : 4.1375359999999999,
-            "p99_ms" : 4.2080849999999996,
+            "p50_ms" : 3.9937420000000001,
+            "p90_ms" : 4.1049179999999996,
+            "p95_ms" : 4.1391179999999999,
+            "p99_ms" : 4.2097231199999996,
             "retries" : 0,
             "role" : "Enterprise VIP (R=5000, 6.25x Silver)",
-            "throughput_tps" : 9932.3187654829435
+            "throughput_tps" : 9931.8722070649146
         },
         {
-            "accepted" : 49995,
-            "attempted" : 50028,
-            "drop_rate_pct" : 0.065963060686015831,
-            "drops_503" : 33,
-            "max_ms" : 9.1500450000000004,
+            "accepted" : 49994,
+            "attempted" : 50027,
+            "drop_rate_pct" : 0.063965458652327736,
+            "drops_503" : 32,
+            "max_ms" : 9.3875360000000008,
             "name" : "Tenant 3 [Tier 2] Gold Standard",
-            "p50_ms" : 8.0011200000000002,
-            "p90_ms" : 8.1210599999999999,
-            "p95_ms" : 8.1602899999999998,
-            "p99_ms" : 8.2409194599999989,
+            "p50_ms" : 8.0001674999999999,
+            "p90_ms" : 8.1212082999999993,
+            "p95_ms" : 8.1609829999999999,
+            "p99_ms" : 8.2415434700000016,
             "retries" : 0,
             "role" : "Gold Standard (R=2000, 2.5x Silver)",
-            "throughput_tps" : 4960.1569925414769
+            "throughput_tps" : 4959.9338632890485
         },
         {
             "accepted" : 20003,
-            "attempted" : 20041,
-            "drop_rate_pct" : 0.18961129684147499,
-            "drops_503" : 38,
-            "max_ms" : 21.017724000000001,
+            "attempted" : 20039,
+            "drop_rate_pct" : 0.17964968311792007,
+            "drops_503" : 36,
+            "max_ms" : 20.959651000000001,
             "name" : "Tenant 4 [Tier 3] Silver Standard",
-            "p50_ms" : 19.998621000000000,
-            "p90_ms" : 20.119673800000001,
-            "p95_ms" : 20.164458000000000,
-            "p99_ms" : 20.413166959999998,
+            "p50_ms" : 19.998394999999999,
+            "p90_ms" : 20.117224000000000,
+            "p95_ms" : 20.160187000000001,
+            "p99_ms" : 20.403054379999997,
             "retries" : 0,
             "role" : "Silver Standard (R=800, 1.0x Base)",
-            "throughput_tps" : 1984.5588623223755
+            "throughput_tps" : 1984.5092824613121
         },
         {
             "accepted" : 5001,
             "attempted" : 5040,
             "drop_rate_pct" : 0.77380952380952384,
             "drops_503" : 39,
-            "max_ms" : 80.413297999999998,
+            "max_ms" : 80.726782000000000,
             "name" : "Tenant 5 [Tier 4] Bronze Standard",
-            "p50_ms" : 80.001659000000004,
-            "p90_ms" : 80.117997000000003,
-            "p95_ms" : 80.154584999999997,
-            "p99_ms" : 80.221870999999993,
+            "p50_ms" : 80.002977000000001,
+            "p90_ms" : 80.119022000000001,
+            "p95_ms" : 80.153705000000002,
+            "p99_ms" : 80.220832000000001,
             "retries" : 0,
             "role" : "Bronze Standard (R=100, 0.125x Silver)",
-            "throughput_tps" : 496.16451884588309
+            "throughput_tps" : 496.15212326096196
         }
     ],
-    "total_throughput_tps" : 17383.120445308374
+    "total_throughput_tps" : 17382.388534329806
 }

@@ -22,8 +22,8 @@
         "data" : {
             "cancel" : 0,
             "cost" : 0,
-            "limit" : 260598,
-            "limit_cost" : 3602057,
+            "limit" : 260710,
+            "limit_cost" : 3602253,
             "prio" : 25,
             "qlen" : 0,
             "res" : 8
@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 12.034755350999999,
+    "elapsed_time_s" : 12.031676655000000,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -52,7 +52,7 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.47905511811023627,
+    "jains_fairness_index" : 0.47792615868028288,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_coarse",
     "server_threads" : 8,
@@ -62,60 +62,60 @@
             "attempted" : 45,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 49.344014999999999,
+            "max_ms" : 49.432555000000001,
             "name" : "Tenant 1 [Control] Health Probe",
-            "p50_ms" : 2.5759390000000000,
-            "p90_ms" : 48.069856799999997,
-            "p95_ms" : 48.402527800000001,
-            "p99_ms" : 49.316878000000003,
+            "p50_ms" : 2.6105649999999998,
+            "p90_ms" : 47.084078399999996,
+            "p95_ms" : 47.302524200000001,
+            "p99_ms" : 49.377279999999999,
             "retries" : 0,
             "role" : "Cluster Health / K8s Liveness Probe",
-            "throughput_tps" : 3.7391703185940406
+            "throughput_tps" : 3.7401271069979565
         },
         {
-            "accepted" : 17,
-            "attempted" : 47115,
-            "drop_rate_pct" : 99.963918072800595,
-            "drops_503" : 47098,
-            "max_ms" : 420.21656200000001,
+            "accepted" : 18,
+            "attempted" : 47169,
+            "drop_rate_pct" : 99.961839343636711,
+            "drops_503" : 47151,
+            "max_ms" : 447.72638699999999,
             "name" : "Tenant 2 [Tier 1] Platinum VIP",
-            "p50_ms" : 237.55946200000000,
-            "p90_ms" : 388.94411820000005,
-            "p95_ms" : 403.37520680000000,
-            "p99_ms" : 416.84829096000004,
+            "p50_ms" : 202.41232850000000,
+            "p90_ms" : 371.85182250000008,
+            "p95_ms" : 431.92862529999996,
+            "p99_ms" : 444.56683465999993,
             "retries" : 0,
             "role" : "Latency-Critical S3 Web App",
-            "throughput_tps" : 1.4125754536910820
+            "throughput_tps" : 1.4960508427991825
         },
         {
-            "accepted" : 15,
-            "attempted" : 34102,
-            "drop_rate_pct" : 99.956014310011142,
-            "drops_503" : 34087,
-            "max_ms" : 769.37184300000001,
+            "accepted" : 14,
+            "attempted" : 34163,
+            "drop_rate_pct" : 99.959019992389429,
+            "drops_503" : 34149,
+            "max_ms" : 779.19962499999997,
             "name" : "Tenant 3 [Tier 2] Gold Standard",
-            "p50_ms" : 623.34500100000002,
-            "p90_ms" : 741.05062080000005,
-            "p95_ms" : 755.31462290000013,
-            "p99_ms" : 766.56039898000006,
+            "p50_ms" : 643.05623900000001,
+            "p90_ms" : 745.95304419999991,
+            "p95_ms" : 759.70604049999997,
+            "p99_ms" : 775.30090809999990,
             "retries" : 0,
             "role" : "Production Core Microservices",
-            "throughput_tps" : 1.2463901061980134
+            "throughput_tps" : 1.1635950999549198
         },
         {
             "accepted" : 1,
-            "attempted" : 143492,
-            "drop_rate_pct" : 99.999303097036773,
-            "drops_503" : 143491,
-            "max_ms" : 1037.1242549999999,
+            "attempted" : 143489,
+            "drop_rate_pct" : 99.999303082466255,
+            "drops_503" : 143488,
+            "max_ms" : 1048.3208810000001,
             "name" : "Tenant 4 [Tier 3] Bronze Batch Bully",
-            "p50_ms" : 1037.1242549999999,
-            "p90_ms" : 1037.1242549999999,
-            "p95_ms" : 1037.1242549999999,
-            "p99_ms" : 1037.1242549999999,
+            "p50_ms" : 1048.3208810000001,
+            "p90_ms" : 1048.3208810000001,
+            "p95_ms" : 1048.3208810000001,
+            "p99_ms" : 1048.3208810000001,
             "retries" : 0,
             "role" : "Heavy Nightly Backup Flood",
-            "throughput_tps" : 0.083092673746534229
+            "throughput_tps" : 0.083113935711065692
         },
         {
             "accepted" : 0,
@@ -133,5 +133,5 @@
             "throughput_tps" : 0.0000000000000000
         }
     ],
-    "total_throughput_tps" : 6.4812285522296706
+    "total_throughput_tps" : 6.4828869854631250
 }

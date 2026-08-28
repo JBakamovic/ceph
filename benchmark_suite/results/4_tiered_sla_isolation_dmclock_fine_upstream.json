@@ -2,13 +2,13 @@
     "cluster_capacity" : 48,
     "dmclock_counters" : {
         "admin" : {
-            "cancel" : 14,
+            "cancel" : 15,
             "cost" : 0,
             "limit" : 0,
             "limit_cost" : 0,
             "prio" : 95,
             "qlen" : 0,
-            "res" : 29
+            "res" : 28
         },
         "auth" : {
             "cancel" : 0,
@@ -22,8 +22,8 @@
         "data" : {
             "cancel" : 0,
             "cost" : 0,
-            "limit" : 59586,
-            "limit_cost" : 1287320,
+            "limit" : 59611,
+            "limit_cost" : 1287896,
             "prio" : 2,
             "qlen" : 0,
             "res" : 1
@@ -31,14 +31,14 @@
         "metadata" : {
             "cancel" : 0,
             "cost" : 0,
-            "limit" : 29384,
-            "limit_cost" : 321262,
-            "prio" : 3,
+            "limit" : 29440,
+            "limit_cost" : 321932,
+            "prio" : 4,
             "qlen" : 0,
-            "res" : 3
+            "res" : 2
         }
     },
-    "elapsed_time_s" : 6.0051393800000001,
+    "elapsed_time_s" : 6.0047056500000000,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -52,56 +52,56 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.38235739143592073,
+    "jains_fairness_index" : 0.38275998418347162,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine_upstream",
     "server_threads" : 8,
     "tenants" : [
         {
-            "accepted" : 124,
+            "accepted" : 123,
             "attempted" : 138,
-            "drop_rate_pct" : 10.144927536231885,
-            "drops_503" : 14,
-            "max_ms" : 800.76198599999998,
+            "drop_rate_pct" : 10.869565217391305,
+            "drops_503" : 15,
+            "max_ms" : 819.01484700000003,
             "name" : "Tier 1 (Gold SLA - Premium)",
-            "p50_ms" : 719.89343650000001,
-            "p90_ms" : 778.31686049999996,
-            "p95_ms" : 794.36922199999992,
-            "p99_ms" : 800.34602006000000,
+            "p50_ms" : 735.80288199999995,
+            "p90_ms" : 778.82997460000001,
+            "p95_ms" : 798.54405480000003,
+            "p99_ms" : 817.61393825999994,
             "retries" : 0,
             "role" : "Mission Critical",
-            "throughput_tps" : 20.648979507949406
+            "throughput_tps" : 20.483934961907750
         },
         {
             "accepted" : 6,
-            "attempted" : 29390,
-            "drop_rate_pct" : 99.979584892820682,
-            "drops_503" : 29384,
-            "max_ms" : 906.13884199999995,
+            "attempted" : 29446,
+            "drop_rate_pct" : 99.979623717992254,
+            "drops_503" : 29440,
+            "max_ms" : 905.44815600000004,
             "name" : "Tier 2 (Silver SLA - Standard)",
-            "p50_ms" : 456.19920349999995,
-            "p90_ms" : 895.64515200000005,
-            "p95_ms" : 900.89199699999995,
-            "p99_ms" : 905.08947300000000,
+            "p50_ms" : 296.00104049999999,
+            "p90_ms" : 896.12043650000010,
+            "p95_ms" : 900.78429625000012,
+            "p99_ms" : 904.51538404999997,
             "retries" : 0,
             "role" : "Standard Business",
-            "throughput_tps" : 0.99914416973948739
+            "throughput_tps" : 0.99921633960525613
         },
         {
             "accepted" : 3,
-            "attempted" : 59589,
-            "drop_rate_pct" : 99.994965513769316,
-            "drops_503" : 59586,
-            "max_ms" : 819.35219600000005,
+            "attempted" : 59614,
+            "drop_rate_pct" : 99.994967625054514,
+            "drops_503" : 59611,
+            "max_ms" : 833.99521300000004,
             "name" : "Tier 3 (Bronze SLA - Batch)",
-            "p50_ms" : 508.30464100000000,
-            "p90_ms" : 757.14268500000003,
-            "p95_ms" : 788.24744050000004,
-            "p99_ms" : 813.13124490000007,
+            "p50_ms" : 340.89791400000001,
+            "p90_ms" : 735.37575319999996,
+            "p95_ms" : 784.68548310000006,
+            "p99_ms" : 824.13326701999995,
             "retries" : 0,
             "role" : "Best Effort Bulk",
-            "throughput_tps" : 0.49957208486974369
+            "throughput_tps" : 0.49960816980262807
         }
     ],
-    "total_throughput_tps" : 22.147695762558637
+    "total_throughput_tps" : 21.982759471315632
 }

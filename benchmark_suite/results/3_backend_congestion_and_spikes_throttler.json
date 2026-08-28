@@ -1,6 +1,6 @@
 {
     "cluster_capacity" : 32,
-    "elapsed_time_s" : 6.1308133209999998,
+    "elapsed_time_s" : 6.1206442570000004,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -14,56 +14,56 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.67081807348090861,
+    "jains_fairness_index" : 0.67112432307286818,
     "max_concurrency" : 128,
     "scheduler" : "throttler",
     "server_threads" : 8,
     "tenants" : [
         {
-            "accepted" : 2778,
-            "attempted" : 2778,
+            "accepted" : 2804,
+            "attempted" : 2804,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 160.78863500000000,
+            "max_ms" : 162.14257599999999,
             "name" : "Tenant A (Batch Ingest)",
-            "p50_ms" : 91.657974499999995,
-            "p90_ms" : 133.29064170000004,
-            "p95_ms" : 143.99621640000001,
-            "p99_ms" : 154.77539131999998,
+            "p50_ms" : 92.369380500000005,
+            "p90_ms" : 133.31902300000002,
+            "p95_ms" : 143.20815354999999,
+            "p99_ms" : 154.39759750000002,
             "retries" : 0,
             "role" : "Bulk Ingest",
-            "throughput_tps" : 453.12095713050991
+            "throughput_tps" : 458.12170782400040
         },
         {
-            "accepted" : 3231,
-            "attempted" : 3231,
+            "accepted" : 3238,
+            "attempted" : 3238,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 118.34973200000000,
+            "max_ms" : 117.50701200000000,
             "name" : "Tenant B (Online Queries)",
-            "p50_ms" : 19.156970999999999,
-            "p90_ms" : 73.460755000000006,
-            "p95_ms" : 79.905691000000004,
-            "p99_ms" : 108.27094049999998,
+            "p50_ms" : 19.019930000000002,
+            "p90_ms" : 73.980718200000013,
+            "p95_ms" : 79.856823749999947,
+            "p99_ms" : 109.47604513000002,
             "retries" : 0,
             "role" : "Online Read Traffic",
-            "throughput_tps" : 527.01001169498829
+            "throughput_tps" : 529.02927601073941
         },
         {
             "accepted" : 36,
             "attempted" : 36,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 42.220005000000000,
+            "max_ms" : 42.547446999999998,
             "name" : "Tenant C (Liveness Probe)",
-            "p50_ms" : 9.6745549999999998,
-            "p90_ms" : 39.503178500000004,
-            "p95_ms" : 40.819683249999997,
-            "p99_ms" : 42.088478150000000,
+            "p50_ms" : 10.017507000000000,
+            "p90_ms" : 39.480570000000000,
+            "p95_ms" : 41.958977750000003,
+            "p99_ms" : 42.525317549999997,
             "retries" : 0,
             "role" : "Health Probe",
-            "throughput_tps" : 5.8719778461837135
+            "throughput_tps" : 5.8817337666419451
         }
     ],
-    "total_throughput_tps" : 986.00294667168203
+    "total_throughput_tps" : 993.03271760138171
 }

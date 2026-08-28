@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 6.0756961939999998,
+    "elapsed_time_s" : 6.0752157750000002,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -52,56 +52,56 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.49964340099076693,
+    "jains_fairness_index" : 0.49964340099076698,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_fine",
     "server_threads" : 8,
     "tenants" : [
         {
             "accepted" : 3,
-            "attempted" : 59547,
-            "drop_rate_pct" : 99.994961962819289,
-            "drops_503" : 59544,
-            "max_ms" : 991.77628100000004,
+            "attempted" : 59615,
+            "drop_rate_pct" : 99.994967709469094,
+            "drops_503" : 59612,
+            "max_ms" : 830.86741700000005,
             "name" : "Tenant A (Bully Bulk Ingest)",
-            "p50_ms" : 511.10112900000001,
-            "p90_ms" : 895.64125060000003,
-            "p95_ms" : 943.70876580000004,
-            "p99_ms" : 982.16277796000008,
+            "p50_ms" : 343.05773099999999,
+            "p90_ms" : 733.30547980000006,
+            "p95_ms" : 782.08644839999999,
+            "p99_ms" : 821.11122327999999,
             "retries" : 0,
             "role" : "Bulk Aggressor",
-            "throughput_tps" : 0.49377057446727235
+            "throughput_tps" : 0.49380962110765519
         },
         {
             "accepted" : 128,
             "attempted" : 143,
             "drop_rate_pct" : 10.489510489510490,
             "drops_503" : 15,
-            "max_ms" : 800.62878999999998,
+            "max_ms" : 795.01424899999995,
             "name" : "Tenant B (Interactive Web CRUD)",
-            "p50_ms" : 698.27723050000009,
-            "p90_ms" : 739.48002659999997,
-            "p95_ms" : 753.11366959999987,
-            "p99_ms" : 760.83594747999996,
+            "p50_ms" : 699.04775700000005,
+            "p90_ms" : 739.54268359999992,
+            "p95_ms" : 758.13185190000002,
+            "p99_ms" : 774.69740644000001,
             "retries" : 0,
             "role" : "Latency Sensitive",
-            "throughput_tps" : 21.067544510603618
+            "throughput_tps" : 21.069210500593289
         },
         {
             "accepted" : 30,
             "attempted" : 30,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 2.7284730000000001,
+            "max_ms" : 2.8474699999999999,
             "name" : "Tenant C (K8s Liveness Probe)",
-            "p50_ms" : 2.5473350000000003,
-            "p90_ms" : 2.6853747000000001,
-            "p95_ms" : 2.7055658999999999,
-            "p99_ms" : 2.7223803900000001,
+            "p50_ms" : 2.4684540000000004,
+            "p90_ms" : 2.6984645000000000,
+            "p95_ms" : 2.7460699499999999,
+            "p99_ms" : 2.8208187100000002,
             "retries" : 0,
             "role" : "Control Plane Health",
-            "throughput_tps" : 4.9377057446727237
+            "throughput_tps" : 4.9380962110765525
         }
     ],
-    "total_throughput_tps" : 26.499020829743614
+    "total_throughput_tps" : 26.501116332777496
 }

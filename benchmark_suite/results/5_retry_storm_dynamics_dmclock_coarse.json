@@ -22,8 +22,8 @@
         "data" : {
             "cancel" : 0,
             "cost" : 0,
-            "limit" : 12832,
-            "limit_cost" : 121059,
+            "limit" : 12829,
+            "limit_cost" : 121008,
             "prio" : 3,
             "qlen" : 0,
             "res" : 5
@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 6.0323673460000000,
+    "elapsed_time_s" : 6.0746917050000002,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -59,18 +59,18 @@
     "tenants" : [
         {
             "accepted" : 8,
-            "attempted" : 1589,
-            "drop_rate_pct" : 99.496538703587163,
-            "drops_503" : 1581,
-            "max_ms" : 870.27727000000004,
+            "attempted" : 1588,
+            "drop_rate_pct" : 99.496221662468514,
+            "drops_503" : 1580,
+            "max_ms" : 868.89593900000000,
             "name" : "Batch Clients (With Retries)",
-            "p50_ms" : 429.05482700000005,
-            "p90_ms" : 687.08140959999992,
-            "p95_ms" : 778.67933979999987,
-            "p99_ms" : 851.95768395999994,
-            "retries" : 6316,
+            "p50_ms" : 519.49010849999991,
+            "p90_ms" : 686.40473919999999,
+            "p95_ms" : 777.65033909999988,
+            "p99_ms" : 850.64681901999995,
+            "retries" : 6314,
             "role" : "Heavy Load with Retries",
-            "throughput_tps" : 1.3261791832529424
+            "throughput_tps" : 1.3169392602122183
         },
         {
             "accepted" : 0,
@@ -88,5 +88,5 @@
             "throughput_tps" : 0.0000000000000000
         }
     ],
-    "total_throughput_tps" : 1.3261791832529424
+    "total_throughput_tps" : 1.3169392602122183
 }

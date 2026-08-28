@@ -24,9 +24,9 @@
             "cost" : 0,
             "limit" : 0,
             "limit_cost" : 0,
-            "prio" : 2,
+            "prio" : 3,
             "qlen" : 0,
-            "res" : 2319
+            "res" : 2326
         },
         "metadata" : {
             "cancel" : 0,
@@ -38,7 +38,7 @@
             "res" : 0
         }
     },
-    "elapsed_time_s" : 10.026448425000000,
+    "elapsed_time_s" : 10.028544208000000,
     "fidelity" : {
         "at_limit" : "reject",
         "at_limit_matches_production" : true,
@@ -52,56 +52,56 @@
         "thread_count" : 8,
         "uniform_cost" : true
     },
-    "jains_fairness_index" : 0.54325406496649542,
+    "jains_fairness_index" : 0.54283950227457711,
     "max_concurrency" : 128,
     "scheduler" : "dmclock_coarse",
     "server_threads" : 8,
     "tenants" : [
         {
-            "accepted" : 1765,
-            "attempted" : 1765,
+            "accepted" : 1772,
+            "attempted" : 1772,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 31.615227999999998,
+            "max_ms" : 31.583024999999999,
             "name" : "Tenant A (Bully Data)",
-            "p50_ms" : 29.334591000000000,
-            "p90_ms" : 31.153185799999996,
-            "p95_ms" : 31.338971999999998,
-            "p99_ms" : 31.517586639999998,
+            "p50_ms" : 29.426462000000001,
+            "p90_ms" : 31.114274600000002,
+            "p95_ms" : 31.329737999999999,
+            "p99_ms" : 31.507168869999997,
             "retries" : 0,
             "role" : "Bulk Aggressor",
-            "throughput_tps" : 176.03441669326693
+            "throughput_tps" : 176.69563630047469
         },
         {
-            "accepted" : 556,
-            "attempted" : 556,
+            "accepted" : 557,
+            "attempted" : 557,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 8.0270679999999999,
+            "max_ms" : 8.3924629999999993,
             "name" : "Tenant B (Interactive Data)",
-            "p50_ms" : 5.2835250000000000,
-            "p90_ms" : 7.7486325000000003,
-            "p95_ms" : 7.8546025000000004,
-            "p99_ms" : 7.9293152000000013,
+            "p50_ms" : 5.2746060000000003,
+            "p90_ms" : 7.7794688000000001,
+            "p95_ms" : 7.8457593999999995,
+            "p99_ms" : 7.9214417600000004,
             "retries" : 0,
             "role" : "Latency-Sensitive S3 App",
-            "throughput_tps" : 55.453334663714685
+            "throughput_tps" : 55.541461297609708
         },
         {
             "accepted" : 42,
             "attempted" : 42,
             "drop_rate_pct" : 0.0000000000000000,
             "drops_503" : 0,
-            "max_ms" : 3.4771820000000000,
+            "max_ms" : 2.7166610000000002,
             "name" : "Tenant C (Health Probe)",
-            "p50_ms" : 2.5756939999999999,
-            "p90_ms" : 2.6870821999999999,
-            "p95_ms" : 2.7558938999999998,
-            "p99_ms" : 3.3541614999999991,
+            "p50_ms" : 2.5704134999999999,
+            "p90_ms" : 2.6553337000000004,
+            "p95_ms" : 2.6617272500000002,
+            "p99_ms" : 2.7071760600000001,
             "retries" : 0,
             "role" : "Cluster Health / K8s Probe",
-            "throughput_tps" : 4.1889209638057858
+            "throughput_tps" : 4.1880455556545924
         }
     ],
-    "total_throughput_tps" : 235.67667232078742
+    "total_throughput_tps" : 236.42514315373899
 }

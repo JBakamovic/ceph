@@ -1,6 +1,6 @@
 {
     "cluster_capacity" : 48,
-    "elapsed_time_s" : 6.0381500670000001,
+    "elapsed_time_s" : 6.0796471619999997,
     "fidelity" : {
         "at_limit" : "reject_threshold",
         "at_limit_matches_production" : false,
@@ -14,41 +14,41 @@
         "thread_count" : 8,
         "uniform_cost" : false
     },
-    "jains_fairness_index" : 0.97006200177147939,
+    "jains_fairness_index" : 0.98077677520596340,
     "max_concurrency" : 64,
     "scheduler" : "throttler",
     "server_threads" : 8,
     "tenants" : [
         {
-            "accepted" : 183,
-            "attempted" : 1783,
-            "drop_rate_pct" : 89.848569826135730,
-            "drops_503" : 1602,
-            "max_ms" : 47.427860000000003,
+            "accepted" : 172,
+            "attempted" : 1772,
+            "drop_rate_pct" : 90.293453724604973,
+            "drops_503" : 1600,
+            "max_ms" : 45.656655000000001,
             "name" : "Batch Clients (With Retries)",
-            "p50_ms" : 19.976873999999999,
-            "p90_ms" : 43.332872000000002,
-            "p95_ms" : 44.680068000000006,
-            "p99_ms" : 46.742770839999999,
-            "retries" : 6350,
+            "p50_ms" : 27.181280999999998,
+            "p90_ms" : 42.323714699999996,
+            "p95_ms" : 44.103278750000001,
+            "p99_ms" : 45.100227949999997,
+            "retries" : 6361,
             "role" : "Heavy Load with Retries",
-            "throughput_tps" : 30.307295772614324
+            "throughput_tps" : 28.291115490231473
         },
         {
-            "accepted" : 261,
-            "attempted" : 1261,
-            "drop_rate_pct" : 79.540047581284696,
-            "drops_503" : 1003,
-            "max_ms" : 16.910349000000000,
+            "accepted" : 228,
+            "attempted" : 1228,
+            "drop_rate_pct" : 81.596091205211721,
+            "drops_503" : 1002,
+            "max_ms" : 17.962098999999998,
             "name" : "API Clients (With Retries)",
-            "p50_ms" : 6.9205800000000002,
-            "p90_ms" : 9.8474540000000008,
-            "p95_ms" : 10.549454000000001,
-            "p99_ms" : 13.018134999999919,
-            "retries" : 3978,
+            "p50_ms" : 6.8887769999999993,
+            "p90_ms" : 9.7483180000000011,
+            "p95_ms" : 10.416910250000001,
+            "p99_ms" : 11.531583510000001,
+            "retries" : 3981,
             "role" : "Interactive with Retries",
-            "throughput_tps" : 43.225159544548298
+            "throughput_tps" : 37.502176347516141
         }
     ],
-    "total_throughput_tps" : 73.532455317162629
+    "total_throughput_tps" : 65.793291837747617
 }
