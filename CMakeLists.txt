@@ -943,6 +943,8 @@ endif()
 
 # dashboard angular2 frontend
 option(WITH_MGR_DASHBOARD_FRONTEND "Build the mgr/dashboard frontend using `npm`" ON)
+set(WITH_MGR_DASHBOARD_FRONTEND_CACHE "" CACHE PATH
+  "Path to out-of-source directory for caching the mgr/dashboard frontend build artifacts across multiple build variants")
 option(WITH_SYSTEM_NPM "Assume that dashboard build tools already installed through packages" OFF)
 if(WITH_SYSTEM_NPM)
   find_program(NPM_EXECUTABLE npm
