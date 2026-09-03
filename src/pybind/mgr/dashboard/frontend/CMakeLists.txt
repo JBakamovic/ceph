@@ -23,8 +23,10 @@ function(add_npm_command)
     DEPENDS ${NC_DEPENDS}
     WORKING_DIRECTORY "${NC_WORKING_DIRECTORY}"
     COMMENT ${NC_COMMENT})
-  set_property(DIRECTORY APPEND
-    PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${NC_OUTPUT}")
+  if(NOT WITH_MGR_DASHBOARD_FRONTEND_CACHE)
+    set_property(DIRECTORY APPEND
+      PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${NC_OUTPUT}")
+  endif()
 endfunction(add_npm_command)
 
 function(add_npm_options)
@@ -54,16 +56,26 @@ if(WITH_SYSTEM_NPM)
     DEPENDS node_modules
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 else(WITH_SYSTEM_NPM)
-  set(mgr-dashboard-nodeenv-dir ${CMAKE_CURRENT_BINARY_DIR}/node-env)
+  if(WITH_MGR_DASHBOARD_FRONTEND_CACHE)
+    get_filename_component(dashboard_cache_dir "${WITH_MGR_DASHBOARD_FRONTEND_CACHE}" ABSOLUTE)
+    set(mgr-dashboard-nodeenv-dir "${dashboard_cache_dir}/node-env")
+    if(DEFINED ENV{NPM_CACHEDIR})
+      set(npm-cache-dir "$ENV{NPM_CACHEDIR}")
+    else()
+      set(npm-cache-dir "${dashboard_cache_dir}/.npm")
+    endif()
+  else()
+    set(mgr-dashboard-nodeenv-dir ${CMAKE_CURRENT_BINARY_DIR}/node-env)
+    if(DEFINED ENV{NPM_CACHEDIR})
+      set(npm-cache-dir "$ENV{NPM_CACHEDIR}")
+    else()
+      set(npm-cache-dir "${mgr-dashboard-nodeenv-dir}/.npm")
+    endif()
+  endif()
   set(nodeenv NODEENV)
   set(mgr-dashboard-userconfig --userconfig ${mgr-dashboard-nodeenv-dir}/.npmrc)
   if(DEFINED ENV{NODE_MIRROR})
     set(node_mirror_opt "--mirror=$ENV{NODE_MIRROR}")
-  endif()
-  if(DEFINED ENV{NPM_CACHEDIR})
-    set(npm-cache-dir "$ENV{NPM_CACHEDIR}")
-  else()
-    set(npm-cache-dir "${mgr-dashboard-nodeenv-dir}/.npm")
   endif()
   add_custom_command(
     OUTPUT "${mgr-dashboard-nodeenv-dir}/bin/npm"
@@ -116,7 +128,12 @@ execute_process(
     OUTPUT_VARIABLE default_lang
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set(frontend_dist_dir "${CMAKE_CURRENT_BINARY_DIR}/dist")
+if(WITH_MGR_DASHBOARD_FRONTEND_CACHE)
+  get_filename_component(dashboard_cache_dir "${WITH_MGR_DASHBOARD_FRONTEND_CACHE}" ABSOLUTE)
+  set(frontend_dist_dir "${dashboard_cache_dir}/dist")
+else()
+  set(frontend_dist_dir "${CMAKE_CURRENT_BINARY_DIR}/dist")
+endif()
 set(npm_args "--output-path ${frontend_dist_dir}")
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
   string(APPEND npm_args " --configuration=production --progress=false")
@@ -139,17 +156,31 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/package.json
     ${CMAKE_CURRENT_BINARY_DIR}/package.json)
 
+if(WITH_MGR_DASHBOARD_FRONTEND_CACHE)
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/dist"
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${frontend_dist_dir}" "${CMAKE_CURRENT_BINARY_DIR}/dist"
+    DEPENDS "${frontend_dist_dir}"
+    COMMENT "Symlinking cached dashboard frontend to build directory")
+  set(frontend_local_dist "${CMAKE_CURRENT_BINARY_DIR}/dist")
+else()
+  set(frontend_local_dist "")
+endif()
+
 add_custom_target(mgr-dashboard-frontend-build
   ALL
   DEPENDS
     ${frontend_dist_dir}
+    ${frontend_local_dist}
     ${CMAKE_CURRENT_BINARY_DIR}/package.json
     mgr-dashboard-frontend-deps
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_dependencies(tests mgr-dashboard-frontend-build)
+if(TARGET tests)
+  add_dependencies(tests mgr-dashboard-frontend-build)
+endif()
 
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dist
+install(DIRECTORY ${frontend_dist_dir}
   DESTINATION ${CEPH_INSTALL_DATADIR}/mgr/dashboard/frontend)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/package.json
   DESTINATION ${CEPH_INSTALL_DATADIR}/mgr/dashboard/frontend)
