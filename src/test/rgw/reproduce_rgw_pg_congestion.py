@@ -422,6 +422,7 @@ class ProbeClient:
         self.running = False
         self.s3_records = []
         self.http_records = []
+        self.worker_threads = []
         self.thread = None
         self._lock = threading.Lock()
 
@@ -429,6 +430,7 @@ class ProbeClient:
         self.running = True
         self.s3_records = []
         self.http_records = []
+        self.worker_threads = []
         self.thread = threading.Thread(target=self._probe_loop, daemon=True)
         self.thread.start()
 
@@ -436,6 +438,14 @@ class ProbeClient:
         self.running = False
         if self.thread:
             self.thread.join(timeout=2.0)
+        self.wait_for_inflight(timeout=6.0)
+
+    def wait_for_inflight(self, timeout=6.0):
+        """Wait for any in-flight probe threads to finish."""
+        with self._lock:
+            threads = list(self.worker_threads)
+        for t in threads:
+            t.join(timeout=timeout)
 
     def _single_s3_probe(self):
         """Execute an authenticated S3 request to measure end-to-end API queue starvation."""
@@ -509,6 +519,9 @@ class ProbeClient:
                     self.http_records.append(http_rec)
 
             t = threading.Thread(target=probe_task, daemon=True)
+            with self._lock:
+                self.worker_threads = [wt for wt in self.worker_threads if wt.is_alive()]
+                self.worker_threads.append(t)
             t.start()
             time.sleep(self.interval)
 
@@ -789,6 +802,9 @@ def main():
         # Stop workload workers
         workload.stop()
 
+        # Wait for any in-flight probes initiated during congestion window to finish
+        probe.wait_for_inflight(timeout=6.0)
+
         cong_stats = probe.get_stats(t_phase3_start, t_phase3_end)
         cong_mon = monitor.get_summary(t_phase3_start, t_phase3_end)
         print(f"  [Congested] S3 API Latency P50: {cong_stats['s3']['p50_ms']}ms | Max: {cong_stats['s3']['max_ms']}ms")
@@ -815,6 +831,11 @@ def main():
 
         probe.stop()
         monitor.stop()
+
+        # Recalculate complete stats now that all in-flight probes have joined
+        base_stats = probe.get_stats(t_phase1_start, t_phase1_end)
+        cong_stats = probe.get_stats(t_phase3_start, t_phase3_end)
+        rec_stats = probe.get_stats(t_phase4_start, t_phase4_end)
 
         # -------------------------------------------------------------
         # PHASE 5: Comprehensive Evidence Report
