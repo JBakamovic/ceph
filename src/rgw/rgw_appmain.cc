@@ -504,12 +504,14 @@ int rgw::AppMain::init_frontends2(RGWLib* rgwlib)
   sched_ctx.reset(new rgw::dmclock::SchedulerCtx{dpp->get_cct()});
   ratelimiter.reset(new ActiveRateLimiter{dpp->get_cct()});
   ratelimiter->start();
+  circuit_breaker.reset(new RGWCircuitBreaker{dpp->get_cct()});
 
   // initialize RGWProcessEnv
   env.rest = &rest;
   env.auth_registry = rgw::auth::StrategyRegistry::create(
       dpp->get_cct(), *implicit_tenant_context, env.driver);
   env.ratelimiting = ratelimiter.get();
+  env.circuit_breaker = circuit_breaker.get();
 
   int fe_count = 0;
   for (multimap<string, RGWFrontendConfig *>::iterator fiter = fe_map.begin();
@@ -757,6 +759,7 @@ void rgw::AppMain::shutdown(std::function<void(void)> finalize_async_signals)
   unregister_heap_profiler_hook();
   rgw_perf_stop(g_ceph_context);
   ratelimiter.reset(); // deletes--ensure this happens before we destruct
+  circuit_breaker.reset();
 } /* AppMain::shutdown */
 
 ceph::async::io_context_pool& rgw::AppMain::IOContextPoolHolder::get() {

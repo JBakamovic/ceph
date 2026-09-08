@@ -21,6 +21,7 @@
 #include "rgw_lua_request.h"
 #include "rgw_tracer.h"
 #include "rgw_ratelimit.h"
+#include "rgw_circuit_breaker.h"
 #include "rgw_bucket_logging.h"
 
 #include "services/svc_zone_utils.h"
@@ -270,6 +271,23 @@ int rgw_process_authenticated(RGWHandler_REST * const handler,
     return -ERR_RATE_LIMITED;
   }
 
+  pg_t target_pg;
+  bool target_pg_resolved = false;
+  if (s->penv.circuit_breaker && s->penv.circuit_breaker->is_enabled()) {
+    target_pg_resolved = s->penv.circuit_breaker->resolve_pg(s, &target_pg);
+    if (target_pg_resolved && s->penv.circuit_breaker->should_shed(target_pg)) {
+      ldpp_dout(op, 1) << "Circuit breaker shed: target PG " << target_pg
+                       << " is degraded/congested; fast-failing with 503 SlowDown" << dendl;
+      s->ratelimit_retry_after = 1;
+      return -ERR_RATE_LIMITED;
+    }
+  }
+
+  RGWCircuitBreaker::Guard breaker_guard(
+      s->penv.circuit_breaker,
+      target_pg,
+      target_pg_resolved && s->penv.circuit_breaker && s->penv.circuit_breaker->is_enabled());
+
   bool is_health_request = (op->get_type() == RGW_OP_GET_HEALTH_CHECK);
   {
     if (!is_health_request) {
@@ -304,6 +322,8 @@ int rgw_process_authenticated(RGWHandler_REST * const handler,
     op->execute(y);
     std::swap(span, s->trace);
   }
+
+  breaker_guard.finish(op->get_ret());
 
   ldpp_dout(op, 2) << "completing" << dendl;
   op->complete();

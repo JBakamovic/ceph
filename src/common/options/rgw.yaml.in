@@ -5034,3 +5034,55 @@ options:
   flags:
   - runtime
   with_legacy: true
+- name: rgw_circuit_breaker_enabled
+  type: bool
+  level: advanced
+  desc: Enable PG-level adaptive circuit breaker in RGW
+  long_desc: Dynamically isolates slow or congested Placement Groups (PGs) and sheds requests with 503 SlowDown to prevent Head-of-Line blocking.
+  default: true
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true
+- name: rgw_circuit_breaker_failure_threshold
+  type: uint
+  level: advanced
+  desc: Number of consecutive slow requests or failures before opening circuit breaker for a PG
+  default: 5
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true
+- name: rgw_circuit_breaker_latency_threshold_ms
+  type: uint
+  level: advanced
+  desc: Latency threshold in milliseconds beyond which a request is marked slow
+  default: 2000
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true
+- name: rgw_circuit_breaker_open_duration_secs
+  type: uint
+  level: advanced
+  desc: Duration in seconds to keep circuit breaker open before allowing canary probe
+  default: 5
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true
+- name: rgw_circuit_breaker_max_inflight_per_pg
+  type: uint
+  level: advanced
+  desc: Maximum in-flight requests per PG before fast-shedding new arrivals
+  default: 32
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true
+

@@ -11,6 +11,7 @@
 class ActiveRateLimiter;
 class OpsLogSink;
 class RGWREST;
+class RGWCircuitBreaker;
 
 namespace rgw {
   class SiteConfig;
@@ -51,6 +52,7 @@ struct RGWProcessEnv {
   std::unique_ptr<OpsLogSink> olog;
   std::unique_ptr<rgw::auth::StrategyRegistry> auth_registry;
   ActiveRateLimiter* ratelimiting = nullptr;
+  RGWCircuitBreaker* circuit_breaker = nullptr;
   std::unique_ptr<rgw::kms::KMSCache> kms_cache;
 
 #ifdef WITH_ARROW_FLIGHT

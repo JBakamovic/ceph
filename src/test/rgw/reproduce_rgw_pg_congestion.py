@@ -562,12 +562,13 @@ class ProbeClient:
 class WorkloadRunner:
     """Generates concurrent culprit workload targeting objects on the delayed PG."""
 
-    def __init__(self, endpoint, access_key, secret_key, bucket_name, concurrency=40, payload_size=1024):
+    def __init__(self, endpoint, access_key, secret_key, bucket_name, concurrency=40, payload_size=1024, target_key="culprit_obj_0_0"):
         self.endpoint = endpoint
         self.access_key = access_key
         self.secret_key = secret_key
         self.bucket_name = bucket_name
         self.concurrency = concurrency
+        self.target_key = target_key
         self.payload = b"X" * payload_size
         self.running = False
         self.ops_completed = 0
@@ -605,8 +606,7 @@ class WorkloadRunner:
         )
         idx = 0
         while self.running:
-            key = f"culprit_obj_{worker_id}_{idx}"
-            idx += 1
+            key = self.target_key
             try:
                 client.put_object(
                     Bucket=self.bucket_name,
@@ -790,6 +790,7 @@ def main():
             access_key=ak,
             secret_key=sk,
             bucket_name=test_bucket,
+            target_key=test_key,
             concurrency=args.concurrency
         )
         t_phase3_start = time.time()
