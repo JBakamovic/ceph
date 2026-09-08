@@ -213,6 +213,56 @@ To determine whether RGW queue starvation could be mitigated with configuration 
 
 ---
 
+## 8. Adaptive PG-Level Circuit Breaker (Solution 3.A) & Verification
+
+To eliminate Head-of-Line blocking dynamically at the gateway layer without requiring OSD-level restarts or manual intervention, we implemented and verified **Solution 3.A: PG-Level Adaptive Circuit Breaker**.
+
+### 8.1 Architectural Design
+
+1. **Target PG Resolution in Memory** (`src/rgw/rgw_circuit_breaker.h`):
+   - Resolves incoming S3 requests to their exact target Placement Group (`pg_t`) using `librados::IoCtx::get_object_pg_hash_position2` against cached pool contexts.
+   - Executes in `< 100ns` with zero network round-trips to MONs or OSDs.
+2. **In-Flight Stall Detection**:
+   - Instead of evaluating latency only after operations complete, `RGWCircuitBreaker` inspects active in-flight operations: if `now - oldest_inflight_start >= latency_threshold_ms`, the PG is tripped immediately.
+   - Prevents worker coroutines from being pinned for the full duration of a storage hang.
+3. **Per-PG Concurrency Capping**:
+   - Enforces `rgw_circuit_breaker_max_inflight_per_pg`. Any requests exceeding this cap are immediately shed before acquiring RADOS worker resources.
+4. **Fast-Failure & Client Backpressure**:
+   - When tripped or congested, requests are fast-failed in `rgw_process_authenticated` with `-ERR_RATE_LIMITED` (HTTP `503 SlowDown` with `Retry-After: 1` header) in `< 0.1ms`.
+   - Freezes neither Beast coroutines nor TCP sockets.
+5. **Canary Recovery**:
+   - Enters `HalfOpen` after `open_duration_secs`. A single canary probe tests whether the backend PG has recovered before fully re-enabling traffic.
+
+### 8.2 Configuration Options (`src/common/options/rgw.yaml.in`)
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `rgw_circuit_breaker_enabled` | bool | `true` | Enables or disables PG-level adaptive circuit breaker |
+| `rgw_circuit_breaker_failure_threshold` | uint | `5` | Consecutive failures/stalls required to trip the breaker (tuned to `1` or `2` for aggressive isolation) |
+| `rgw_circuit_breaker_latency_threshold_ms`| uint | `2000` | Latency threshold (ms) beyond which an operation is considered stalled |
+| `rgw_circuit_breaker_open_duration_secs` | uint | `5` | Duration (s) the circuit breaker remains Open before probing with a canary |
+| `rgw_circuit_breaker_max_inflight_per_pg` | uint | `32` | Max concurrent in-flight RADOS operations permitted per PG |
+
+### 8.3 Three-Way Empirical Telemetry Comparison
+
+Tests were executed under identical conditions (OSD delay = 2.5s, 40 concurrent culprit workers targeting degraded PG, 15s congestion window):
+
+| Metric / Telemetry Layer | Phase 1: Unmitigated Baseline | Phase 2: Static Config Mitigations | Phase 3: Adaptive Circuit Breaker (3.A) | Total Improvement vs Baseline |
+| :--- | :--- | :--- | :--- | :--- |
+| **Control S3 API Error/Timeout Rate** | **48.4 %** | **29.0 %** | **9.7 %** | **-80.0% reduction** |
+| **Control S3 API P50 Latency** | **8.47 ms** | **6.64 ms** | **5.63 ms** | **Sub-6ms healthy baseline** |
+| **RGW Request Queue (`qactive`/`qlen`)** | **52 active / 52 queued** | **43 active / 43 queued** | **2 active / 2 queued** | **-96.2% reduction in queue buildup** |
+| **Active Established Sockets at Peak** | **50 sockets held** | **49 sockets held** | **12 sockets held** | **-76.0% reduction in socket exhaustion** |
+| **OSD Blocked In-Flight Ops** | **60 ops stalled** | **43 ops stalled** | **7 ops stalled** | **-88.3% reduction in backend stall** |
+| **Fast-Shed Response Latency** | N/A (Hung for 10s-25s) | N/A (Hung for 5s) | **< 0.1 ms (`0.000000s`)** | **Instant client backpressure** |
+| **Requests Shed with 503 SlowDown** | **0** | **0** | **11,399 requests** | **11,399 requests protected from hanging** |
+
+- **Baseline Telemetry JSON**: `congestion_results.json`
+- **Mitigated Telemetry JSON**: `congestion_mitigated_results.json`
+- **Circuit Breaker Telemetry JSON**: `congestion_circuit_breaker_results.json`
+
+---
+
 ### Manual Cleanup (if interrupted)
 If an experiment is interrupted manually before completion:
 ```bash
