@@ -259,32 +259,34 @@ class CongestionMonitor:
     def _sample_ss_conns(self):
         """Count active sockets by state from ss -tan."""
         counts = defaultdict(int)
+        raw_lines = []
         try:
             res = subprocess.run(
                 ["ss", "-tan", f"sport = :{self.rgw_port}"],
                 capture_output=True, text=True, timeout=1, check=False
             )
-            for line in res.stdout.strip().splitlines()[1:]:
+            raw_lines = res.stdout.strip().splitlines()
+            for line in raw_lines[1:]:
                 parts = line.split()
                 if parts:
                     state = parts[0]
                     counts[state] += 1
         except Exception:
             pass
-        return dict(counts)
+        return dict(counts), raw_lines
 
     def _sample_rgw_perf(self):
         """Query RGW admin socket perf dump for queue and throttle metrics."""
-        data = self.helper.run_asok_cmd(self.helper.rgw_asok, ["perf", "dump"])
-        if "error" in data:
-            return {}
-        rgw = data.get("rgw", {})
-        async_throttle = data.get("throttle-rgw_async_rados_ops", {})
-        obj_ops_throttle = data.get("throttle-objecter_ops", {})
-        obj_bytes_throttle = data.get("throttle-objecter_bytes", {})
-        objecter = data.get("objecter", {})
+        raw_data = self.helper.run_asok_cmd(self.helper.rgw_asok, ["perf", "dump"])
+        if "error" in raw_data:
+            return {}, raw_data
+        rgw = raw_data.get("rgw", {})
+        async_throttle = raw_data.get("throttle-rgw_async_rados_ops", {})
+        obj_ops_throttle = raw_data.get("throttle-objecter_ops", {})
+        obj_bytes_throttle = raw_data.get("throttle-objecter_bytes", {})
+        objecter = raw_data.get("objecter", {})
 
-        return {
+        metrics = {
             "rgw_req": rgw.get("req", 0),
             "rgw_qlen": rgw.get("qlen", 0),
             "rgw_qactive": rgw.get("qactive", 0),
@@ -296,32 +298,35 @@ class CongestionMonitor:
             "objecter_op_active": objecter.get("op_active", 0),
             "objecter_op_laggy": objecter.get("op_laggy", 0),
         }
+        return metrics, raw_data
 
     def _sample_objecter_requests(self):
         """Query in-flight Objecter requests in RGW."""
-        data = self.helper.run_asok_cmd(self.helper.rgw_asok, ["objecter_requests"])
-        ops = data.get("ops", [])
+        raw_data = self.helper.run_asok_cmd(self.helper.rgw_asok, ["objecter_requests"])
+        ops = raw_data.get("ops", [])
         pg_counts = defaultdict(int)
         for op in ops:
             pg = op.get("pg", "unknown")
             pg_counts[pg] += 1
-        return len(ops), dict(pg_counts), ops
+        return len(ops), dict(pg_counts), ops, raw_data
 
     def _sample_osd_ops(self):
         """Query in-flight ops on OSDs."""
         total_ops = 0
+        raw_dumps = {}
         for osd_id, asok in self.helper.osd_asoks.items():
             data = self.helper.run_asok_cmd(asok, ["dump_ops_in_flight"])
             total_ops += data.get("num_ops", 0)
-        return total_ops
+            raw_dumps[f"osd.{osd_id}"] = data
+        return total_ops, raw_dumps
 
     def _monitor_loop(self):
         while self.running:
             recv_q, send_q = self._sample_ss_listen()
-            conns = self._sample_ss_conns()
-            perf = self._sample_rgw_perf()
-            inflight_reqs, pg_distribution, raw_ops = self._sample_objecter_requests()
-            osd_ops = self._sample_osd_ops()
+            conns, ss_lines = self._sample_ss_conns()
+            perf, raw_perf = self._sample_rgw_perf()
+            inflight_reqs, pg_distribution, raw_ops, raw_obj_data = self._sample_objecter_requests()
+            osd_ops, raw_osd_dumps = self._sample_osd_ops()
 
             sample = {
                 "timestamp": time.time(),
@@ -359,6 +364,12 @@ class CongestionMonitor:
                 if self.peak_snapshot is None or score > prev_score:
                     sample_copy = dict(sample)
                     sample_copy["raw_ops_sample"] = raw_ops[:10]
+                    sample_copy["raw_diagnostics"] = {
+                        "osd_ops_in_flight": raw_osd_dumps,
+                        "objecter_requests": raw_obj_data,
+                        "rgw_perf_dump": raw_perf,
+                        "ss_sockets": ss_lines,
+                    }
                     self.peak_snapshot = sample_copy
 
             time.sleep(self.sample_interval)
@@ -432,17 +443,20 @@ class ProbeClient:
             return None
         t0 = time.time()
         success = False
+        error_msg = None
         try:
             self.s3_client.list_buckets()
             lat_ms = (time.time() - t0) * 1000.0
             success = True
-        except Exception:
+        except Exception as e:
             lat_ms = (time.time() - t0) * 1000.0
             success = False
+            error_msg = str(e)
         return {
             "timestamp": t0,
             "latency_ms": lat_ms,
-            "success": success
+            "success": success,
+            "error": error_msg
         }
 
     def _single_http_probe(self):
@@ -888,10 +902,21 @@ def main():
         if args.output_json:
             result_payload = {
                 "config": vars(args),
+                "summary": {
+                    "baseline": {"probe": base_stats, "monitor": base_mon},
+                    "congested": {"probe": cong_stats, "monitor": cong_mon},
+                    "recovered": {"probe": rec_stats, "monitor": rec_mon},
+                },
+                # Backward-compatible top-level phase dictionaries
                 "baseline": {"probe": base_stats, "monitor": base_mon},
                 "congested": {"probe": cong_stats, "monitor": cong_mon},
                 "recovered": {"probe": rec_stats, "monitor": rec_mon},
                 "peak_snapshot": monitor.peak_snapshot,
+                "raw_timeseries": {
+                    "probe_s3": probe.s3_records,
+                    "probe_http": probe.http_records,
+                    "monitor_samples": monitor.samples,
+                },
             }
             with open(args.output_json, "w") as f:
                 json.dump(result_payload, f, indent=2, default=str)

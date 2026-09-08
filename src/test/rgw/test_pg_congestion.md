@@ -133,6 +133,49 @@ Execution results captured with `--delay=2.5 --concurrency=40 --duration=15`:
 | **Active Established TCP Sockets** | **1 socket** | **50 sockets held open** | **0 – 10 sockets** |
 | **OSD In-Flight Blocked Ops** | **0 ops** | **7 ops stalled in PG** | **0 ops** |
 
+---
+
+## 6. Telemetry & JSON Output Structure (`--output-json`)
+
+When invoked with `--output-json=<path>`, the harness captures both aggregated phase metrics and full high-resolution raw telemetry across all architectural layers:
+
+```json
+{
+  "config": { ... },
+  "summary": {
+    "baseline": { "probe": { ... }, "monitor": { ... } },
+    "congested": { "probe": { ... }, "monitor": { ... } },
+    "recovered": { "probe": { ... }, "monitor": { ... } }
+  },
+  "peak_snapshot": {
+    "timestamp": 1788806561.88,
+    "recv_q": 0, "send_q": 4096,
+    "conns": { "LISTEN": 2, "CLOSE-WAIT": 23, "ESTAB": 50 },
+    "established_conns": 50,
+    "rgw_perf": { "rgw_qlen": 74, "rgw_qactive": 74, ... },
+    "osd_ops_in_flight": 6,
+    "raw_ops_sample": [ ... ],
+    "raw_diagnostics": {
+      "osd_ops_in_flight": { "osd.0": { "num_ops": 6, "ops": [ ... ] } },
+      "objecter_requests": { "ops": [ ... ] },
+      "rgw_perf_dump": { "rgw": { ... }, "throttle-rgw_async_rados_ops": { ... }, ... },
+      "ss_sockets": [ "ESTAB 0 0 127.0.0.1:8000 ...", ... ]
+    }
+  },
+  "raw_timeseries": {
+    "probe_s3": [
+      { "timestamp": 1788806545.1, "latency_ms": 5.4, "success": true, "error": null }, ...
+    ],
+    "probe_http": [
+      { "timestamp": 1788806545.1, "connect_ms": 0.4, "ttfb_ms": 1.1, "total_ms": 1.2, "http_code": 200, "success": true }, ...
+    ],
+    "monitor_samples": [
+      { "timestamp": 1788806545.2, "recv_q": 0, "established_conns": 1, "rgw_perf": { ... }, "osd_ops_in_flight": 0 }, ...
+    ]
+  }
+}
+```
+
 ### Manual Cleanup (if interrupted)
 If an experiment is interrupted manually before completion:
 ```bash
@@ -142,3 +185,4 @@ ceph --admin-daemon <build_dir>/asok/osd.<id>.asok config set osd_debug_inject_d
 # Unfreeze OSD if freeze mode was used
 kill -CONT $(cat <build_dir>/out/osd.<id>.pid)
 ```
+
