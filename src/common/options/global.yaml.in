@@ -2421,6 +2421,30 @@ options:
   desc: Max in-flight operations
   default: 1_K
   with_legacy: true
+- name: objecter_pool_throttle_enable
+  type: bool
+  level: advanced
+  desc: Enable per-pool throttling in Objecter to prevent cross-pool starvation
+  default: true
+  with_legacy: true
+- name: objecter_pool_inflight_ops_ratio
+  type: float
+  level: advanced
+  desc: Max fraction of objecter_inflight_ops a single pool can consume (0.0 to 1.0)
+  default: 0.5
+  with_legacy: true
+- name: objecter_pool_inflight_ops
+  type: uint
+  level: advanced
+  desc: Max in-flight operations per pool (0 to use objecter_pool_inflight_ops_ratio)
+  default: 0
+  with_legacy: true
+- name: objecter_pool_inflight_op_bytes
+  type: size
+  level: advanced
+  desc: Max in-flight bytes per pool (0 to use objecter_pool_inflight_ops_ratio * global bytes)
+  default: 0
+  with_legacy: true
 # num of completion locks per each session, for serializing same object responses
 - name: objecter_completion_locks_per_session
   type: uint

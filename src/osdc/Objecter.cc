@@ -3517,8 +3517,9 @@ void Objecter::_finish_op(Op *op, int r)
   // op->session->lock is locked unique or op->session is null
 
   if (!op->ctx_budgeted && op->budget >= 0) {
-    put_op_budget_bytes(op->budget);
+    put_op_budget_bytes(op->budget, op->budget_pool_id);
     op->budget = -1;
+    op->budget_pool_id = -1;
   }
 
   if (op->ontimeout && r != -ETIMEDOUT)
@@ -3688,6 +3689,37 @@ int Objecter::calc_op_budget(const bc::small_vector_base<OSDOp>& ops)
   return op_budget;
 }
 
+std::shared_ptr<Objecter::PoolThrottle> Objecter::_get_pool_throttle(int64_t pool_id)
+{
+  std::lock_guard l(pool_throttle_lock);
+  int64_t max_ops = cct->_conf->objecter_pool_inflight_ops;
+  double ratio = cct->_conf->objecter_pool_inflight_ops_ratio;
+  if (ratio <= 0.0) ratio = 0.5;
+  if (ratio > 1.0) ratio = 1.0;
+  if (max_ops <= 0) {
+    max_ops = std::max<int64_t>(1, static_cast<int64_t>(cct->_conf->objecter_inflight_ops * ratio));
+  }
+  int64_t max_bytes = cct->_conf->objecter_pool_inflight_op_bytes;
+  if (max_bytes <= 0) {
+    max_bytes = std::max<int64_t>(1, static_cast<int64_t>(cct->_conf->objecter_inflight_op_bytes * ratio));
+  }
+
+  auto it = pool_throttles.find(pool_id);
+  if (it != pool_throttles.end()) {
+    if (it->second->ops.get_max() != max_ops) {
+      it->second->ops.reset_max(max_ops);
+    }
+    if (it->second->bytes.get_max() != max_bytes) {
+      it->second->bytes.reset_max(max_bytes);
+    }
+    return it->second;
+  }
+
+  auto pt = std::make_shared<PoolThrottle>(cct, pool_id, max_ops, max_bytes);
+  pool_throttles[pool_id] = pt;
+  return pt;
+}
+
 void Objecter::_throttle_op(Op *op,
 			    shunique_lock<ceph::shared_mutex>& sul,
 			    int op_budget)
@@ -3697,6 +3729,31 @@ void Objecter::_throttle_op(Op *op,
 
   if (!op_budget)
     op_budget = calc_op_budget(op->ops);
+
+  std::shared_ptr<PoolThrottle> pt;
+  if (op && op->budget_pool_id >= 0) {
+    pt = _get_pool_throttle(op->budget_pool_id);
+  }
+
+  if (pt) {
+    if (!pt->bytes.get_or_fail(op_budget)) {
+      sul.unlock();
+      pt->bytes.get(op_budget);
+      if (locked_for_write)
+        sul.lock();
+      else
+        sul.lock_shared();
+    }
+    if (!pt->ops.get_or_fail(1)) {
+      sul.unlock();
+      pt->ops.get(1);
+      if (locked_for_write)
+        sul.lock();
+      else
+        sul.lock_shared();
+    }
+  }
+
   if (!op_throttle_bytes.get_or_fail(op_budget)) { //couldn't take right now
     sul.unlock();
     op_throttle_bytes.get(op_budget);
@@ -4293,7 +4350,7 @@ void Objecter::put_nlist_context_budget(NListContext *list_context)
   if (list_context->ctx_budget >= 0) {
     ldout(cct, 10) << " release listing context's budget " <<
       list_context->ctx_budget << dendl;
-    put_op_budget_bytes(list_context->ctx_budget);
+    put_op_budget_bytes(list_context->ctx_budget, list_context->pool_id);
     list_context->ctx_budget = -1;
   }
 }
@@ -5562,7 +5619,7 @@ public:
 		  std::vector<T> v,
 		  hobject_t h) && {
     if (budget >= 0) {
-      objecter->put_op_budget_bytes(budget);
+      objecter->put_op_budget_bytes(budget, oloc.pool);
       budget = -1;
     }
 

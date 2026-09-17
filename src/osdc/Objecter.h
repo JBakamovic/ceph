@@ -18,6 +18,7 @@
 
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <mutex>
 #include <memory>
 #include <string>
@@ -2047,6 +2048,7 @@ public:
     epoch_t map_dne_bound = 0;
 
     int budget = -1;
+    int64_t budget_pool_id = -1;
 
     /// true if we should resend this message on failure
     bool should_resend = true;
@@ -2683,15 +2685,42 @@ private:
    * and returned whenever an op is removed from the std::map
    * If throttle_op needs to throttle it will unlock client_lock.
    */
+  struct PoolThrottle {
+    Throttle ops;
+    Throttle bytes;
+    PoolThrottle(CephContext *cct, int64_t pool_id, int64_t max_ops, int64_t max_bytes)
+      : ops(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_ops", max_ops, true),
+        bytes(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_bytes", max_bytes, true) {}
+  };
+  mutable std::mutex pool_throttle_lock;
+  std::unordered_map<int64_t, std::shared_ptr<PoolThrottle>> pool_throttles;
+  std::shared_ptr<PoolThrottle> _get_pool_throttle(int64_t pool_id);
+
   int calc_op_budget(const boost::container::small_vector_base<OSDOp>& ops);
   void _throttle_op(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul,
 		    int op_size = 0);
   int _take_op_budget(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul) {
     ceph_assert(sul && sul.mutex() == &rwlock);
     int op_budget = calc_op_budget(op->ops);
+    int64_t pool_id = -1;
+    if (cct->_conf->objecter_pool_throttle_enable) {
+      if (op->target.base_oloc.pool >= 0) {
+        pool_id = op->target.base_oloc.pool;
+      } else if (op->target.precalc_pgid) {
+        pool_id = op->target.base_pgid.pool();
+      }
+    }
+    op->budget_pool_id = pool_id;
     if (keep_balanced_budget) {
       _throttle_op(op, sul, op_budget);
     } else { // update take_linger_budget to match this!
+      if (pool_id >= 0) {
+        auto pt = _get_pool_throttle(pool_id);
+        if (pt) {
+          pt->bytes.take(op_budget);
+          pt->ops.take(1);
+        }
+      }
       op_throttle_bytes.take(op_budget);
       op_throttle_ops.take(1);
     }
@@ -2699,8 +2728,22 @@ private:
     return op_budget;
   }
   int take_linger_budget(LingerOp *info);
-  void put_op_budget_bytes(int op_budget) {
+  void put_op_budget_bytes(int op_budget, int64_t pool_id = -1) {
     ceph_assert(op_budget >= 0);
+    if (pool_id >= 0) {
+      std::shared_ptr<PoolThrottle> pt;
+      {
+        std::lock_guard l(pool_throttle_lock);
+        auto it = pool_throttles.find(pool_id);
+        if (it != pool_throttles.end()) {
+          pt = it->second;
+        }
+      }
+      if (pt) {
+        pt->bytes.put(op_budget);
+        pt->ops.put(1);
+      }
+    }
     op_throttle_bytes.put(op_budget);
     op_throttle_ops.put(1);
   }
