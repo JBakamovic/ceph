@@ -476,6 +476,9 @@ def degraded_worker_task(worker_id, endpoint, bucket, duration, client_to, stop_
             "error": err_msg,
         })
 
+        if status != 200:
+            time.sleep(0.5)
+
 
 def calculate_latencies(lat_list):
     if not lat_list:
@@ -639,6 +642,9 @@ class ExperimentRunner:
         pool_throttle_enable,
         inflight_ops=None,
         pool_ratio=None,
+        pool_throttle_async=None,
+        queue_ratio=None,
+        max_queue_ops=None,
         degraded_workers=None,
         good_workers=None,
         duration=None,
@@ -646,6 +652,9 @@ class ExperimentRunner:
     ):
         inflight_ops = inflight_ops if inflight_ops is not None else self.args.objecter_inflight_ops
         pool_ratio = pool_ratio if pool_ratio is not None else self.args.pool_ratio
+        pool_throttle_async = pool_throttle_async if pool_throttle_async is not None else getattr(self.args, "pool_throttle_async", True)
+        queue_ratio = queue_ratio if queue_ratio is not None else getattr(self.args, "queue_ratio", 4.0)
+        max_queue_ops = max_queue_ops if max_queue_ops is not None else getattr(self.args, "max_queue_ops", 0)
         degraded_workers = degraded_workers if degraded_workers is not None else self.args.degraded_workers
         good_workers = good_workers if good_workers is not None else self.args.good_workers
         duration = duration if duration is not None else self.args.duration
@@ -655,6 +664,9 @@ class ExperimentRunner:
         logger.info(f"objecter_pool_throttle_enable = {pool_throttle_enable}")
         logger.info(f"objecter_inflight_ops        = {inflight_ops}")
         logger.info(f"objecter_pool_inflight_ratio = {pool_ratio}")
+        logger.info(f"objecter_pool_throttle_async = {pool_throttle_async}")
+        logger.info(f"objecter_pool_throttle_queue_ratio = {queue_ratio}")
+        logger.info(f"objecter_pool_throttle_max_queue_ops = {max_queue_ops}")
         logger.info(f"good_workers                 = {good_workers}")
         logger.info(f"degraded_workers             = {degraded_workers}")
         logger.info(f"duration                     = {duration}")
@@ -669,6 +681,9 @@ class ExperimentRunner:
         self.cluster.set_rgw_config("objecter_inflight_ops", inflight_ops)
         self.cluster.set_rgw_config("objecter_pool_throttle_enable", "true" if pool_throttle_enable else "false")
         self.cluster.set_rgw_config("objecter_pool_inflight_ops_ratio", str(pool_ratio))
+        self.cluster.set_rgw_config("objecter_pool_throttle_async", "true" if pool_throttle_async else "false")
+        self.cluster.set_rgw_config("objecter_pool_throttle_queue_ratio", str(queue_ratio))
+        self.cluster.set_rgw_config("objecter_pool_throttle_max_queue_ops", str(max_queue_ops))
 
         # 3. Capture baseline state
         perf_pre = self.cluster.get_rgw_perf()
@@ -848,6 +863,9 @@ class ExperimentRunner:
                 "pool_throttle_enable": pool_throttle_enable,
                 "inflight_ops": inflight_ops,
                 "pool_ratio": pool_ratio,
+                "pool_throttle_async": pool_throttle_async,
+                "queue_ratio": queue_ratio,
+                "max_queue_ops": max_queue_ops,
                 "good_workers": good_workers,
                 "good_rate": self.args.good_rate,
                 "good_timeout": self.args.good_timeout,
@@ -908,7 +926,9 @@ def format_summary_table(baseline, fixed=None):
     out = []
     out.append("\n" + line("="))
     if fixed:
-        out.append(row("METRIC", "BASELINE (Legacy Global)", "FIXED (Per-Pool Throttle)"))
+        b_name = "SYNC (Per-Pool Throttle)" if baseline.get("config", {}).get("pool_throttle_enable") and not baseline.get("config", {}).get("pool_throttle_async") else "BASELINE (Legacy Global)"
+        f_name = "ASYNC (Option A Non-Blocking)" if fixed.get("config", {}).get("pool_throttle_async") else "FIXED (Per-Pool Throttle)"
+        out.append(row("METRIC", b_name, f_name))
     else:
         name = baseline["run_name"]
         out.append(row("METRIC", f"RESULT ({name})"))
@@ -934,6 +954,9 @@ def format_summary_table(baseline, fixed=None):
         f_cap = f"{max(1, int(f_inf * f_ratio))} ops ({int(f_ratio*100)}%)" if isinstance(f_inf, (int, float)) else "?"
         out.append(row("Global In-Flight Ops Limit", str(b_inf), str(f_inf)))
         out.append(row("Per-Pool Op Cap", b_cap, f_cap))
+        b_async = "True" if b_cfg.get("pool_throttle_async", True) else "False (Futex Sleep)"
+        f_async = "True (0 Threads Sleep)" if f_cfg.get("pool_throttle_async", True) else "False"
+        out.append(row("Async Throttling Queue", b_async, f_async))
         out.append(line("-"))
 
         out.append(row("Good Pool Total Attempts", str(b_good["total_attempts"]), str(f_good["total_attempts"])))
@@ -1128,9 +1151,9 @@ def parse_arguments():
     )
     parser.add_argument(
         "--mode",
-        choices=["compare", "baseline", "fixed", "sweep"],
+        choices=["compare", "compare-async", "baseline", "fixed", "sweep"],
         default="compare",
-        help="Test mode: 'compare' runs baseline vs fixed; 'sweep' runs parameter sweep; "
+        help="Test mode: 'compare' runs baseline vs fixed; 'compare-async' runs sync vs async queue; 'sweep' runs parameter sweep; "
              "'baseline' runs legacy global throttle; 'fixed' runs per-pool throttle.",
     )
     parser.add_argument(
@@ -1157,6 +1180,10 @@ def parse_arguments():
     parser.add_argument("--degraded-timeout", type=float, default=15.0, help="S3 client timeout for degraded requests (s)")
     parser.add_argument("--objecter-inflight-ops", type=int, default=50, help="Objecter inflight ops limit")
     parser.add_argument("--pool-ratio", type=float, default=0.5, help="objecter_pool_inflight_ops_ratio")
+    parser.add_argument("--pool-throttle-async", dest="pool_throttle_async", action="store_true", default=True, help="Enable async non-blocking queueing in Objecter")
+    parser.add_argument("--no-pool-throttle-async", dest="pool_throttle_async", action="store_false", help="Disable async non-blocking queueing in Objecter")
+    parser.add_argument("--queue-ratio", type=float, default=4.0, help="objecter_pool_throttle_queue_ratio")
+    parser.add_argument("--max-queue-ops", type=int, default=0, help="objecter_pool_throttle_max_queue_ops")
     parser.add_argument("--sweep-ratios", default="0.2,0.5,0.8,0.95", help="Comma-separated ratios for --mode sweep (alias for --sweep-values with --sweep-param ratio)")
     parser.add_argument("--include-baseline", action="store_true", help="Include legacy baseline as first column in sweep")
     parser.add_argument("--output-dir", default="/home/ultron/development/49", help="Results output directory")
@@ -1210,6 +1237,38 @@ def main():
 
         # Print comparison table
         table = format_summary_table(res_baseline, res_fixed)
+        print(table)
+
+    elif args.mode == "compare-async":
+        logger.info("Executing Comparative Benchmark: Run 1 (Synchronous Futex Blocking) vs Run 2 (Option A Asynchronous Queue)")
+
+        # Run 1: Synchronous Blocking (per-pool throttling enabled, but async queue disabled)
+        res_sync = runner.run_experiment(
+            run_name=f"{base_name}_sync_blocking",
+            pool_throttle_enable=True,
+            pool_throttle_async=False,
+            inflight_ops=args.objecter_inflight_ops,
+            pool_ratio=args.pool_ratio,
+            skip_fault=args.skip_fault,
+        )
+
+        logger.info("Cooling down cluster for 5 seconds before Run 2...")
+        time.sleep(5)
+
+        # Run 2: Asynchronous Non-Blocking Queue (Option A)
+        res_async = runner.run_experiment(
+            run_name=f"{base_name}_option_a_async",
+            pool_throttle_enable=True,
+            pool_throttle_async=True,
+            queue_ratio=args.queue_ratio,
+            max_queue_ops=args.max_queue_ops,
+            inflight_ops=args.objecter_inflight_ops,
+            pool_ratio=args.pool_ratio,
+            skip_fault=args.skip_fault,
+        )
+
+        # Print comparison table
+        table = format_summary_table(res_sync, res_async)
         print(table)
 
     elif args.mode == "sweep":

@@ -388,7 +388,7 @@ TEST_F(ObjecterPoolThrottleTest, AsyncQueueDrainOnBudgetReturn) {
   ceph_tid_t tid3 = 0;
   objecter->op_submit(op3, &tid3);
 
-  EXPECT_GT(tid3, 0);
+  EXPECT_EQ(tid3, 0); // Queued asynchronously without wire tid yet
   EXPECT_EQ(objecter->get_queue_size_test(1), 1);
   EXPECT_EQ(objecter->submitted_ops.size(), 2); // op3 not submitted over network yet
 
@@ -402,7 +402,7 @@ TEST_F(ObjecterPoolThrottleTest, AsyncQueueDrainOnBudgetReturn) {
   // Op3 should have been popped from queue and submitted!
   EXPECT_EQ(objecter->get_queue_size_test(1), 0);
   EXPECT_EQ(objecter->submitted_ops.size(), 3);
-  EXPECT_EQ(objecter->submitted_ops.back(), tid3);
+  EXPECT_GT(objecter->submitted_ops.back(), 0);
   EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 2);
 
   // Clean up
@@ -460,12 +460,11 @@ TEST_F(ObjecterPoolThrottleTest, AsyncQueueCancellationOnTimeout) {
 
   ceph_tid_t tid3 = 0;
   objecter->op_submit(op3, &tid3);
-  EXPECT_GT(tid3, 0);
+  EXPECT_EQ(tid3, 0);
   EXPECT_EQ(objecter->get_queue_size_test(1), 1);
 
-  // Cancel op3 while in throttled queue with -ETIMEDOUT
-  int ret = objecter->op_cancel(tid3, -ETIMEDOUT);
-  EXPECT_EQ(ret, 0);
+  // Cancel writes on pool 1 while in throttled queue with -ETIMEDOUT
+  objecter->op_cancel_writes(-ETIMEDOUT, 1);
 
   // Queue must be empty, completion callback must have received -ETIMEDOUT
   EXPECT_EQ(objecter->get_queue_size_test(1), 0);

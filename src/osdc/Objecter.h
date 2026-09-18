@@ -2755,7 +2755,6 @@ private:
   int take_linger_budget(LingerOp *info);
   void put_op_budget_bytes(int op_budget, int64_t pool_id = -1) {
     ceph_assert(op_budget >= 0);
-    bool need_drain = false;
     if (pool_id >= 0) {
       std::shared_ptr<PoolThrottle> pt;
       {
@@ -2768,18 +2767,28 @@ private:
       if (pt) {
         pt->bytes.put(op_budget);
         pt->ops.put(1);
-        {
-          std::lock_guard l(pool_throttle_lock);
-          need_drain = !pt->throttled_ops.empty();
-        }
       }
     }
     op_throttle_bytes.put(op_budget);
     op_throttle_ops.put(1);
-    if (need_drain) {
-      boost::asio::post(service.get_executor(), [this, pool_id]() {
-        _drain_pool_throttled_ops(pool_id);
-      });
+
+    if (cct->_conf->objecter_pool_throttle_async) {
+      std::vector<int64_t> pools_to_drain;
+      {
+        std::lock_guard l(pool_throttle_lock);
+        for (const auto& [pid, p] : pool_throttles) {
+          if (!p->throttled_ops.empty()) {
+            pools_to_drain.push_back(pid);
+          }
+        }
+      }
+      if (!pools_to_drain.empty()) {
+        boost::asio::post(service.get_executor(), [this, pools = std::move(pools_to_drain)]() {
+          for (int64_t pid : pools) {
+            _drain_pool_throttled_ops(pid);
+          }
+        });
+      }
     }
   }
   void put_nlist_context_budget(NListContext *list_context);

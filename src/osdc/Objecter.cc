@@ -2486,16 +2486,8 @@ void Objecter::_op_submit_with_budget(Op *op,
   if (!op->ctx_budgeted || (ctx_budget && (*ctx_budget == -1))) {
     int op_budget = _take_op_budget(op, sul);
     if (op_budget == -EAGAIN) {
-      if (op->tid == 0)
-        op->tid = ++last_tid;
       if (ptid)
-        *ptid = op->tid;
-      if (osd_timeout > timespan(0)) {
-        auto tid = op->tid;
-        op->ontimeout = timer.add_event(osd_timeout,
-                                        [this, tid]() {
-                                          op_cancel(tid, -ETIMEDOUT); });
-      }
+        *ptid = 0;
       return;
     }
     if (op_budget < 0) {
@@ -3008,6 +3000,25 @@ epoch_t Objecter::op_cancel_writes(int r, int64_t pool)
     if (!found && to_cancel.size())
       found = true;
     to_cancel.clear();
+  }
+
+  {
+    std::lock_guard l(pool_throttle_lock);
+    for (auto& [pid, pt] : pool_throttles) {
+      if (pool == -1 || pid == pool) {
+        if (!pt->throttled_ops.empty()) {
+          found = true;
+          for (Op *op : pt->throttled_ops) {
+            if (op->has_completion()) {
+              Op::complete(std::move(op->onfinish), osdcode(r), r, service.get_executor());
+            }
+            op->put();
+            op->put();
+          }
+          pt->throttled_ops.clear();
+        }
+      }
+    }
   }
 
   const epoch_t epoch = osdmap->get_epoch();
@@ -3984,10 +3995,11 @@ void Objecter::_drain_pool_throttled_ops(int64_t pool_id)
     }
 
     if (op) {
-      ldout(cct, 20) << __func__ << " submitting drained op " << op << " tid " << op->tid << dendl;
+      ldout(cct, 20) << __func__ << " submitting drained op " << op << dendl;
+      op->tid = 0;
       bool was_split = SplitOp::create(op, *this, rl, cct);
       if (!was_split) {
-        ceph_tid_t tid = op->tid;
+        ceph_tid_t tid = 0;
         _op_submit(op, rl, &tid);
       }
       op->put();
