@@ -2445,6 +2445,24 @@ options:
   desc: Max in-flight bytes per pool (0 to use objecter_pool_inflight_ops_ratio * global bytes)
   default: 0
   with_legacy: true
+- name: objecter_pool_throttle_async
+  type: bool
+  level: advanced
+  desc: Enable asynchronous non-blocking throttling queue in Objecter for ops with completions
+  default: true
+  with_legacy: true
+- name: objecter_pool_throttle_queue_ratio
+  type: float
+  level: advanced
+  desc: Max queue size multiplier relative to pool in-flight ops limit
+  default: 4.0
+  with_legacy: true
+- name: objecter_pool_throttle_max_queue_ops
+  type: uint
+  level: advanced
+  desc: Explicit max queued ops per pool (0 to calculate from objecter_pool_throttle_queue_ratio)
+  default: 0
+  with_legacy: true
 # num of completion locks per each session, for serializing same object responses
 - name: objecter_completion_locks_per_session
   type: uint

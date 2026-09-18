@@ -2689,18 +2689,38 @@ private:
   struct PoolThrottle {
     Throttle ops;
     Throttle bytes;
+    std::list<Op*> throttled_ops;
+    int64_t max_queue_ops = 0;
+
     PoolThrottle(CephContext *cct, int64_t pool_id, int64_t max_ops, int64_t max_bytes)
       : ops(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_ops", max_ops, true),
         bytes(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_bytes", max_bytes, true) {}
+
+    int64_t get_max_queue_ops(CephContext *cct) const {
+      if (max_queue_ops > 0) {
+        return max_queue_ops;
+      }
+      if (cct->_conf->objecter_pool_throttle_max_queue_ops > 0) {
+        return cct->_conf->objecter_pool_throttle_max_queue_ops;
+      }
+      double ratio = cct->_conf->objecter_pool_throttle_queue_ratio;
+      int64_t calculated = static_cast<int64_t>(ops.get_max() * (ratio > 0.0 ? ratio : 4.0));
+      return calculated > 0 ? calculated : 1;
+    }
+
+    size_t get_queue_size() const {
+      return throttled_ops.size();
+    }
   };
   mutable std::mutex pool_throttle_lock;
   std::unordered_map<int64_t, std::shared_ptr<PoolThrottle>> pool_throttles;
   std::shared_ptr<PoolThrottle> _get_pool_throttle(int64_t pool_id);
   void prune_pool_throttles(const mempool::osdmap::map<int64_t, pg_pool_t>& pools);
+  void _drain_pool_throttled_ops(int64_t pool_id);
 
   int calc_op_budget(const boost::container::small_vector_base<OSDOp>& ops);
-  void _throttle_op(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul,
-		    int op_size = 0);
+  int _throttle_op(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul,
+		   int op_size = 0);
   int _take_op_budget(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul) {
     ceph_assert(sul && sul.mutex() == &rwlock);
     int op_budget = calc_op_budget(op->ops);
@@ -2714,7 +2734,10 @@ private:
     }
     op->budget_pool_id = pool_id;
     if (keep_balanced_budget) {
-      _throttle_op(op, sul, op_budget);
+      int r = _throttle_op(op, sul, op_budget);
+      if (r < 0) {
+        return r;
+      }
     } else { // update take_linger_budget to match this!
       if (pool_id >= 0) {
         auto pt = _get_pool_throttle(pool_id);
@@ -2732,6 +2755,7 @@ private:
   int take_linger_budget(LingerOp *info);
   void put_op_budget_bytes(int op_budget, int64_t pool_id = -1) {
     ceph_assert(op_budget >= 0);
+    bool need_drain = false;
     if (pool_id >= 0) {
       std::shared_ptr<PoolThrottle> pt;
       {
@@ -2744,10 +2768,19 @@ private:
       if (pt) {
         pt->bytes.put(op_budget);
         pt->ops.put(1);
+        {
+          std::lock_guard l(pool_throttle_lock);
+          need_drain = !pt->throttled_ops.empty();
+        }
       }
     }
     op_throttle_bytes.put(op_budget);
     op_throttle_ops.put(1);
+    if (need_drain) {
+      boost::asio::post(service.get_executor(), [this, pool_id]() {
+        _drain_pool_throttled_ops(pool_id);
+      });
+    }
   }
   void put_nlist_context_budget(NListContext *list_context);
   Throttle op_throttle_bytes{cct, "objecter_bytes",
@@ -2893,8 +2926,8 @@ private:
                              const OSDMap &new_osd_map);
 
   // low-level
-  void _op_submit(Op *op, ceph::shunique_lock<ceph::shared_mutex>& lc,
-		  ceph_tid_t *ptid);
+  virtual void _op_submit(Op *op, ceph::shunique_lock<ceph::shared_mutex>& lc,
+		          ceph_tid_t *ptid);
   void add_op_to_splitop_session(Op *op);
   void _op_submit_with_budget(Op *op,
 			      ceph::shunique_lock<ceph::shared_mutex>& lc,

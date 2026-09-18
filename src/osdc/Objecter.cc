@@ -478,6 +478,19 @@ void Objecter::shutdown()
 
   {
     std::lock_guard l(pool_throttle_lock);
+    for (auto& [pid, pt] : pool_throttles) {
+      for (Op *op : pt->throttled_ops) {
+        if (op->ontimeout) {
+          timer.cancel_event(op->ontimeout);
+        }
+        if (op->has_completion()) {
+          Op::complete(std::move(op->onfinish), osdcode(-ECANCELED), -ECANCELED, service.get_executor());
+        }
+        op->put();
+        op->put();
+      }
+      pt->throttled_ops.clear();
+    }
     pool_throttles.clear();
   }
 
@@ -2472,6 +2485,29 @@ void Objecter::_op_submit_with_budget(Op *op,
   // _take_op_budget() may drop our lock while it blocks.
   if (!op->ctx_budgeted || (ctx_budget && (*ctx_budget == -1))) {
     int op_budget = _take_op_budget(op, sul);
+    if (op_budget == -EAGAIN) {
+      if (op->tid == 0)
+        op->tid = ++last_tid;
+      if (ptid)
+        *ptid = op->tid;
+      if (osd_timeout > timespan(0)) {
+        auto tid = op->tid;
+        op->ontimeout = timer.add_event(osd_timeout,
+                                        [this, tid]() {
+                                          op_cancel(tid, -ETIMEDOUT); });
+      }
+      return;
+    }
+    if (op_budget < 0) {
+      if (ptid)
+        *ptid = 0;
+      if (op->has_completion()) {
+        auto ec = boost::system::error_code(-op_budget, boost::system::generic_category());
+        Op::complete(std::move(op->onfinish), ec, op_budget, service.get_executor());
+      }
+      op->put();
+      return;
+    }
     // take and pass out the budget for the first OP
     // in the context session
     if (ctx_budget && (*ctx_budget == -1)) {
@@ -2914,8 +2950,30 @@ start:
     }
   }
 
+  {
+    std::lock_guard l(pool_throttle_lock);
+    for (auto& [pid, pt] : pool_throttles) {
+      for (auto it = pt->throttled_ops.begin(); it != pt->throttled_ops.end(); ++it) {
+        if ((*it)->tid == tid) {
+          Op *op = *it;
+          pt->throttled_ops.erase(it);
+          ldout(cct, 10) << __func__ << " tid " << tid << " cancelled in throttled_ops" << dendl;
+          if (op->ontimeout && r != -ETIMEDOUT) {
+            timer.cancel_event(op->ontimeout);
+          }
+          if (op->has_completion()) {
+            Op::complete(std::move(op->onfinish), osdcode(r), r, service.get_executor());
+          }
+          op->put();
+          op->put();
+          return 0;
+        }
+      }
+    }
+  }
+
   ldout(cct, 5) << __func__ << ": tid " << tid
-		<< " not found in homeless session" << dendl;
+		<< " not found in homeless session or throttled_ops" << dendl;
 
   return ret;
 }
@@ -3749,6 +3807,19 @@ void Objecter::prune_pool_throttles(const mempool::osdmap::map<int64_t, pg_pool_
   std::lock_guard l(pool_throttle_lock);
   for (auto it = pool_throttles.begin(); it != pool_throttles.end(); ) {
     if (!pools.count(it->first)) {
+      if (!it->second->throttled_ops.empty()) {
+        for (Op *op : it->second->throttled_ops) {
+          if (op->ontimeout) {
+            timer.cancel_event(op->ontimeout);
+          }
+          if (op->has_completion()) {
+            Op::complete(std::move(op->onfinish), osdcode(-ENOENT), -ENOENT, service.get_executor());
+          }
+          op->put();
+          op->put();
+        }
+        it->second->throttled_ops.clear();
+      }
       if (it->second->ops.get_current() == 0) {
         ldout(cct, 10) << __func__ << " pruning deleted pool throttle for pool "
                        << it->first << dendl;
@@ -3760,9 +3831,9 @@ void Objecter::prune_pool_throttles(const mempool::osdmap::map<int64_t, pg_pool_
   }
 }
 
-void Objecter::_throttle_op(Op *op,
-			    shunique_lock<ceph::shared_mutex>& sul,
-			    int op_budget)
+int Objecter::_throttle_op(Op *op,
+			   shunique_lock<ceph::shared_mutex>& sul,
+			   int op_budget)
 {
   ceph_assert(sul && sul.mutex() == &rwlock);
   bool locked_for_write = sul.owns_lock();
@@ -3784,6 +3855,64 @@ void Objecter::_throttle_op(Op *op,
     pt = _get_pool_throttle(op->budget_pool_id);
   }
 
+  // Asynchronous non-blocking throttle queue path
+  if (cct->_conf->objecter_pool_throttle_async && pt && op && op->has_completion()) {
+    std::lock_guard l(pool_throttle_lock);
+
+    // If there are already operations waiting in the queue, enforce FIFO ordering
+    if (!pt->throttled_ops.empty()) {
+      int64_t max_queue = pt->get_max_queue_ops(cct);
+      if (pt->throttled_ops.size() >= static_cast<size_t>(max_queue)) {
+        ldout(cct, 10) << __func__ << " pool " << op->budget_pool_id
+                       << " queue full (" << pt->throttled_ops.size()
+                       << " >= " << max_queue << "), rejecting with -EBUSY" << dendl;
+        return -EBUSY;
+      }
+      op->budget = op_budget;
+      op->get();
+      pt->throttled_ops.push_back(op);
+      ldout(cct, 20) << __func__ << " pool " << op->budget_pool_id
+                     << " queued behind " << pt->throttled_ops.size() - 1
+                     << " ops, returning -EAGAIN" << dendl;
+      return -EAGAIN;
+    }
+
+    // Queue is empty: try non-blocking token acquisition
+    bool got_pt_bytes = pt->bytes.get_or_fail(op_budget);
+    bool got_pt_ops = got_pt_bytes ? pt->ops.get_or_fail(1) : false;
+    bool got_global_bytes = (got_pt_bytes && got_pt_ops) ? op_throttle_bytes.get_or_fail(op_budget) : false;
+    bool got_global_ops = (got_pt_bytes && got_pt_ops && got_global_bytes) ? op_throttle_ops.get_or_fail(1) : false;
+
+    if (got_global_ops) {
+      // Successfully acquired all tokens without blocking!
+      op->budget = op_budget;
+      return 0;
+    }
+
+    // Rollback any partially acquired tokens
+    if (got_global_bytes) op_throttle_bytes.put(op_budget);
+    if (got_pt_ops) pt->ops.put(1);
+    if (got_pt_bytes) pt->bytes.put(op_budget);
+
+    // Tokens not available: enqueue operation if room exists
+    int64_t max_queue = pt->get_max_queue_ops(cct);
+    if (pt->throttled_ops.size() >= static_cast<size_t>(max_queue)) {
+      ldout(cct, 10) << __func__ << " pool " << op->budget_pool_id
+                     << " queue full (" << pt->throttled_ops.size()
+                     << " >= " << max_queue << "), rejecting with -EBUSY" << dendl;
+      return -EBUSY;
+    }
+
+    op->budget = op_budget;
+    op->get();
+    pt->throttled_ops.push_back(op);
+    ldout(cct, 20) << __func__ << " pool " << op->budget_pool_id
+                   << " enqueued op, queue size " << pt->throttled_ops.size()
+                   << ", returning -EAGAIN" << dendl;
+    return -EAGAIN;
+  }
+
+  // Synchronous blocking fallback path (for non-async ops or when async queue is disabled)
   if (pt) {
     if (!pt->bytes.get_or_fail(op_budget)) {
       sul.unlock();
@@ -3818,6 +3947,51 @@ void Objecter::_throttle_op(Op *op,
       sul.lock();
     else
       sul.lock_shared();
+  }
+  return 0;
+}
+
+void Objecter::_drain_pool_throttled_ops(int64_t pool_id)
+{
+  shunique_lock rl(rwlock, ceph::acquire_shared);
+  if (!initialized) {
+    return;
+  }
+
+  while (true) {
+    Op *op = nullptr;
+    {
+      std::lock_guard l(pool_throttle_lock);
+      auto it = pool_throttles.find(pool_id);
+      if (it == pool_throttles.end() || it->second->throttled_ops.empty()) {
+        break;
+      }
+      auto& pt = it->second;
+      Op *next_op = pt->throttled_ops.front();
+      int req_budget = next_op->budget;
+      bool got_pt_bytes = pt->bytes.get_or_fail(req_budget);
+      bool got_pt_ops = got_pt_bytes ? pt->ops.get_or_fail(1) : false;
+      bool got_global_bytes = (got_pt_bytes && got_pt_ops) ? op_throttle_bytes.get_or_fail(req_budget) : false;
+      bool got_global_ops = (got_pt_bytes && got_pt_ops && got_global_bytes) ? op_throttle_ops.get_or_fail(1) : false;
+      if (!got_global_ops) {
+        if (got_global_bytes) op_throttle_bytes.put(req_budget);
+        if (got_pt_ops) pt->ops.put(1);
+        if (got_pt_bytes) pt->bytes.put(req_budget);
+        break;
+      }
+      pt->throttled_ops.pop_front();
+      op = next_op;
+    }
+
+    if (op) {
+      ldout(cct, 20) << __func__ << " submitting drained op " << op << " tid " << op->tid << dendl;
+      bool was_split = SplitOp::create(op, *this, rl, cct);
+      if (!was_split) {
+        ceph_tid_t tid = op->tid;
+        _op_submit(op, rl, &tid);
+      }
+      op->put();
+    }
   }
 }
 

@@ -19,6 +19,8 @@ using namespace std::chrono_literals;
 
 class TestObjecter : public Objecter {
 public:
+  std::vector<ceph_tid_t> submitted_ops;
+
   TestObjecter(CephContext *cct, boost::asio::io_context& io)
     : Objecter(cct, nullptr, nullptr, io, "test_objecter") {
     init();
@@ -27,6 +29,16 @@ public:
 
   ~TestObjecter() override {
     shutdown();
+  }
+
+  void _op_submit(Op *op, ceph::shunique_lock<ceph::shared_mutex>& lc, ceph_tid_t *ptid) override {
+    if (op->tid == 0) {
+      op->tid = ++last_tid;
+    }
+    if (ptid) {
+      *ptid = op->tid;
+    }
+    submitted_ops.push_back(op->tid);
   }
 
   int take_op_budget_test(Op *op) {
@@ -52,6 +64,15 @@ public:
     return pool_throttles.size();
   }
 
+  size_t get_queue_size_test(int64_t pool_id) const {
+    std::lock_guard l(pool_throttle_lock);
+    auto it = pool_throttles.find(pool_id);
+    if (it != pool_throttles.end()) {
+      return it->second->get_queue_size();
+    }
+    return 0;
+  }
+
   std::shared_ptr<PoolThrottle> get_pool_throttle_test(int64_t pool_id) {
     return _get_pool_throttle(pool_id);
   }
@@ -70,6 +91,17 @@ protected:
   boost::asio::io_context io;
   std::unique_ptr<TestObjecter> objecter;
 
+  struct DummyContext : public Context {
+    std::shared_ptr<std::atomic<bool>> completed;
+    std::shared_ptr<std::atomic<int>> rval;
+    DummyContext(std::shared_ptr<std::atomic<bool>> c, std::shared_ptr<std::atomic<int>> r)
+      : completed(c), rval(r) {}
+    void finish(int r) override {
+      if (rval) *rval = r;
+      if (completed) *completed = true;
+    }
+  };
+
   void SetUp() override {
     g_ceph_context->_conf.set_val("objecter_pool_throttle_enable", "true");
     g_ceph_context->_conf.set_val("objecter_inflight_ops", "4");
@@ -86,6 +118,11 @@ protected:
   Objecter::Op* make_test_op(int64_t pool_id, const std::string& name = "test_obj") {
     object_locator_t oloc(pool_id);
     return new Objecter::Op(object_t(name), oloc, {}, 0, (Context*)nullptr, nullptr);
+  }
+
+  Objecter::Op* make_async_test_op(int64_t pool_id, Context* fin, const std::string& name = "test_async_obj") {
+    object_locator_t oloc(pool_id);
+    return new Objecter::Op(object_t(name), oloc, {}, 0, fin, nullptr);
   }
 };
 
@@ -286,3 +323,157 @@ TEST_F(ObjecterPoolThrottleTest, DisabledThrottleBehavior) {
 
   op->put();
 }
+
+TEST_F(ObjecterPoolThrottleTest, AsyncQueueNonBlockingSubmission) {
+  // Pool limit = 2 ops. Queue ratio = 2.0 -> max queued ops = 2 * 2 = 4.
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_queue_ratio", "2.0");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  auto comp1 = std::make_shared<std::atomic<bool>>(false);
+  auto rval1 = std::make_shared<std::atomic<int>>(0);
+  auto comp2 = std::make_shared<std::atomic<bool>>(false);
+  auto rval2 = std::make_shared<std::atomic<int>>(0);
+
+  auto op1 = make_async_test_op(1, new DummyContext(comp1, rval1), "p1_async1");
+  auto op2 = make_async_test_op(1, new DummyContext(comp2, rval2), "p1_async2");
+
+  int b1 = objecter->take_op_budget_test(op1);
+  int b2 = objecter->take_op_budget_test(op2);
+  EXPECT_EQ(b1, 0);
+  EXPECT_EQ(b2, 0);
+  EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 2);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 0);
+
+  // Pool 1 is now saturated. Submitting 3rd, 4th, 5th, 6th ops should return -EAGAIN immediately
+  // and enqueue in throttled_ops without blocking the calling thread!
+  for (int i = 3; i <= 6; ++i) {
+    auto comp = std::make_shared<std::atomic<bool>>(false);
+    auto rval = std::make_shared<std::atomic<int>>(0);
+    auto op = make_async_test_op(1, new DummyContext(comp, rval), "p1_async_" + std::to_string(i));
+    int b = objecter->take_op_budget_test(op);
+    EXPECT_EQ(b, -EAGAIN);
+  }
+
+  // Verify all 4 operations are enqueued
+  EXPECT_EQ(objecter->get_queue_size_test(1), 4);
+  EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 2);
+
+  // Return budgets
+  objecter->put_op_budget_test(b1, 1);
+  objecter->put_op_budget_test(b2, 1);
+
+  op1->put();
+  op2->put();
+}
+
+TEST_F(ObjecterPoolThrottleTest, AsyncQueueDrainOnBudgetReturn) {
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_queue_ratio", "2.0");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Fill pool 1 in-flight budget (2 ops)
+  auto op1 = make_async_test_op(1, nullptr, "p1_fast1");
+  auto op2 = make_async_test_op(1, nullptr, "p1_fast2");
+  objecter->op_submit(op1);
+  objecter->op_submit(op2);
+
+  EXPECT_EQ(objecter->submitted_ops.size(), 2);
+  EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 2);
+
+  // Submit 3rd op: should be asynchronously queued in throttled_ops
+  auto comp3 = std::make_shared<std::atomic<bool>>(false);
+  auto rval3 = std::make_shared<std::atomic<int>>(0);
+  auto op3 = make_async_test_op(1, new DummyContext(comp3, rval3), "p1_queued3");
+  ceph_tid_t tid3 = 0;
+  objecter->op_submit(op3, &tid3);
+
+  EXPECT_GT(tid3, 0);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 1);
+  EXPECT_EQ(objecter->submitted_ops.size(), 2); // op3 not submitted over network yet
+
+  // Returning budget for op1 triggers drainage via io service
+  objecter->put_op_budget_test(0, 1);
+  EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 1);
+
+  // Run io event loop to execute posted drainage task
+  io.poll();
+
+  // Op3 should have been popped from queue and submitted!
+  EXPECT_EQ(objecter->get_queue_size_test(1), 0);
+  EXPECT_EQ(objecter->submitted_ops.size(), 3);
+  EXPECT_EQ(objecter->submitted_ops.back(), tid3);
+  EXPECT_EQ(objecter->get_pool_throttle_test(1)->ops.get_current(), 2);
+
+  // Clean up
+  objecter->put_op_budget_test(0, 1);
+  objecter->put_op_budget_test(0, 1);
+}
+
+TEST_F(ObjecterPoolThrottleTest, AsyncQueueFullRejection) {
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_max_queue_ops", "2");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Pool capacity = 2
+  auto op1 = make_async_test_op(1, nullptr, "p1_op1");
+  auto op2 = make_async_test_op(1, nullptr, "p1_op2");
+  int b1 = objecter->take_op_budget_test(op1);
+  int b2 = objecter->take_op_budget_test(op2);
+  EXPECT_EQ(b1, 0);
+  EXPECT_EQ(b2, 0);
+
+  // Enqueue 2 ops (fills queue capacity of 2)
+  auto op3 = make_async_test_op(1, new DummyContext(nullptr, nullptr), "p1_op3");
+  auto op4 = make_async_test_op(1, new DummyContext(nullptr, nullptr), "p1_op4");
+  EXPECT_EQ(objecter->take_op_budget_test(op3), -EAGAIN);
+  EXPECT_EQ(objecter->take_op_budget_test(op4), -EAGAIN);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 2);
+
+  // 3rd queued op exceeds max_queue_ops -> immediate -EBUSY rejection!
+  auto op5 = make_async_test_op(1, new DummyContext(nullptr, nullptr), "p1_op5");
+  EXPECT_EQ(objecter->take_op_budget_test(op5), -EBUSY);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 2); // Queue depth unchanged
+
+  // Clean up
+  op5->put();
+  objecter->put_op_budget_test(b1, 1);
+  objecter->put_op_budget_test(b2, 1);
+  op1->put();
+  op2->put();
+}
+
+TEST_F(ObjecterPoolThrottleTest, AsyncQueueCancellationOnTimeout) {
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_queue_ratio", "2.0");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Saturated pool
+  auto op1 = make_async_test_op(1, nullptr, "p1_op1");
+  auto op2 = make_async_test_op(1, nullptr, "p1_op2");
+  objecter->op_submit(op1);
+  objecter->op_submit(op2);
+
+  auto comp = std::make_shared<std::atomic<bool>>(false);
+  auto rval = std::make_shared<std::atomic<int>>(0);
+  auto op3 = make_async_test_op(1, new DummyContext(comp, rval), "p1_op3");
+
+  ceph_tid_t tid3 = 0;
+  objecter->op_submit(op3, &tid3);
+  EXPECT_GT(tid3, 0);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 1);
+
+  // Cancel op3 while in throttled queue with -ETIMEDOUT
+  int ret = objecter->op_cancel(tid3, -ETIMEDOUT);
+  EXPECT_EQ(ret, 0);
+
+  // Queue must be empty, completion callback must have received -ETIMEDOUT
+  EXPECT_EQ(objecter->get_queue_size_test(1), 0);
+  EXPECT_TRUE(comp->load());
+  EXPECT_EQ(rval->load(), -ETIMEDOUT);
+
+  // Clean up
+  objecter->put_op_budget_test(0, 1);
+  objecter->put_op_budget_test(0, 1);
+}
+
