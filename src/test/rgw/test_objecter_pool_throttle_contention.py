@@ -224,24 +224,28 @@ class ClusterManager:
             logger.warning(f"Failed to fetch perf dump from admin socket: {e}")
             return {}
 
-    def inject_degraded_fault(self, degraded_pool="degraded_pool", osd_id=2, timeout=20):
+    def inject_degraded_fault(self, degraded_pool="degraded_pool", osd_id=2, timeout=25):
         """Sets min_size=3 and stops osd.2 so degraded_pool writes freeze permanently."""
         logger.info(f"Injecting degraded fault: setting {degraded_pool} min_size=3...")
         self.run_ceph("osd", "pool", "set", degraded_pool, "min_size", "3")
 
-        logger.info(f"Stopping ceph-osd -i {osd_id}...")
+        logger.info(f"Stopping ceph-osd -i {osd_id} and marking down...")
         subprocess.run(["pkill", "-f", f"ceph-osd -i {osd_id}"], check=False)
+        try:
+            self.run_ceph("osd", "down", str(osd_id))
+        except Exception:
+            pass
 
-        logger.info(f"Waiting for {degraded_pool} PGs to report undersized/degraded/peered...")
+        logger.info(f"Waiting for peering to complete and {degraded_pool} PGs to report undersized/degraded...")
         t0 = time.time()
         while time.time() - t0 < timeout:
             status = self.run_ceph("status")
-            if "undersized" in status or "degraded" in status or "peered" in status:
-                logger.info("Fault injected successfully: PGs degraded/peered as expected.")
+            if "peering" not in status and ("undersized" in status or "degraded" in status):
+                logger.info("Fault injected successfully: cluster finished peering, degraded PGs ready.")
                 return True
             time.sleep(0.5)
 
-        logger.warning("Timeout waiting for degraded PG status, proceeding anyway.")
+        logger.warning("Timeout waiting for clean degraded PG status, proceeding anyway.")
         return False
 
     def restore_cluster(self, degraded_pool="degraded_pool", osd_id=2, timeout=45):
@@ -730,15 +734,16 @@ class ExperimentRunner:
 
             # 5. Execute concurrent S3 workload
             enable_probes = getattr(self.args, "enable_probes", True)
-            probe_workers = 2 if enable_probes else 0
+            num_probe_workers = getattr(self.args, "probe_workers", 1) if enable_probes else 0
+            total_probe_tasks = 2 * num_probe_workers
             logger.info(
                 f"Launching workload: {good_workers} good workers (@ {self.args.good_rate}/s), "
-                f"{degraded_workers} degraded workers, probes={'enabled' if enable_probes else 'disabled'}, "
-                f"duration={duration}s"
+                f"{degraded_workers} degraded workers, probes={'enabled' if enable_probes else 'disabled'} "
+                f"({num_probe_workers} list + {num_probe_workers} meta), duration={duration}s"
             )
 
             t_start = time.time()
-            with ThreadPoolExecutor(max_workers=good_workers + degraded_workers + probe_workers) as executor:
+            with ThreadPoolExecutor(max_workers=good_workers + degraded_workers + total_probe_tasks) as executor:
                 futures = []
                 for i in range(good_workers):
                     f = executor.submit(
@@ -768,9 +773,8 @@ class ExperimentRunner:
                     futures.append(f)
 
                 if enable_probes:
-                    probe_workers = getattr(self.args, "probe_workers", 1)
                     probe_max_keys = getattr(self.args, "probe_max_keys", 50)
-                    for pw in range(probe_workers):
+                    for pw in range(num_probe_workers):
                         f_list = executor.submit(
                             list_probe_task,
                             self.args.endpoint,
