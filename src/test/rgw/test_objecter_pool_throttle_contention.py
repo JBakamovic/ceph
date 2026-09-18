@@ -495,10 +495,10 @@ def calculate_latencies(lat_list):
     }
 
 
-def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results):
+def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results, worker_id=0, max_keys=50):
     """Probes the bucket index (default.rgw.buckets.index) and metadata via list_objects_v2."""
     s3 = get_s3_client(endpoint, timeout=client_to)
-    interval = 1.0 / max(rate, 0.1)
+    interval = 1.0 / rate if rate > 0 else 0.0
     seq = 0
     start_time = time.time()
 
@@ -508,7 +508,7 @@ def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, resul
         status = 0
         err_msg = ""
         try:
-            res = s3.list_objects_v2(Bucket=bucket, MaxKeys=50)
+            res = s3.list_objects_v2(Bucket=bucket, MaxKeys=max_keys)
             status = res.get("ResponseMetadata", {}).get("HTTPStatusCode", 200)
         except ClientError as ce:
             status = ce.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 500)
@@ -523,6 +523,7 @@ def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, resul
 
         results.append({
             "probe": "list_objects",
+            "worker": worker_id,
             "seq": seq,
             "start": t0,
             "end": t1,
@@ -531,15 +532,16 @@ def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, resul
             "error": err_msg,
         })
 
-        elapsed = t1 - t0
-        if elapsed < interval:
-            time.sleep(interval - elapsed)
+        if interval > 0:
+            elapsed = t1 - t0
+            if elapsed < interval:
+                time.sleep(interval - elapsed)
 
 
-def meta_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results):
+def meta_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results, worker_id=0):
     """Probes the RGW metadata plane (default.rgw.meta) via head_bucket."""
     s3 = get_s3_client(endpoint, timeout=client_to)
-    interval = 1.0 / max(rate, 0.1)
+    interval = 1.0 / rate if rate > 0 else 0.0
     seq = 0
     start_time = time.time()
 
@@ -564,6 +566,7 @@ def meta_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, resul
 
         results.append({
             "probe": "head_bucket",
+            "worker": worker_id,
             "seq": seq,
             "start": t0,
             "end": t1,
@@ -572,9 +575,10 @@ def meta_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, resul
             "error": err_msg,
         })
 
-        elapsed = t1 - t0
-        if elapsed < interval:
-            time.sleep(interval - elapsed)
+        if interval > 0:
+            elapsed = t1 - t0
+            if elapsed < interval:
+                time.sleep(interval - elapsed)
 
 
 def compute_perf_delta(perf_pre, perf_post):
@@ -764,29 +768,35 @@ class ExperimentRunner:
                     futures.append(f)
 
                 if enable_probes:
-                    f_list = executor.submit(
-                        list_probe_task,
-                        self.args.endpoint,
-                        self.args.good_bucket,
-                        duration,
-                        getattr(self.args, "probe_rate", 2.0),
-                        self.args.good_timeout,
-                        stop_evt,
-                        list_probe_results,
-                    )
-                    futures.append(f_list)
+                    probe_workers = getattr(self.args, "probe_workers", 1)
+                    probe_max_keys = getattr(self.args, "probe_max_keys", 50)
+                    for pw in range(probe_workers):
+                        f_list = executor.submit(
+                            list_probe_task,
+                            self.args.endpoint,
+                            self.args.good_bucket,
+                            duration,
+                            getattr(self.args, "probe_rate", 2.0),
+                            self.args.good_timeout,
+                            stop_evt,
+                            list_probe_results,
+                            worker_id=pw,
+                            max_keys=probe_max_keys,
+                        )
+                        futures.append(f_list)
 
-                    f_meta = executor.submit(
-                        meta_probe_task,
-                        self.args.endpoint,
-                        self.args.good_bucket,
-                        duration,
-                        getattr(self.args, "probe_rate", 2.0),
-                        self.args.good_timeout,
-                        stop_evt,
-                        meta_probe_results,
-                    )
-                    futures.append(f_meta)
+                        f_meta = executor.submit(
+                            meta_probe_task,
+                            self.args.endpoint,
+                            self.args.good_bucket,
+                            duration,
+                            getattr(self.args, "probe_rate", 2.0),
+                            self.args.good_timeout,
+                            stop_evt,
+                            meta_probe_results,
+                            worker_id=pw,
+                        )
+                        futures.append(f_meta)
 
                 for f in futures:
                     f.result()
@@ -1016,11 +1026,15 @@ def format_summary_table(baseline, fixed=None):
             out.append(row("Bucket List Completed (200 OK)", f"{b_list.get('completed_200', 0)} ({b_list.get('success_rate_pct', 0)}%)", f"{f_list.get('completed_200', 0)} ({f_list.get('success_rate_pct', 0)}%)"))
             out.append(row("Bucket List Timeouts (408)", str(b_list.get("timeouts_408", 0)), str(f_list.get("timeouts_408", 0))))
             out.append(row("Bucket List P50 Latency", f"{b_list.get('latency', {}).get('p50', 0) * 1000:.1f} ms", f"{f_list.get('latency', {}).get('p50', 0) * 1000:.1f} ms"))
+            out.append(row("Bucket List P95 Latency", f"{b_list.get('latency', {}).get('p95', 0) * 1000:.1f} ms", f"{f_list.get('latency', {}).get('p95', 0) * 1000:.1f} ms"))
+            out.append(row("Bucket List Max Latency", f"{b_list.get('latency', {}).get('max', 0) * 1000:.1f} ms", f"{f_list.get('latency', {}).get('max', 0) * 1000:.1f} ms"))
             
             if b_meta and f_meta:
                 out.append(row("Bucket Head (Meta) Completed", f"{b_meta.get('completed_200', 0)} ({b_meta.get('success_rate_pct', 0)}%)", f"{f_meta.get('completed_200', 0)} ({f_meta.get('success_rate_pct', 0)}%)"))
                 out.append(row("Bucket Head Timeouts (408)", str(b_meta.get("timeouts_408", 0)), str(f_meta.get("timeouts_408", 0))))
                 out.append(row("Bucket Head P50 Latency", f"{b_meta.get('latency', {}).get('p50', 0) * 1000:.1f} ms", f"{f_meta.get('latency', {}).get('p50', 0) * 1000:.1f} ms"))
+                out.append(row("Bucket Head P95 Latency", f"{b_meta.get('latency', {}).get('p95', 0) * 1000:.1f} ms", f"{f_meta.get('latency', {}).get('p95', 0) * 1000:.1f} ms"))
+                out.append(row("Bucket Head Max Latency", f"{b_meta.get('latency', {}).get('max', 0) * 1000:.1f} ms", f"{f_meta.get('latency', {}).get('max', 0) * 1000:.1f} ms"))
 
         out.append(line("-"))
         out.append(row("CEPH SERVER LOG AUDIT", "", ""))
@@ -1231,6 +1245,8 @@ def parse_arguments():
     parser.add_argument("--skip-fault", action="store_true", help="Skip degraded fault injection (clean run)")
     parser.add_argument("--disable-probes", action="store_true", help="Disable non-data probes (list_objects, head_bucket)")
     parser.add_argument("--probe-rate", type=float, default=2.0, help="Request rate for non-data probes (/s)")
+    parser.add_argument("--probe-workers", type=int, default=1, help="Concurrent workers for non-data probes")
+    parser.add_argument("--probe-max-keys", type=int, default=50, help="MaxKeys for list_objects_v2 probe")
     parsed = parser.parse_args()
     parsed.enable_probes = not parsed.disable_probes
     return parsed
