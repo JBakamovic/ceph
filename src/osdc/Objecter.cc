@@ -234,6 +234,8 @@ std::vector<std::string> Objecter::get_tracked_keys() const noexcept
     "rados_mon_op_timeout"s,
     "rados_osd_op_timeout"s,
     "osd_min_split_replica_read_size"s,
+    "objecter_inflight_ops"s,
+    "objecter_inflight_op_bytes"s,
   };
 }
 
@@ -241,6 +243,18 @@ std::vector<std::string> Objecter::get_tracked_keys() const noexcept
 void Objecter::handle_conf_change(const ConfigProxy& conf,
 				  const std::set <std::string> &changed)
 {
+  if (changed.count("objecter_inflight_ops")) {
+    int64_t new_max = conf.get_val<uint64_t>("objecter_inflight_ops");
+    if (new_max > 0) {
+      op_throttle_ops.reset_max(new_max);
+    }
+  }
+  if (changed.count("objecter_inflight_op_bytes")) {
+    int64_t new_max = conf.get_val<Option::size_t>("objecter_inflight_op_bytes");
+    if (new_max > 0) {
+      op_throttle_bytes.reset_max(new_max);
+    }
+  }
   if (changed.count("crush_location")) {
     update_crush_location();
   }
@@ -3729,6 +3743,15 @@ void Objecter::_throttle_op(Op *op,
 
   if (!op_budget)
     op_budget = calc_op_budget(op->ops);
+
+  if (cct->_conf->objecter_inflight_ops > 0 &&
+      op_throttle_ops.get_max() != static_cast<int64_t>(cct->_conf->objecter_inflight_ops)) {
+    op_throttle_ops.reset_max(cct->_conf->objecter_inflight_ops);
+  }
+  if (cct->_conf->objecter_inflight_op_bytes > 0 &&
+      op_throttle_bytes.get_max() != static_cast<int64_t>(cct->_conf->objecter_inflight_op_bytes)) {
+    op_throttle_bytes.reset_max(cct->_conf->objecter_inflight_op_bytes);
+  }
 
   std::shared_ptr<PoolThrottle> pt;
   if (op && op->budget_pool_id >= 0) {
