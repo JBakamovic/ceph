@@ -2463,6 +2463,32 @@ options:
   desc: Explicit max queued ops per pool (0 to calculate from objecter_pool_throttle_queue_ratio)
   default: 0
   with_legacy: true
+- name: objecter_pool_priority_tiering
+  type: bool
+  level: advanced
+  desc: Enable priority class-of-service tiering for metadata and index pools
+  default: false
+  with_legacy: true
+- name: objecter_pool_priority_pools
+  type: str
+  level: advanced
+  desc: Comma-separated glob patterns for high-priority pools (e.g. metadata, bucket index)
+  default: "*meta*,*index*,*control*"
+  flags:
+  - runtime
+  with_legacy: true
+- name: objecter_pool_priority_reserved_ratio
+  type: float
+  level: advanced
+  desc: Fraction of global in-flight budget reserved exclusively for high-priority pools (0.0 to 0.5)
+  default: 0.2
+  with_legacy: true
+- name: objecter_pool_priority_ops_ratio
+  type: float
+  level: advanced
+  desc: Fraction of global in-flight budget allowed for each high-priority pool (default 0.8)
+  default: 0.8
+  with_legacy: true
 # num of completion locks per each session, for serializing same object responses
 - name: objecter_completion_locks_per_session
   type: uint

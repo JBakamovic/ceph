@@ -2691,10 +2691,12 @@ private:
     Throttle bytes;
     std::list<Op*> throttled_ops;
     int64_t max_queue_ops = 0;
+    bool is_priority_pool = false;
 
-    PoolThrottle(CephContext *cct, int64_t pool_id, int64_t max_ops, int64_t max_bytes)
+    PoolThrottle(CephContext *cct, int64_t pool_id, int64_t max_ops, int64_t max_bytes, bool is_priority = false)
       : ops(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_ops", max_ops, true),
-        bytes(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_bytes", max_bytes, true) {}
+        bytes(cct, std::string("objecter_pool_") + std::to_string(pool_id) + "_bytes", max_bytes, true),
+        is_priority_pool(is_priority) {}
 
     int64_t get_max_queue_ops(CephContext *cct) const {
       if (max_queue_ops > 0) {
@@ -2776,8 +2778,15 @@ private:
       std::vector<int64_t> pools_to_drain;
       {
         std::lock_guard l(pool_throttle_lock);
+        // Priority pools drained first
         for (const auto& [pid, p] : pool_throttles) {
-          if (!p->throttled_ops.empty()) {
+          if (p->is_priority_pool && !p->throttled_ops.empty()) {
+            pools_to_drain.push_back(pid);
+          }
+        }
+        // Normal data pools drained second
+        for (const auto& [pid, p] : pool_throttles) {
+          if (!p->is_priority_pool && !p->throttled_ops.empty()) {
             pools_to_drain.push_back(pid);
           }
         }

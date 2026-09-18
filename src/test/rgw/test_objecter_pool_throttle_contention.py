@@ -645,6 +645,10 @@ class ExperimentRunner:
         pool_throttle_async=None,
         queue_ratio=None,
         max_queue_ops=None,
+        pool_priority_tiering=None,
+        priority_pools=None,
+        priority_reserved_ratio=None,
+        priority_ops_ratio=None,
         degraded_workers=None,
         good_workers=None,
         duration=None,
@@ -655,6 +659,10 @@ class ExperimentRunner:
         pool_throttle_async = pool_throttle_async if pool_throttle_async is not None else getattr(self.args, "pool_throttle_async", True)
         queue_ratio = queue_ratio if queue_ratio is not None else getattr(self.args, "queue_ratio", 4.0)
         max_queue_ops = max_queue_ops if max_queue_ops is not None else getattr(self.args, "max_queue_ops", 0)
+        pool_priority_tiering = pool_priority_tiering if pool_priority_tiering is not None else getattr(self.args, "priority_tiering", False)
+        priority_pools = priority_pools if priority_pools is not None else getattr(self.args, "priority_pools", "*meta*,*index*,*control*")
+        priority_reserved_ratio = priority_reserved_ratio if priority_reserved_ratio is not None else getattr(self.args, "priority_reserved_ratio", 0.2)
+        priority_ops_ratio = priority_ops_ratio if priority_ops_ratio is not None else getattr(self.args, "priority_ops_ratio", 0.8)
         degraded_workers = degraded_workers if degraded_workers is not None else self.args.degraded_workers
         good_workers = good_workers if good_workers is not None else self.args.good_workers
         duration = duration if duration is not None else self.args.duration
@@ -667,6 +675,10 @@ class ExperimentRunner:
         logger.info(f"objecter_pool_throttle_async = {pool_throttle_async}")
         logger.info(f"objecter_pool_throttle_queue_ratio = {queue_ratio}")
         logger.info(f"objecter_pool_throttle_max_queue_ops = {max_queue_ops}")
+        logger.info(f"objecter_pool_priority_tiering = {pool_priority_tiering}")
+        logger.info(f"objecter_pool_priority_pools = {priority_pools}")
+        logger.info(f"objecter_pool_priority_reserved_ratio = {priority_reserved_ratio}")
+        logger.info(f"objecter_pool_priority_ops_ratio = {priority_ops_ratio}")
         logger.info(f"good_workers                 = {good_workers}")
         logger.info(f"degraded_workers             = {degraded_workers}")
         logger.info(f"duration                     = {duration}")
@@ -684,6 +696,10 @@ class ExperimentRunner:
         self.cluster.set_rgw_config("objecter_pool_throttle_async", "true" if pool_throttle_async else "false")
         self.cluster.set_rgw_config("objecter_pool_throttle_queue_ratio", str(queue_ratio))
         self.cluster.set_rgw_config("objecter_pool_throttle_max_queue_ops", str(max_queue_ops))
+        self.cluster.set_rgw_config("objecter_pool_priority_tiering", "true" if pool_priority_tiering else "false")
+        self.cluster.set_rgw_config("objecter_pool_priority_pools", str(priority_pools))
+        self.cluster.set_rgw_config("objecter_pool_priority_reserved_ratio", str(priority_reserved_ratio))
+        self.cluster.set_rgw_config("objecter_pool_priority_ops_ratio", str(priority_ops_ratio))
 
         # 3. Capture baseline state
         perf_pre = self.cluster.get_rgw_perf()
@@ -866,6 +882,10 @@ class ExperimentRunner:
                 "pool_throttle_async": pool_throttle_async,
                 "queue_ratio": queue_ratio,
                 "max_queue_ops": max_queue_ops,
+                "pool_priority_tiering": pool_priority_tiering,
+                "priority_pools": priority_pools,
+                "priority_reserved_ratio": priority_reserved_ratio,
+                "priority_ops_ratio": priority_ops_ratio,
                 "good_workers": good_workers,
                 "good_rate": self.args.good_rate,
                 "good_timeout": self.args.good_timeout,
@@ -926,8 +946,20 @@ def format_summary_table(baseline, fixed=None):
     out = []
     out.append("\n" + line("="))
     if fixed:
-        b_name = "SYNC (Per-Pool Throttle)" if baseline.get("config", {}).get("pool_throttle_enable") and not baseline.get("config", {}).get("pool_throttle_async") else "BASELINE (Legacy Global)"
-        f_name = "ASYNC (Option A Non-Blocking)" if fixed.get("config", {}).get("pool_throttle_async") else "FIXED (Per-Pool Throttle)"
+        b_prio = baseline.get("config", {}).get("pool_priority_tiering")
+        f_prio = fixed.get("config", {}).get("pool_priority_tiering")
+        if f_prio and not b_prio:
+            b_name = "UNPRIORITIZED (Equal Tier)"
+            f_name = "PRIORITIZED (Class-of-Service)"
+        elif fixed.get("config", {}).get("pool_throttle_async") and not baseline.get("config", {}).get("pool_throttle_async"):
+            b_name = "SYNC (Per-Pool Throttle)"
+            f_name = "ASYNC (Option A Non-Blocking)"
+        elif fixed.get("config", {}).get("pool_throttle_enable"):
+            b_name = "BASELINE (Legacy Global)"
+            f_name = "FIXED (Per-Pool Throttle)"
+        else:
+            b_name = "RUN 1"
+            f_name = "RUN 2"
         out.append(row("METRIC", b_name, f_name))
     else:
         name = baseline["run_name"]
@@ -957,6 +989,9 @@ def format_summary_table(baseline, fixed=None):
         b_async = "True" if b_cfg.get("pool_throttle_async", True) else "False (Futex Sleep)"
         f_async = "True (0 Threads Sleep)" if f_cfg.get("pool_throttle_async", True) else "False"
         out.append(row("Async Throttling Queue", b_async, f_async))
+        b_prio_str = "Enabled" if b_cfg.get("pool_priority_tiering") else "Disabled"
+        f_prio_str = f"Enabled ({int(f_cfg.get('priority_reserved_ratio', 0.2)*100)}% Reserved)" if f_cfg.get("pool_priority_tiering") else "Disabled"
+        out.append(row("Priority Class-of-Service", b_prio_str, f_prio_str))
         out.append(line("-"))
 
         out.append(row("Good Pool Total Attempts", str(b_good["total_attempts"]), str(f_good["total_attempts"])))
@@ -1151,10 +1186,10 @@ def parse_arguments():
     )
     parser.add_argument(
         "--mode",
-        choices=["compare", "compare-async", "baseline", "fixed", "sweep"],
+        choices=["compare", "compare-async", "compare-priority", "baseline", "fixed", "sweep"],
         default="compare",
-        help="Test mode: 'compare' runs baseline vs fixed; 'compare-async' runs sync vs async queue; 'sweep' runs parameter sweep; "
-             "'baseline' runs legacy global throttle; 'fixed' runs per-pool throttle.",
+        help="Test mode: 'compare' runs baseline vs fixed; 'compare-async' runs sync vs async queue; 'compare-priority' runs unprioritized vs priority tiering; "
+             "'sweep' runs parameter sweep; 'baseline' runs legacy global throttle; 'fixed' runs per-pool throttle.",
     )
     parser.add_argument(
         "--sweep-param",
@@ -1184,6 +1219,11 @@ def parse_arguments():
     parser.add_argument("--no-pool-throttle-async", dest="pool_throttle_async", action="store_false", help="Disable async non-blocking queueing in Objecter")
     parser.add_argument("--queue-ratio", type=float, default=4.0, help="objecter_pool_throttle_queue_ratio")
     parser.add_argument("--max-queue-ops", type=int, default=0, help="objecter_pool_throttle_max_queue_ops")
+    parser.add_argument("--priority-tiering", dest="priority_tiering", action="store_true", default=False, help="Enable metadata/control priority tiering")
+    parser.add_argument("--no-priority-tiering", dest="priority_tiering", action="store_false", help="Disable metadata/control priority tiering")
+    parser.add_argument("--priority-pools", default="*meta*,*index*,*control*", help="Glob patterns for priority pools")
+    parser.add_argument("--priority-reserved-ratio", type=float, default=0.20, help="Ratio of global budget reserved exclusively for priority pools")
+    parser.add_argument("--priority-ops-ratio", type=float, default=0.80, help="Per-pool op cap ratio for priority pools")
     parser.add_argument("--sweep-ratios", default="0.2,0.5,0.8,0.95", help="Comma-separated ratios for --mode sweep (alias for --sweep-values with --sweep-param ratio)")
     parser.add_argument("--include-baseline", action="store_true", help="Include legacy baseline as first column in sweep")
     parser.add_argument("--output-dir", default="/home/ultron/development/49", help="Results output directory")
@@ -1269,6 +1309,46 @@ def main():
 
         # Print comparison table
         table = format_summary_table(res_sync, res_async)
+        print(table)
+
+    elif args.mode == "compare-priority":
+        logger.info("Executing Comparative Benchmark: Run 1 (Unprioritized Equal Tier) vs Run 2 (Priority Class-of-Service)")
+
+        # Run 1: Unprioritized Equal Tier (per-pool throttling enabled, but priority tiering disabled)
+        res_unprio = runner.run_experiment(
+            run_name=f"{base_name}_unprioritized",
+            pool_throttle_enable=True,
+            pool_throttle_async=args.pool_throttle_async,
+            queue_ratio=args.queue_ratio,
+            max_queue_ops=args.max_queue_ops,
+            pool_priority_tiering=False,
+            priority_reserved_ratio=0.0,
+            inflight_ops=args.objecter_inflight_ops,
+            pool_ratio=args.pool_ratio,
+            skip_fault=args.skip_fault,
+        )
+
+        logger.info("Cooling down cluster for 5 seconds before Run 2...")
+        time.sleep(5)
+
+        # Run 2: Priority Class-of-Service
+        res_prio = runner.run_experiment(
+            run_name=f"{base_name}_prioritized",
+            pool_throttle_enable=True,
+            pool_throttle_async=args.pool_throttle_async,
+            queue_ratio=args.queue_ratio,
+            max_queue_ops=args.max_queue_ops,
+            pool_priority_tiering=True,
+            priority_pools=args.priority_pools,
+            priority_reserved_ratio=args.priority_reserved_ratio,
+            priority_ops_ratio=args.priority_ops_ratio,
+            inflight_ops=args.objecter_inflight_ops,
+            pool_ratio=args.pool_ratio,
+            skip_fault=args.skip_fault,
+        )
+
+        # Print comparison table
+        table = format_summary_table(res_unprio, res_prio)
         print(table)
 
     elif args.mode == "sweep":

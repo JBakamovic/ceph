@@ -17,6 +17,7 @@
 #include "Striper.h"
 
 #include <algorithm>
+#include <fnmatch.h>
 #include <sstream>
 
 #include "osd/OSDMap.h"
@@ -3785,9 +3786,38 @@ int Objecter::calc_op_budget(const bc::small_vector_base<OSDOp>& ops)
 std::shared_ptr<Objecter::PoolThrottle> Objecter::_get_pool_throttle(int64_t pool_id)
 {
   std::lock_guard l(pool_throttle_lock);
+  bool is_priority = false;
+  if (cct->_conf->objecter_pool_priority_tiering && pool_id >= 0) {
+    std::string pool_id_str = std::to_string(pool_id);
+    std::string pool_name;
+    if (osdmap && osdmap->have_pg_pool(pool_id)) {
+      pool_name = osdmap->get_pool_name(pool_id);
+    }
+    std::string patterns = cct->_conf->objecter_pool_priority_pools;
+    std::stringstream ss(patterns);
+    std::string pattern;
+    while (std::getline(ss, pattern, ',')) {
+      size_t first = pattern.find_first_not_of(" \t\r\n");
+      if (first == std::string::npos) continue;
+      size_t last = pattern.find_last_not_of(" \t\r\n");
+      pattern = pattern.substr(first, (last - first + 1));
+      if (pattern.empty()) continue;
+
+      if (pattern == pool_id_str || fnmatch(pattern.c_str(), pool_id_str.c_str(), 0) == 0) {
+        is_priority = true;
+        break;
+      }
+      if (!pool_name.empty() && fnmatch(pattern.c_str(), pool_name.c_str(), 0) == 0) {
+        is_priority = true;
+        break;
+      }
+    }
+  }
+
   int64_t max_ops = cct->_conf->objecter_pool_inflight_ops;
-  double ratio = cct->_conf->objecter_pool_inflight_ops_ratio;
-  if (ratio <= 0.0) ratio = 0.5;
+  double ratio = is_priority ? cct->_conf->objecter_pool_priority_ops_ratio
+                             : cct->_conf->objecter_pool_inflight_ops_ratio;
+  if (ratio <= 0.0) ratio = (is_priority ? 0.8 : 0.5);
   if (ratio > 1.0) ratio = 1.0;
   if (max_ops <= 0) {
     max_ops = std::max<int64_t>(1, static_cast<int64_t>(cct->_conf->objecter_inflight_ops * ratio));
@@ -3799,6 +3829,7 @@ std::shared_ptr<Objecter::PoolThrottle> Objecter::_get_pool_throttle(int64_t poo
 
   auto it = pool_throttles.find(pool_id);
   if (it != pool_throttles.end()) {
+    it->second->is_priority_pool = is_priority;
     if (it->second->ops.get_max() != max_ops) {
       it->second->ops.reset_max(max_ops);
     }
@@ -3808,7 +3839,7 @@ std::shared_ptr<Objecter::PoolThrottle> Objecter::_get_pool_throttle(int64_t poo
     return it->second;
   }
 
-  auto pt = std::make_shared<PoolThrottle>(cct, pool_id, max_ops, max_bytes);
+  auto pt = std::make_shared<PoolThrottle>(cct, pool_id, max_ops, max_bytes, is_priority);
   pool_throttles[pool_id] = pt;
   return pt;
 }
@@ -3891,8 +3922,30 @@ int Objecter::_throttle_op(Op *op,
     // Queue is empty: try non-blocking token acquisition
     bool got_pt_bytes = pt->bytes.get_or_fail(op_budget);
     bool got_pt_ops = got_pt_bytes ? pt->ops.get_or_fail(1) : false;
-    bool got_global_bytes = (got_pt_bytes && got_pt_ops) ? op_throttle_bytes.get_or_fail(op_budget) : false;
-    bool got_global_ops = (got_pt_bytes && got_pt_ops && got_global_bytes) ? op_throttle_ops.get_or_fail(1) : false;
+    bool got_global_bytes = false;
+    bool got_global_ops = false;
+
+    if (got_pt_bytes && got_pt_ops) {
+      bool allow_global = true;
+      if (cct->_conf->objecter_pool_priority_tiering && !pt->is_priority_pool) {
+        double reserved = std::clamp(static_cast<double>(cct->_conf->objecter_pool_priority_reserved_ratio), 0.0, 0.5);
+        int64_t global_max_ops = op_throttle_ops.get_max();
+        int64_t normal_ceiling_ops = static_cast<int64_t>(global_max_ops * (1.0 - reserved));
+        if (op_throttle_ops.get_current() + 1 > normal_ceiling_ops) {
+          allow_global = false;
+        }
+        int64_t global_max_bytes = op_throttle_bytes.get_max();
+        int64_t normal_ceiling_bytes = static_cast<int64_t>(global_max_bytes * (1.0 - reserved));
+        if (op_throttle_bytes.get_current() + op_budget > normal_ceiling_bytes) {
+          allow_global = false;
+        }
+      }
+
+      if (allow_global) {
+        got_global_bytes = op_throttle_bytes.get_or_fail(op_budget);
+        got_global_ops = got_global_bytes ? op_throttle_ops.get_or_fail(1) : false;
+      }
+    }
 
     if (got_global_ops) {
       // Successfully acquired all tokens without blocking!
@@ -3982,8 +4035,28 @@ void Objecter::_drain_pool_throttled_ops(int64_t pool_id)
       int req_budget = next_op->budget;
       bool got_pt_bytes = pt->bytes.get_or_fail(req_budget);
       bool got_pt_ops = got_pt_bytes ? pt->ops.get_or_fail(1) : false;
-      bool got_global_bytes = (got_pt_bytes && got_pt_ops) ? op_throttle_bytes.get_or_fail(req_budget) : false;
-      bool got_global_ops = (got_pt_bytes && got_pt_ops && got_global_bytes) ? op_throttle_ops.get_or_fail(1) : false;
+      bool got_global_bytes = false;
+      bool got_global_ops = false;
+      if (got_pt_bytes && got_pt_ops) {
+        bool allow_global = true;
+        if (cct->_conf->objecter_pool_priority_tiering && !pt->is_priority_pool) {
+          double reserved = std::clamp(static_cast<double>(cct->_conf->objecter_pool_priority_reserved_ratio), 0.0, 0.5);
+          int64_t global_max_ops = op_throttle_ops.get_max();
+          int64_t normal_ceiling_ops = static_cast<int64_t>(global_max_ops * (1.0 - reserved));
+          if (op_throttle_ops.get_current() + 1 > normal_ceiling_ops) {
+            allow_global = false;
+          }
+          int64_t global_max_bytes = op_throttle_bytes.get_max();
+          int64_t normal_ceiling_bytes = static_cast<int64_t>(global_max_bytes * (1.0 - reserved));
+          if (op_throttle_bytes.get_current() + req_budget > normal_ceiling_bytes) {
+            allow_global = false;
+          }
+        }
+        if (allow_global) {
+          got_global_bytes = op_throttle_bytes.get_or_fail(req_budget);
+          got_global_ops = got_global_bytes ? op_throttle_ops.get_or_fail(1) : false;
+        }
+      }
       if (!got_global_ops) {
         if (got_global_bytes) op_throttle_bytes.put(req_budget);
         if (got_pt_ops) pt->ops.put(1);

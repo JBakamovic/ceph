@@ -77,6 +77,11 @@ public:
     return _get_pool_throttle(pool_id);
   }
 
+  bool is_priority_pool_test(int64_t pool_id) {
+    auto pt = _get_pool_throttle(pool_id);
+    return pt ? pt->is_priority_pool : false;
+  }
+
   Throttle& get_global_ops_throttle() {
     return op_throttle_ops;
   }
@@ -474,5 +479,112 @@ TEST_F(ObjecterPoolThrottleTest, AsyncQueueCancellationOnTimeout) {
   // Clean up
   objecter->put_op_budget_test(0, 1);
   objecter->put_op_budget_test(0, 1);
+}
+
+TEST_F(ObjecterPoolThrottleTest, PriorityPoolIdentification) {
+  g_ceph_context->_conf.set_val("objecter_pool_priority_tiering", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_pools", "2,3,*index*,*meta*");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_ops_ratio", "0.75");
+  g_ceph_context->_conf.set_val("objecter_pool_inflight_ops_ratio", "0.5");
+  g_ceph_context->_conf.set_val("objecter_inflight_ops", "4");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Pool 1 is normal data pool
+  EXPECT_FALSE(objecter->is_priority_pool_test(1));
+  auto pt1 = objecter->get_pool_throttle_test(1);
+  EXPECT_EQ(pt1->ops.get_max(), 2); // 4 * 0.5 = 2
+
+  // Pool 2 is priority pool
+  EXPECT_TRUE(objecter->is_priority_pool_test(2));
+  auto pt2 = objecter->get_pool_throttle_test(2);
+  EXPECT_EQ(pt2->ops.get_max(), 3); // 4 * 0.75 = 3
+}
+
+TEST_F(ObjecterPoolThrottleTest, PriorityPoolHeadroomIsolation) {
+  // Setup: global ops = 10, normal pool ratio = 0.9 (9 ops), reserved ratio = 0.2 (2 ops reserved)
+  // Normal ceiling = 10 * (1 - 0.2) = 8 ops.
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_tiering", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_pools", "2");
+  g_ceph_context->_conf.set_val("objecter_inflight_ops", "10");
+  g_ceph_context->_conf.set_val("objecter_pool_inflight_ops_ratio", "0.9");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_reserved_ratio", "0.2");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Submit 8 ops to normal data pool 1 (reaches normal ceiling of 8)
+  std::vector<Objecter::Op*> p1_ops;
+  for (int i = 0; i < 8; ++i) {
+    auto op = make_async_test_op(1, nullptr, "p1_op" + std::to_string(i));
+    EXPECT_GE(objecter->take_op_budget_test(op), 0);
+    p1_ops.push_back(op);
+  }
+  EXPECT_EQ(objecter->get_global_ops_throttle().get_current(), 8);
+
+  // 9th op on normal pool 1 must be throttled (cannot encroach on the 20% reserved priority headroom)
+  auto op9 = make_async_test_op(1, new DummyContext(nullptr, nullptr), "p1_op9");
+  EXPECT_EQ(objecter->take_op_budget_test(op9), -EAGAIN);
+  EXPECT_EQ(objecter->get_queue_size_test(1), 1);
+  EXPECT_EQ(objecter->get_global_ops_throttle().get_current(), 8);
+
+  // An op on priority pool 2 can consume into the reserved headroom!
+  auto p2_op = make_async_test_op(2, nullptr, "p2_op");
+  EXPECT_GE(objecter->take_op_budget_test(p2_op), 0);
+  EXPECT_EQ(objecter->get_global_ops_throttle().get_current(), 9);
+
+  // Clean up
+  for (auto op : p1_ops) {
+    objecter->put_op_budget_test(0, 1);
+    op->put();
+  }
+  objecter->put_op_budget_test(0, 2);
+  p2_op->put();
+  op9->put();
+}
+
+TEST_F(ObjecterPoolThrottleTest, PriorityPoolDrainOrdering) {
+  g_ceph_context->_conf.set_val("objecter_pool_throttle_async", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_tiering", "true");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_pools", "2");
+  g_ceph_context->_conf.set_val("objecter_inflight_ops", "2");
+  g_ceph_context->_conf.set_val("objecter_pool_inflight_ops_ratio", "1.0");
+  g_ceph_context->_conf.set_val("objecter_pool_priority_reserved_ratio", "0.0");
+  g_ceph_context->_conf.apply_changes(nullptr);
+
+  // Saturate global budget with 2 ops
+  auto op1 = make_async_test_op(1, nullptr, "op1");
+  auto op2 = make_async_test_op(1, nullptr, "op2");
+  EXPECT_GE(objecter->take_op_budget_test(op1), 0);
+  EXPECT_GE(objecter->take_op_budget_test(op2), 0);
+
+  // Queue op on normal pool 1
+  auto p1_comp = std::make_shared<std::atomic<bool>>(false);
+  auto p1_op = make_async_test_op(1, new DummyContext(p1_comp, nullptr), "p1_queued");
+  EXPECT_EQ(objecter->take_op_budget_test(p1_op), -EAGAIN);
+
+  // Queue op on priority pool 2
+  auto p2_comp = std::make_shared<std::atomic<bool>>(false);
+  auto p2_op = make_async_test_op(2, new DummyContext(p2_comp, nullptr), "p2_queued");
+  EXPECT_EQ(objecter->take_op_budget_test(p2_op), -EAGAIN);
+
+  // Drain budget for 1 op
+  objecter->submitted_ops.clear();
+  objecter->put_op_budget_test(0, 1);
+
+  // Run boost::asio io_context to dispatch drainage
+  io.restart();
+  io.poll();
+
+  // Priority pool 2 must have been submitted before pool 1!
+  ASSERT_FALSE(objecter->submitted_ops.empty());
+  EXPECT_EQ(objecter->submitted_ops[0], p2_op->tid);
+
+  // Clean up
+  objecter->put_op_budget_test(0, 1);
+  objecter->put_op_budget_test(0, 2);
+  io.restart();
+  io.poll();
+
+  op1->put();
+  op2->put();
 }
 
