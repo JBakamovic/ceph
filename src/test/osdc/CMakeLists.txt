@@ -24,3 +24,15 @@ target_link_libraries(ceph_test_objectcacher_misc
   )
 install(TARGETS ceph_test_objectcacher_misc
   DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+add_executable(unittest_objecter_pool_throttle
+  test_objecter_pool_throttle.cc
+  $<TARGET_OBJECTS:unit-main>
+)
+add_ceph_unittest(unittest_objecter_pool_throttle)
+target_link_libraries(unittest_objecter_pool_throttle
+  osdc
+  global
+  ${EXTRALIBS}
+  ${CMAKE_DL_LIBS}
+)

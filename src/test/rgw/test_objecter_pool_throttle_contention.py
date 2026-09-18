@@ -150,21 +150,75 @@ class ClusterManager:
         except Exception:
             pass
 
+    def get_pool_map(self):
+        """Returns (name_to_id, id_to_name) mapping from ceph osd pool ls detail."""
+        try:
+            raw = self.run_ceph("osd", "pool", "ls", "detail", "-f", "json")
+            idx = raw.find("[")
+            if idx >= 0:
+                raw = raw[idx:]
+            pools = json.loads(raw)
+            name_to_id = {p["pool_name"]: p["pool_id"] for p in pools}
+            id_to_name = {p["pool_id"]: p["pool_name"] for p in pools}
+            return name_to_id, id_to_name
+        except Exception as e:
+            logger.warning(f"Failed to fetch pool map: {e}")
+            return {}, {}
+
     def get_rgw_perf(self):
         try:
             raw = self.run_asok("perf", "dump")
+            idx = raw.find("{")
+            if idx >= 0:
+                raw = raw[idx:]
             data = json.loads(raw)
             obj = data.get("objecter", {})
-            throt = data.get("throttle-objecter_ops", {})
+
+            # Aggregate all global throttle-objecter_ops instances
+            global_wait_count = 0
+            global_wait_sum = 0.0
+            global_get = 0
+            for k, v in data.items():
+                if re.match(r"^throttle-objecter_ops(-0x[0-9a-fA-F]+)?$", k):
+                    global_get += v.get("get", 0)
+                    w = v.get("wait", {})
+                    global_wait_count += w.get("avgcount", 0)
+                    global_wait_sum += w.get("sum", 0.0)
+
+            # Per-pool throttle stats
+            _, id_to_name = self.get_pool_map()
+            per_pool_stats = {}
+            for k, v in data.items():
+                m = re.match(r"^throttle-objecter_pool_(\d+)_ops(-0x[0-9a-fA-F]+)?$", k)
+                if m:
+                    pid = int(m.group(1))
+                    pname = id_to_name.get(pid, f"pool_{pid}")
+                    w = v.get("wait", {})
+                    if pname not in per_pool_stats:
+                        per_pool_stats[pname] = {
+                            "pool_id": pid,
+                            "get": 0,
+                            "wait_count": 0,
+                            "wait_sum": 0.0,
+                        }
+                    per_pool_stats[pname]["get"] += v.get("get", 0)
+                    per_pool_stats[pname]["wait_count"] += w.get("avgcount", 0)
+                    per_pool_stats[pname]["wait_sum"] += w.get("sum", 0.0)
+
             return {
                 "objecter_op_active": obj.get("op_active", 0),
                 "objecter_op_inflight": obj.get("op_inflight", 0),
                 "objecter_op_send": obj.get("op_send", 0),
                 "objecter_op_reply": obj.get("op_reply", 0),
-                "throttle_ops_val": throt.get("val", 0),
-                "throttle_ops_max": throt.get("max", 0),
-                "throttle_ops_wait_count": throt.get("wait", {}).get("avgcount", 0),
-                "throttle_ops_wait_sum": throt.get("wait", {}).get("sum", 0.0),
+                "global_throttle": {
+                    "get": global_get,
+                    "wait_count": global_wait_count,
+                    "wait_sum": global_wait_sum,
+                },
+                "per_pool": per_pool_stats,
+                # Backwards-compatibility fields
+                "throttle_ops_wait_count": global_wait_count,
+                "throttle_ops_wait_sum": global_wait_sum,
             }
         except Exception as e:
             logger.warning(f"Failed to fetch perf dump from admin socket: {e}")
@@ -255,8 +309,11 @@ class RemoteLogInspector:
             return ""
 
     @classmethod
-    def parse_log_records(cls, log_text):
-        good_records = []
+    def parse_log_records(cls, log_text, client_timeout=10.0):
+        good_put_records = []
+        good_list_records = []
+        good_meta_records = []
+        other_good_records = []
         deg_records = []
         start_count = 0
 
@@ -278,16 +335,47 @@ class RemoteLogInspector:
                     "req_id": req_id,
                 }
                 if bucket == "bucket-good":
-                    good_records.append(rec)
+                    if op == "put_obj":
+                        good_put_records.append(rec)
+                    elif op in ("list_bucket", "get_bucket_location"):
+                        good_list_records.append(rec)
+                    elif op in ("stat_bucket", "get_bucket_logging"):
+                        good_meta_records.append(rec)
+                    else:
+                        other_good_records.append(rec)
                 elif bucket == "bucket-degraded":
                     deg_records.append(rec)
 
+        good_put_200 = [r for r in good_put_records if r["http_status"] == 200]
+        good_put_ontime = [r for r in good_put_200 if r["latency"] <= client_timeout]
+        good_put_delayed = [r for r in good_put_200 if r["latency"] > client_timeout]
+
+        good_list_200 = [r for r in good_list_records if r["http_status"] == 200]
+        good_list_ontime = [r for r in good_list_200 if r["latency"] <= client_timeout]
+        good_list_delayed = [r for r in good_list_200 if r["latency"] > client_timeout]
+
+        good_meta_200 = [r for r in good_meta_records if r["http_status"] == 200]
+        deg_200 = [r for r in deg_records if r["http_status"] == 200]
+
+        all_good_200 = good_put_200 + good_list_200 + good_meta_200 + [r for r in other_good_records if r["http_status"] == 200]
+
         return {
             "new_requests_started": start_count,
-            "good_completed_200": len([r for r in good_records if r["http_status"] == 200]),
-            "good_latencies": [r["latency"] for r in good_records if r["http_status"] == 200],
-            "degraded_completed_200": len([r for r in deg_records if r["http_status"] == 200]),
-            "degraded_latencies": [r["latency"] for r in deg_records if r["http_status"] == 200],
+            "good_put_completed_200": len(good_put_200),
+            "good_put_ontime_completed": len(good_put_ontime),
+            "good_put_delayed_completed": len(good_put_delayed),
+            "good_put_latencies": [r["latency"] for r in good_put_200],
+            "good_list_completed_200": len(good_list_200),
+            "good_list_ontime_completed": len(good_list_ontime),
+            "good_list_delayed_completed": len(good_list_delayed),
+            "good_list_latencies": [r["latency"] for r in good_list_200],
+            "good_meta_completed_200": len(good_meta_200),
+            "good_meta_latencies": [r["latency"] for r in good_meta_200],
+            "degraded_completed_200": len(deg_200),
+            "degraded_latencies": [r["latency"] for r in deg_200],
+            # Backwards compatibility
+            "good_completed_200": len(all_good_200),
+            "good_latencies": [r["latency"] for r in all_good_200],
         }
 
 
@@ -404,6 +492,136 @@ def calculate_latencies(lat_list):
     }
 
 
+def list_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results):
+    """Probes the bucket index (default.rgw.buckets.index) and metadata via list_objects_v2."""
+    s3 = get_s3_client(endpoint, timeout=client_to)
+    interval = 1.0 / max(rate, 0.1)
+    seq = 0
+    start_time = time.time()
+
+    while time.time() - start_time < duration and not stop_evt.is_set():
+        seq += 1
+        t0 = time.time()
+        status = 0
+        err_msg = ""
+        try:
+            res = s3.list_objects_v2(Bucket=bucket, MaxKeys=50)
+            status = res.get("ResponseMetadata", {}).get("HTTPStatusCode", 200)
+        except ClientError as ce:
+            status = ce.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 500)
+            err_msg = str(ce)
+        except (ReadTimeoutError, EndpointConnectionError) as te:
+            status = 408
+            err_msg = str(te)
+        except Exception as e:
+            status = 599
+            err_msg = str(e)
+        t1 = time.time()
+
+        results.append({
+            "probe": "list_objects",
+            "seq": seq,
+            "start": t0,
+            "end": t1,
+            "latency": t1 - t0,
+            "status": status,
+            "error": err_msg,
+        })
+
+        elapsed = t1 - t0
+        if elapsed < interval:
+            time.sleep(interval - elapsed)
+
+
+def meta_probe_task(endpoint, bucket, duration, rate, client_to, stop_evt, results):
+    """Probes the RGW metadata plane (default.rgw.meta) via head_bucket."""
+    s3 = get_s3_client(endpoint, timeout=client_to)
+    interval = 1.0 / max(rate, 0.1)
+    seq = 0
+    start_time = time.time()
+
+    while time.time() - start_time < duration and not stop_evt.is_set():
+        seq += 1
+        t0 = time.time()
+        status = 0
+        err_msg = ""
+        try:
+            res = s3.head_bucket(Bucket=bucket)
+            status = res.get("ResponseMetadata", {}).get("HTTPStatusCode", 200)
+        except ClientError as ce:
+            status = ce.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 500)
+            err_msg = str(ce)
+        except (ReadTimeoutError, EndpointConnectionError) as te:
+            status = 408
+            err_msg = str(te)
+        except Exception as e:
+            status = 599
+            err_msg = str(e)
+        t1 = time.time()
+
+        results.append({
+            "probe": "head_bucket",
+            "seq": seq,
+            "start": t0,
+            "end": t1,
+            "latency": t1 - t0,
+            "status": status,
+            "error": err_msg,
+        })
+
+        elapsed = t1 - t0
+        if elapsed < interval:
+            time.sleep(interval - elapsed)
+
+
+def compute_perf_delta(perf_pre, perf_post):
+    """Calculates deltas for global and per-pool Objecter throttle performance counters."""
+    if not perf_pre or not perf_post:
+        return {
+            "objecter_op_send_delta": 0,
+            "objecter_op_reply_delta": 0,
+            "throttle_wait_count_delta": 0,
+            "throttle_wait_sum_sec": 0.0,
+            "global_throttle": {"get_delta": 0, "wait_count_delta": 0, "wait_sum_sec": 0.0},
+            "per_pool": {},
+        }
+
+    g_pre = perf_pre.get("global_throttle", {})
+    g_post = perf_post.get("global_throttle", {})
+
+    pools_delta = {}
+    p_pre = perf_pre.get("per_pool", {})
+    p_post = perf_post.get("per_pool", {})
+    all_pools = set(p_pre.keys()) | set(p_post.keys())
+
+    for pname in sorted(all_pools):
+        before = p_pre.get(pname, {})
+        after = p_post.get(pname, {})
+        pid = after.get("pool_id", before.get("pool_id", -1))
+        pools_delta[pname] = {
+            "pool_id": pid,
+            "get_delta": after.get("get", 0) - before.get("get", 0),
+            "wait_count_delta": after.get("wait_count", 0) - before.get("wait_count", 0),
+            "wait_sum_sec": round(after.get("wait_sum", 0.0) - before.get("wait_sum", 0.0), 3),
+        }
+
+    g_wait_cnt = g_post.get("wait_count", 0) - g_pre.get("wait_count", 0)
+    g_wait_sum = round(g_post.get("wait_sum", 0.0) - g_pre.get("wait_sum", 0.0), 3)
+
+    return {
+        "objecter_op_send_delta": perf_post.get("objecter_op_send", 0) - perf_pre.get("objecter_op_send", 0),
+        "objecter_op_reply_delta": perf_post.get("objecter_op_reply", 0) - perf_pre.get("objecter_op_reply", 0),
+        "throttle_wait_count_delta": g_wait_cnt,
+        "throttle_wait_sum_sec": g_wait_sum,
+        "global_throttle": {
+            "get_delta": g_post.get("get", 0) - g_pre.get("get", 0),
+            "wait_count_delta": g_wait_cnt,
+            "wait_sum_sec": g_wait_sum,
+        },
+        "per_pool": pools_delta,
+    }
+
+
 # ==============================================================================
 # 4. Experiment Runner
 # ==============================================================================
@@ -460,6 +678,8 @@ class ExperimentRunner:
         stop_evt = threading.Event()
         good_results = []
         degraded_results = []
+        list_probe_results = []
+        meta_probe_results = []
         t_start = 0.0
         t_end = 0.0
 
@@ -474,13 +694,16 @@ class ExperimentRunner:
                 logger.info("Skipping fault injection as requested (--skip-fault).")
 
             # 5. Execute concurrent S3 workload
+            enable_probes = getattr(self.args, "enable_probes", True)
+            probe_workers = 2 if enable_probes else 0
             logger.info(
                 f"Launching workload: {good_workers} good workers (@ {self.args.good_rate}/s), "
-                f"{degraded_workers} degraded workers, duration={duration}s"
+                f"{degraded_workers} degraded workers, probes={'enabled' if enable_probes else 'disabled'}, "
+                f"duration={duration}s"
             )
 
             t_start = time.time()
-            with ThreadPoolExecutor(max_workers=good_workers + degraded_workers) as executor:
+            with ThreadPoolExecutor(max_workers=good_workers + degraded_workers + probe_workers) as executor:
                 futures = []
                 for i in range(good_workers):
                     f = executor.submit(
@@ -509,6 +732,31 @@ class ExperimentRunner:
                     )
                     futures.append(f)
 
+                if enable_probes:
+                    f_list = executor.submit(
+                        list_probe_task,
+                        self.args.endpoint,
+                        self.args.good_bucket,
+                        duration,
+                        getattr(self.args, "probe_rate", 2.0),
+                        self.args.good_timeout,
+                        stop_evt,
+                        list_probe_results,
+                    )
+                    futures.append(f_list)
+
+                    f_meta = executor.submit(
+                        meta_probe_task,
+                        self.args.endpoint,
+                        self.args.good_bucket,
+                        duration,
+                        getattr(self.args, "probe_rate", 2.0),
+                        self.args.good_timeout,
+                        stop_evt,
+                        meta_probe_results,
+                    )
+                    futures.append(f_meta)
+
                 for f in futures:
                     f.result()
             t_end = time.time()
@@ -524,8 +772,10 @@ class ExperimentRunner:
         # 7. Post-test telemetry
         perf_post = self.cluster.get_rgw_perf()
         new_log_content = self.inspector.fetch_new_log_content(log_offset_pre)
-        log_metrics = RemoteLogInspector.parse_log_records(new_log_content)
-        server_good_lat_stats = calculate_latencies(log_metrics["good_latencies"])
+        log_metrics = RemoteLogInspector.parse_log_records(new_log_content, client_timeout=self.args.good_timeout)
+        server_good_put_lat = calculate_latencies(log_metrics["good_put_latencies"])
+        server_good_list_lat = calculate_latencies(log_metrics["good_list_latencies"])
+        server_good_meta_lat = calculate_latencies(log_metrics["good_meta_latencies"])
 
         # 8. Compute client stats
         good_completed = [r for r in good_results if r["status"] == 200]
@@ -542,6 +792,55 @@ class ExperimentRunner:
 
         actual_duration = t_end - t_start if t_end > t_start else duration
 
+        client_metrics = {
+            "good_pool": {
+                "total_attempts": len(good_results),
+                "completed_200": len(good_completed),
+                "timeouts_408": len(good_timeouts),
+                "other_errors": len(good_errors),
+                "success_rate_pct": round(len(good_completed) / max(len(good_results), 1) * 100.0, 1),
+                "throughput_ops_sec": round(len(good_completed) / max(actual_duration, 0.1), 2),
+                "latency": good_lat_stats,
+            },
+            "degraded_pool": {
+                "total_attempts": len(degraded_results),
+                "completed_200": len(deg_completed),
+                "timeouts_408": len(deg_timeouts),
+                "other_errors": len(deg_errors),
+                "latency": deg_lat_stats,
+            },
+        }
+
+        if enable_probes:
+            list_completed = [r for r in list_probe_results if r["status"] == 200]
+            list_timeouts = [r for r in list_probe_results if r["status"] == 408]
+            list_errors = [r for r in list_probe_results if r["status"] not in (200, 408)]
+            list_lat_stats = calculate_latencies([r["latency"] for r in list_completed])
+
+            meta_completed = [r for r in meta_probe_results if r["status"] == 200]
+            meta_timeouts = [r for r in meta_probe_results if r["status"] == 408]
+            meta_errors = [r for r in meta_probe_results if r["status"] not in (200, 408)]
+            meta_lat_stats = calculate_latencies([r["latency"] for r in meta_completed])
+
+            client_metrics["probe_list"] = {
+                "total_attempts": len(list_probe_results),
+                "completed_200": len(list_completed),
+                "timeouts_408": len(list_timeouts),
+                "other_errors": len(list_errors),
+                "success_rate_pct": round(len(list_completed) / max(len(list_probe_results), 1) * 100.0, 1),
+                "latency": list_lat_stats,
+            }
+            client_metrics["probe_meta"] = {
+                "total_attempts": len(meta_probe_results),
+                "completed_200": len(meta_completed),
+                "timeouts_408": len(meta_timeouts),
+                "other_errors": len(meta_errors),
+                "success_rate_pct": round(len(meta_completed) / max(len(meta_probe_results), 1) * 100.0, 1),
+                "latency": meta_lat_stats,
+            }
+
+        perf_delta = compute_perf_delta(perf_pre, perf_post)
+
         summary = {
             "run_name": run_name,
             "timestamp": datetime.now().isoformat(),
@@ -556,38 +855,27 @@ class ExperimentRunner:
                 "degraded_timeout": self.args.degraded_timeout,
                 "duration": duration,
                 "skip_fault": skip_fault,
+                "enable_probes": enable_probes,
             },
             "duration_actual": round(actual_duration, 2),
-            "client_metrics": {
-                "good_pool": {
-                    "total_attempts": len(good_results),
-                    "completed_200": len(good_completed),
-                    "timeouts_408": len(good_timeouts),
-                    "other_errors": len(good_errors),
-                    "success_rate_pct": round(len(good_completed) / max(len(good_results), 1) * 100.0, 1),
-                    "throughput_ops_sec": round(len(good_completed) / max(actual_duration, 0.1), 2),
-                    "latency": good_lat_stats,
-                },
-                "degraded_pool": {
-                    "total_attempts": len(degraded_results),
-                    "completed_200": len(deg_completed),
-                    "timeouts_408": len(deg_timeouts),
-                    "other_errors": len(deg_errors),
-                    "latency": deg_lat_stats,
-                },
-            },
+            "client_metrics": client_metrics,
             "server_ceph_metrics": {
+                "good_put_completed_200": log_metrics["good_put_completed_200"],
+                "good_put_ontime_completed": log_metrics["good_put_ontime_completed"],
+                "good_put_delayed_completed": log_metrics["good_put_delayed_completed"],
+                "good_put_latency": server_good_put_lat,
+                "good_list_completed_200": log_metrics["good_list_completed_200"],
+                "good_list_ontime_completed": log_metrics["good_list_ontime_completed"],
+                "good_list_delayed_completed": log_metrics["good_list_delayed_completed"],
+                "good_list_latency": server_good_list_lat,
+                "good_meta_completed_200": log_metrics["good_meta_completed_200"],
+                "good_meta_latency": server_good_meta_lat,
                 "good_completed_200": log_metrics["good_completed_200"],
-                "good_latency": server_good_lat_stats,
+                "good_latency": server_good_put_lat,
                 "degraded_completed_200": log_metrics["degraded_completed_200"],
                 "new_requests_started": log_metrics["new_requests_started"],
             },
-            "perf_counters": {
-                "objecter_op_send_delta": perf_post.get("objecter_op_send", 0) - perf_pre.get("objecter_op_send", 0),
-                "objecter_op_reply_delta": perf_post.get("objecter_op_reply", 0) - perf_pre.get("objecter_op_reply", 0),
-                "throttle_wait_count_delta": perf_post.get("throttle_ops_wait_count", 0) - perf_pre.get("throttle_ops_wait_count", 0),
-                "throttle_wait_sum_sec": round(perf_post.get("throttle_ops_wait_sum", 0.0) - perf_pre.get("throttle_ops_wait_sum", 0.0), 3),
-            },
+            "perf_counters": perf_delta,
         }
 
         # 9. Save JSON artifact
@@ -629,11 +917,24 @@ def format_summary_table(baseline, fixed=None):
     b_good = baseline["client_metrics"]["good_pool"]
     b_ceph = baseline["server_ceph_metrics"]
     b_perf = baseline["perf_counters"]
+    b_client = baseline["client_metrics"]
 
     if fixed:
         f_good = fixed["client_metrics"]["good_pool"]
         f_ceph = fixed["server_ceph_metrics"]
         f_perf = fixed["perf_counters"]
+        f_client = fixed["client_metrics"]
+
+        b_cfg = baseline.get("config", {})
+        f_cfg = fixed.get("config", {})
+        b_inf = b_cfg.get("inflight_ops", "?")
+        f_inf = f_cfg.get("inflight_ops", "?")
+        b_cap = f"{b_inf} ops (Shared)"
+        f_ratio = f_cfg.get("pool_ratio", 0.5)
+        f_cap = f"{max(1, int(f_inf * f_ratio))} ops ({int(f_ratio*100)}%)" if isinstance(f_inf, (int, float)) else "?"
+        out.append(row("Global In-Flight Ops Limit", str(b_inf), str(f_inf)))
+        out.append(row("Per-Pool Op Cap", b_cap, f_cap))
+        out.append(line("-"))
 
         out.append(row("Good Pool Total Attempts", str(b_good["total_attempts"]), str(f_good["total_attempts"])))
         out.append(row("Good Pool Completed (200 OK)", f"{b_good['completed_200']} ({b_good['success_rate_pct']}%)", f"{f_good['completed_200']} ({f_good['success_rate_pct']}%)"))
@@ -642,13 +943,73 @@ def format_summary_table(baseline, fixed=None):
         out.append(row("Good Pool P50 Latency (Client)", f"{b_good['latency']['p50'] * 1000:.1f} ms", f"{f_good['latency']['p50'] * 1000:.1f} ms"))
         out.append(row("Good Pool P95 Latency (Client)", f"{b_good['latency']['p95'] * 1000:.1f} ms", f"{f_good['latency']['p95'] * 1000:.1f} ms"))
         out.append(row("Good Pool Max Latency (Client)", f"{b_good['latency']['max'] * 1000:.1f} ms", f"{f_good['latency']['max'] * 1000:.1f} ms"))
+        
+        # Non-Data Probes Section
+        if "probe_list" in b_client and "probe_list" in f_client:
+            b_list = b_client["probe_list"]
+            f_list = f_client["probe_list"]
+            b_meta = b_client.get("probe_meta", {})
+            f_meta = f_client.get("probe_meta", {})
+
+            out.append(line("-"))
+            out.append(row("NON-DATA PROBES (INDEX & META)", "", ""))
+            out.append(line("-"))
+            out.append(row("Bucket List (Index) Attempts", str(b_list.get("total_attempts", 0)), str(f_list.get("total_attempts", 0))))
+            out.append(row("Bucket List Completed (200 OK)", f"{b_list.get('completed_200', 0)} ({b_list.get('success_rate_pct', 0)}%)", f"{f_list.get('completed_200', 0)} ({f_list.get('success_rate_pct', 0)}%)"))
+            out.append(row("Bucket List Timeouts (408)", str(b_list.get("timeouts_408", 0)), str(f_list.get("timeouts_408", 0))))
+            out.append(row("Bucket List P50 Latency", f"{b_list.get('latency', {}).get('p50', 0) * 1000:.1f} ms", f"{f_list.get('latency', {}).get('p50', 0) * 1000:.1f} ms"))
+            
+            if b_meta and f_meta:
+                out.append(row("Bucket Head (Meta) Completed", f"{b_meta.get('completed_200', 0)} ({b_meta.get('success_rate_pct', 0)}%)", f"{f_meta.get('completed_200', 0)} ({f_meta.get('success_rate_pct', 0)}%)"))
+                out.append(row("Bucket Head Timeouts (408)", str(b_meta.get("timeouts_408", 0)), str(f_meta.get("timeouts_408", 0))))
+                out.append(row("Bucket Head P50 Latency", f"{b_meta.get('latency', {}).get('p50', 0) * 1000:.1f} ms", f"{f_meta.get('latency', {}).get('p50', 0) * 1000:.1f} ms"))
+
         out.append(line("-"))
-        out.append(row("Ceph Log Good Completions", str(b_ceph["good_completed_200"]), str(f_ceph["good_completed_200"])))
-        out.append(row("Ceph Server P50 Latency", f"{b_ceph['good_latency']['p50'] * 1000:.1f} ms", f"{f_ceph['good_latency']['p50'] * 1000:.1f} ms"))
-        out.append(row("Ceph Server Max Latency", f"{b_ceph['good_latency']['max'] * 1000:.1f} ms", f"{f_ceph['good_latency']['max'] * 1000:.1f} ms"))
+        out.append(row("CEPH SERVER LOG AUDIT", "", ""))
         out.append(line("-"))
-        out.append(row("Throttle Wait Count Delta", str(b_perf["throttle_wait_count_delta"]), str(f_perf["throttle_wait_count_delta"])))
-        out.append(row("Throttle Wait Time Sum", f"{b_perf['throttle_wait_sum_sec']} s", f"{f_perf['throttle_wait_sum_sec']} s"))
+        b_ontime = b_ceph.get("good_put_ontime_completed", b_ceph.get("good_completed_200", 0))
+        f_ontime = f_ceph.get("good_put_ontime_completed", f_ceph.get("good_completed_200", 0))
+        b_delayed = b_ceph.get("good_put_delayed_completed", 0)
+        f_delayed = f_ceph.get("good_put_delayed_completed", 0)
+        b_put_str = f"{b_ontime} on-time ({b_delayed} delayed)" if b_delayed > 0 else f"{b_ontime} (100% on-time)"
+        f_put_str = f"{f_ontime} on-time ({f_delayed} delayed)" if f_delayed > 0 else f"{f_ontime} (100% on-time)"
+        out.append(row("Server Good PUTs (200 OK)", b_put_str, f_put_str))
+
+        b_put_lat = b_ceph.get("good_put_latency", b_ceph.get("good_latency", {}))
+        f_put_lat = f_ceph.get("good_put_latency", f_ceph.get("good_latency", {}))
+        out.append(row("Server Good PUT P50 Latency", f"{b_put_lat.get('p50', 0) * 1000:.1f} ms", f"{f_put_lat.get('p50', 0) * 1000:.1f} ms"))
+        out.append(row("Server Good PUT Max Latency", f"{b_put_lat.get('max', 0) * 1000:.1f} ms", f"{f_put_lat.get('max', 0) * 1000:.1f} ms"))
+
+        if "good_list_completed_200" in b_ceph and "good_list_completed_200" in f_ceph:
+            b_list_cnt = b_ceph["good_list_completed_200"]
+            f_list_cnt = f_ceph["good_list_completed_200"]
+            b_list_del = b_ceph.get("good_list_delayed_completed", 0)
+            f_list_del = f_ceph.get("good_list_delayed_completed", 0)
+            b_l_str = f"{b_list_cnt} ({b_list_del} delayed)" if b_list_del > 0 else f"{b_list_cnt}"
+            f_l_str = f"{f_list_cnt} ({f_list_del} delayed)" if f_list_del > 0 else f"{f_list_cnt}"
+            out.append(row("Server Bucket Lists (200 OK)", b_l_str, f_l_str))
+
+        if "good_meta_completed_200" in b_ceph and "good_meta_completed_200" in f_ceph:
+            out.append(row("Server Bucket Heads (200 OK)", str(b_ceph["good_meta_completed_200"]), str(f_ceph["good_meta_completed_200"])))
+
+        out.append(line("-"))
+        out.append(row("OBJECTER THROTTLE (ADMIN SOCKET)", "", ""))
+        out.append(line("-"))
+        g_b = b_perf.get("global_throttle", {})
+        g_f = f_perf.get("global_throttle", {})
+        out.append(row("Global Throttle Wait Count Delta", str(g_b.get("wait_count_delta", b_perf.get("throttle_wait_count_delta", 0))), str(g_f.get("wait_count_delta", f_perf.get("throttle_wait_count_delta", 0)))))
+        out.append(row("Global Throttle Wait Time Sum", f"{g_b.get('wait_sum_sec', b_perf.get('throttle_wait_sum_sec', 0.0))} s", f"{g_f.get('wait_sum_sec', f_perf.get('throttle_wait_sum_sec', 0.0))} s"))
+
+        # Per-pool details
+        b_pools = b_perf.get("per_pool", {})
+        f_pools = f_perf.get("per_pool", {})
+        for pname in ["default.rgw.buckets.index", "default.rgw.meta", "default.rgw.log", "good_pool", "degraded_pool"]:
+            bp = b_pools.get(pname, {})
+            fp = f_pools.get(pname, {})
+            if bp or fp:
+                b_str = f"{bp.get('wait_count_delta', 0)} waits ({bp.get('wait_sum_sec', 0.0)} s)"
+                f_str = f"{fp.get('wait_count_delta', 0)} waits ({fp.get('wait_sum_sec', 0.0)} s)"
+                out.append(row(f"Throttle Wait: {pname}", b_str, f_str))
     else:
         out.append(row("Good Pool Total Attempts", str(b_good["total_attempts"])))
         out.append(row("Good Pool Completed (200 OK)", f"{b_good['completed_200']} ({b_good['success_rate_pct']}%)"))
@@ -657,13 +1018,34 @@ def format_summary_table(baseline, fixed=None):
         out.append(row("Good Pool P50 Latency (Client)", f"{b_good['latency']['p50'] * 1000:.1f} ms"))
         out.append(row("Good Pool P95 Latency (Client)", f"{b_good['latency']['p95'] * 1000:.1f} ms"))
         out.append(row("Good Pool Max Latency (Client)", f"{b_good['latency']['max'] * 1000:.1f} ms"))
+        if "probe_list" in b_client:
+            b_list = b_client["probe_list"]
+            out.append(line("-"))
+            out.append(row("NON-DATA PROBES (INDEX & META)", ""))
+            out.append(line("-"))
+            out.append(row("Bucket List Completed (200 OK)", f"{b_list.get('completed_200', 0)} ({b_list.get('success_rate_pct', 0)}%)"))
+            out.append(row("Bucket List Timeouts (408)", str(b_list.get("timeouts_408", 0))))
+            out.append(row("Bucket List P50 Latency", f"{b_list.get('latency', {}).get('p50', 0) * 1000:.1f} ms"))
         out.append(line("-"))
-        out.append(row("Ceph Log Good Completions", str(b_ceph["good_completed_200"])))
-        out.append(row("Ceph Server P50 Latency", f"{b_ceph['good_latency']['p50'] * 1000:.1f} ms"))
-        out.append(row("Ceph Server Max Latency", f"{b_ceph['good_latency']['max'] * 1000:.1f} ms"))
+        out.append(row("CEPH SERVER LOG AUDIT", ""))
         out.append(line("-"))
-        out.append(row("Throttle Wait Count Delta", str(b_perf["throttle_wait_count_delta"])))
-        out.append(row("Throttle Wait Time Sum", f"{b_perf['throttle_wait_sum_sec']} s"))
+        b_ontime = b_ceph.get("good_put_ontime_completed", b_ceph.get("good_completed_200", 0))
+        b_delayed = b_ceph.get("good_put_delayed_completed", 0)
+        b_put_str = f"{b_ontime} on-time ({b_delayed} delayed)" if b_delayed > 0 else f"{b_ontime} (100% on-time)"
+        out.append(row("Server Good PUTs (200 OK)", b_put_str))
+        b_put_lat = b_ceph.get("good_put_latency", b_ceph.get("good_latency", {}))
+        out.append(row("Server Good PUT P50 Latency", f"{b_put_lat.get('p50', 0) * 1000:.1f} ms"))
+        out.append(row("Server Good PUT Max Latency", f"{b_put_lat.get('max', 0) * 1000:.1f} ms"))
+        if "good_list_completed_200" in b_ceph:
+            b_list_cnt = b_ceph["good_list_completed_200"]
+            b_list_del = b_ceph.get("good_list_delayed_completed", 0)
+            b_l_str = f"{b_list_cnt} ({b_list_del} delayed)" if b_list_del > 0 else f"{b_list_cnt}"
+            out.append(row("Server Bucket Lists (200 OK)", b_l_str))
+        if "good_meta_completed_200" in b_ceph:
+            out.append(row("Server Bucket Heads (200 OK)", str(b_ceph["good_meta_completed_200"])))
+        out.append(line("-"))
+        out.append(row("Throttle Wait Count Delta", str(b_perf.get("throttle_wait_count_delta", 0))))
+        out.append(row("Throttle Wait Time Sum", f"{b_perf.get('throttle_wait_sum_sec', 0.0)} s"))
 
     out.append(line("="))
     return "\n".join(out)
@@ -780,7 +1162,11 @@ def parse_arguments():
     parser.add_argument("--output-dir", default="/home/ultron/development/49", help="Results output directory")
     parser.add_argument("--run-name", default=None, help="Optional custom run name prefix")
     parser.add_argument("--skip-fault", action="store_true", help="Skip degraded fault injection (clean run)")
-    return parser.parse_args()
+    parser.add_argument("--disable-probes", action="store_true", help="Disable non-data probes (list_objects, head_bucket)")
+    parser.add_argument("--probe-rate", type=float, default=2.0, help="Request rate for non-data probes (/s)")
+    parsed = parser.parse_args()
+    parsed.enable_probes = not parsed.disable_probes
+    return parsed
 
 
 def main():

@@ -462,6 +462,7 @@ void Objecter::start(const OSDMap* o)
   if (o) {
     osdmap->deepish_copy_from(*o);
     prune_pg_mapping(osdmap->get_pools());
+    prune_pool_throttles(osdmap->get_pools());
   } else if (osdmap->get_epoch() == 0) {
     _maybe_request_map();
   }
@@ -474,6 +475,11 @@ void Objecter::shutdown()
   unique_lock wl(rwlock);
 
   initialized = false;
+
+  {
+    std::lock_guard l(pool_throttle_lock);
+    pool_throttles.clear();
+  }
 
   wl.unlock();
   cct->_conf.remove_observer(this);
@@ -1328,6 +1334,7 @@ void Objecter::handle_osd_map(MOSDMap *m)
 	logger->set(l_osdc_map_epoch, osdmap->get_epoch());
 
         prune_pg_mapping(osdmap->get_pools());
+        prune_pool_throttles(osdmap->get_pools());
 	cluster_full = cluster_full || _osdmap_full_flag();
 	update_pool_full_map(pool_full_map);
 
@@ -1369,6 +1376,7 @@ void Objecter::handle_osd_map(MOSDMap *m)
 		      << m->get_last() << dendl;
 	osdmap->decode(m->maps[m->get_last()]);
         prune_pg_mapping(osdmap->get_pools());
+        prune_pool_throttles(osdmap->get_pools());
 
 	_scan_requests(homeless_session, false, false, NULL,
 		       need_resend, need_resend_linger,
@@ -1471,6 +1479,8 @@ void Objecter::handle_osd_map(MOSDMap *m)
     }
     p = waiting_for_map.erase(p);
   }
+
+  prune_pool_throttles(osdmap->get_pools());
 
   monc->sub_got("osdmap", osdmap->get_epoch());
 
@@ -3732,6 +3742,22 @@ std::shared_ptr<Objecter::PoolThrottle> Objecter::_get_pool_throttle(int64_t poo
   auto pt = std::make_shared<PoolThrottle>(cct, pool_id, max_ops, max_bytes);
   pool_throttles[pool_id] = pt;
   return pt;
+}
+
+void Objecter::prune_pool_throttles(const mempool::osdmap::map<int64_t, pg_pool_t>& pools)
+{
+  std::lock_guard l(pool_throttle_lock);
+  for (auto it = pool_throttles.begin(); it != pool_throttles.end(); ) {
+    if (!pools.count(it->first)) {
+      if (it->second->ops.get_current() == 0) {
+        ldout(cct, 10) << __func__ << " pruning deleted pool throttle for pool "
+                       << it->first << dendl;
+        it = pool_throttles.erase(it);
+        continue;
+      }
+    }
+    ++it;
+  }
 }
 
 void Objecter::_throttle_op(Op *op,

@@ -2637,6 +2637,7 @@ public:
 
   friend class CB_Objecter_GetVersion;
   friend class CB_DoWatchError;
+  friend class TestObjecter;
 public:
 
   template<typename CT>
@@ -2695,6 +2696,7 @@ private:
   mutable std::mutex pool_throttle_lock;
   std::unordered_map<int64_t, std::shared_ptr<PoolThrottle>> pool_throttles;
   std::shared_ptr<PoolThrottle> _get_pool_throttle(int64_t pool_id);
+  void prune_pool_throttles(const mempool::osdmap::map<int64_t, pg_pool_t>& pools);
 
   int calc_op_budget(const boost::container::small_vector_base<OSDOp>& ops);
   void _throttle_op(Op *op, ceph::shunique_lock<ceph::shared_mutex>& sul,
