@@ -30,7 +30,8 @@ enum class osdc_errc {
   snapshot_dne,
   timed_out,
   pool_eio,
-  handler_failed
+  handler_failed,
+  pg_undersized,
 };
 
 namespace boost::system {

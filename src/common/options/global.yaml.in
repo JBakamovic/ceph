@@ -2489,6 +2489,14 @@ options:
   desc: Fraction of global in-flight budget allowed for each high-priority pool (default 0.8)
   default: 0.8
   with_legacy: true
+- name: objecter_fast_fail_undersized_pgs
+  type: bool
+  level: advanced
+  desc: Fast-fail writes targeting undersized or peering PGs with -EAGAIN instead of hanging indefinitely
+  default: true
+  flags:
+  - runtime
+  with_legacy: true
 # num of completion locks per each session, for serializing same object responses
 - name: objecter_completion_locks_per_session
   type: uint

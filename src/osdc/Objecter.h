@@ -2598,6 +2598,7 @@ public:
     RECALC_OP_TARGET_OSD_DNE,
     RECALC_OP_TARGET_OSD_DOWN,
     RECALC_OP_TARGET_POOL_EIO,
+    RECALC_OP_TARGET_UNDERSIZED,
   };
   bool _osdmap_full_flag() const;
   bool _osdmap_has_pool_full() const;
@@ -2654,6 +2655,7 @@ public:
 private:
   void _check_op_pool_dne(Op *op, std::unique_lock<std::shared_mutex> *sl);
   void _check_op_pool_eio(Op *op, std::unique_lock<std::shared_mutex> *sl);
+  void _check_op_undersized(Op *op, std::unique_lock<std::shared_mutex> *sl);
   void _send_op_map_check(Op *op);
   void _op_cancel_map_check(Op *op);
   void _check_linger_pool_dne(LingerOp *op, bool *need_unregister);
@@ -2798,6 +2800,11 @@ private:
           }
         });
       }
+    }
+  }
+  void put_op_budget_bytes(const Op *op) {
+    if (op && op->budget >= 0) {
+      put_op_budget_bytes(op->budget, op->budget_pool_id);
     }
   }
   void put_nlist_context_budget(NListContext *list_context);

@@ -5034,3 +5034,13 @@ options:
   flags:
   - runtime
   with_legacy: true
+- name: rgw_fast_fail_retry_after
+  type: uint
+  level: advanced
+  desc: Seconds to instruct S3 clients to wait before retrying when rate-limited or fast-failed (Retry-After header)
+  default: 1
+  services:
+  - rgw
+  flags:
+  - runtime
+  with_legacy: true

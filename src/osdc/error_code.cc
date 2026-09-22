@@ -77,6 +77,9 @@ const char* osdc_error_category::message(int ev, char*,
 
   case osdc_errc::handler_failed:
     return "Handler function threw unknown exception";
+
+  case osdc_errc::pg_undersized:
+    return "Placement group undersized or degraded";
   }
 
   return "Unknown error";
@@ -107,6 +110,8 @@ osdc_error_category::default_error_condition(int ev) const noexcept {
     return bs::errc::io_error;
   case osdc_errc::handler_failed:
     return bs::errc::io_error;
+  case osdc_errc::pg_undersized:
+    return bs::errc::resource_unavailable_try_again;
   }
 
   return { ev, *this };
@@ -164,6 +169,8 @@ int osdc_error_category::from_code(int ev) const noexcept {
     return -EIO;
   case osdc_errc::handler_failed:
     return -EIO;
+  case osdc_errc::pg_undersized:
+    return -EAGAIN;
   }
   return -EDOM;
 }

@@ -555,6 +555,14 @@ void end_header(req_state* s, RGWOp* op, const char *content_type,
 
   dump_trans_id(s);
 
+  if (s->is_err() && (s->err.http_ret == 503 || s->err.err_code == "SlowDown" || s->err.ret == -EAGAIN || s->err.ret == -ERR_RATE_LIMITED)) {
+    uint64_t retry_after = s->ratelimit_retry_after > 0 ? s->ratelimit_retry_after :
+                           (s->cct ? s->cct->_conf.get_val<uint64_t>("rgw_fast_fail_retry_after") : 1);
+    if (retry_after > 0) {
+      dump_header(s, "Retry-After", static_cast<long long>(retry_after));
+    }
+  }
+
   if ((!s->is_err()) && s->bucket &&
       (!s->auth.identity->is_owner_of(s->bucket->get_info().owner)) &&
       (s->bucket->get_info().requester_pays)) {
@@ -673,9 +681,11 @@ void abort_early(req_state *s, RGWOp* op, int err_no,
     }
 
     dump_errno(s);
-    if (err_no == -ERR_RATE_LIMITED && s->ratelimit_retry_after > 0) {
+    uint64_t retry_after = s->ratelimit_retry_after > 0 ? s->ratelimit_retry_after :
+                           (s->cct ? s->cct->_conf.get_val<uint64_t>("rgw_fast_fail_retry_after") : 1);
+    if ((err_no == -ERR_RATE_LIMITED || err_no == -EAGAIN || s->err.http_ret == 503) && retry_after > 0) {
       dump_header(s, "Retry-After",
-                  static_cast<long long>(s->ratelimit_retry_after));
+                  static_cast<long long>(retry_after));
     }
     dump_bucket_from_state(s);
     if (err_no == -ERR_PERMANENT_REDIRECT || err_no == -ERR_WEBSITE_REDIRECT) {

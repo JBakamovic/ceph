@@ -1222,6 +1222,9 @@ void Objecter::_scan_requests(
     case RECALC_OP_TARGET_POOL_EIO:
       _check_op_pool_eio(op, &sl);
       break;
+    case RECALC_OP_TARGET_UNDERSIZED:
+      _check_op_undersized(op, &sl);
+      break;
     }
   }
 
@@ -1720,6 +1723,33 @@ void Objecter::_check_op_pool_eio(Op *op, std::unique_lock<std::shared_mutex> *s
   if (op->has_completion()) {
     num_in_flight--;
     op->complete(make_error_code(osdc_errc::pool_eio), -EIO,
+		 service.get_executor());
+  }
+
+  OSDSession *s = op->session;
+  if (s) {
+    ceph_assert(s != NULL);
+    ceph_assert(sl->mutex() == &s->lock);
+    bool session_locked = sl->owns_lock();
+    if (!session_locked) {
+      sl->lock();
+    }
+    _finish_op(op, 0);
+    if (!session_locked) {
+      sl->unlock();
+    }
+  } else {
+    _finish_op(op, 0);	// no session
+  }
+}
+
+void Objecter::_check_op_undersized(Op *op, std::unique_lock<std::shared_mutex> *sl)
+{
+  ldout(cct, 10) << __func__ << " tid " << op->tid
+		 << " target PG became undersized, canceling with -EAGAIN" << dendl;
+  if (op->has_completion()) {
+    num_in_flight--;
+    op->complete(make_error_code(osdc_errc::pg_undersized), -EAGAIN,
 		 service.get_executor());
   }
 
@@ -2482,6 +2512,23 @@ void Objecter::_op_submit_with_budget(Op *op,
   ceph_assert(op->ops.size() == op->out_rval.size());
   ceph_assert(op->ops.size() == op->out_handler.size());
 
+  if (cct->_conf->objecter_fast_fail_undersized_pgs &&
+      (op->target.flags & CEPH_OSD_FLAG_WRITE) &&
+      ((op->target.flags & CEPH_OSD_FLAG_EC_DIRECT_READ) == 0)) {
+    int r_pre = _calc_target(&op->target);
+    if (r_pre == RECALC_OP_TARGET_UNDERSIZED) {
+      ldout(cct, 10) << __func__ << " op " << op << " target PG is undersized, fast-failing before throttle" << dendl;
+      if (ptid)
+        *ptid = 0;
+      if (op->has_completion()) {
+        op->complete(make_error_code(osdc_errc::pg_undersized), -EAGAIN,
+                     service.get_executor());
+      }
+      op->put();
+      return;
+    }
+  }
+
   // throttle.  before we look at any state, because
   // _take_op_budget() may drop our lock while it blocks.
   if (!op->ctx_budgeted || (ctx_budget && (*ctx_budget == -1))) {
@@ -2648,6 +2695,15 @@ void Objecter::_op_submit(Op *op, shunique_lock<ceph::shared_mutex>& sul, ceph_t
         op->complete(make_error_code(osdc_errc::pool_eio), -EIO,
                      service.get_executor());
       }
+      return;
+    case RECALC_OP_TARGET_UNDERSIZED:
+      ldout(cct, 10) << __func__ << " op " << op << " target PG is undersized, fast-failing with -EAGAIN" << dendl;
+      put_op_budget_bytes(op);
+      if (op->has_completion()) {
+        op->complete(make_error_code(osdc_errc::pg_undersized), -EAGAIN,
+                     service.get_executor());
+      }
+      op->put();
       return;
     }
   }
@@ -3264,6 +3320,25 @@ int Objecter::_calc_target(op_target_t *t, bool any_change)
     pg_mapping_t pg_mapping(osdmap->get_epoch(),
                             up, up_primary, acting, acting_primary);
     update_pg_mapping(actual_pgid, std::move(pg_mapping));
+  }
+  if (cct->_conf->objecter_fast_fail_undersized_pgs && is_write) {
+    size_t active_acting_count = 0;
+    for (int osd_id : acting) {
+      if (osd_id >= 0 && !osdmap->is_down(osd_id)) {
+        active_acting_count++;
+      }
+    }
+    if (acting_primary < 0 || osdmap->is_down(acting_primary) ||
+        active_acting_count < (size_t)min_size) {
+      ldout(cct, 10) << __func__ << " fast-failing write to undersized PG " << actual_pgid
+                     << " (acting " << acting << ", min_size " << min_size
+                     << ", primary " << acting_primary << ")" << dendl;
+      t->actual_pgid = spg_t(actual_pgid);
+      t->min_size = min_size;
+      t->size = size;
+      t->osd = -1;
+      return RECALC_OP_TARGET_UNDERSIZED;
+    }
   }
   bool sort_bitwise = osdmap->test_flag(CEPH_OSDMAP_SORTBITWISE);
   bool recovery_deletes = osdmap->test_flag(CEPH_OSDMAP_RECOVERY_DELETES);
