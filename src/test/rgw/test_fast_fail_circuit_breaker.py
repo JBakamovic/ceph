@@ -289,8 +289,8 @@ def degraded_worker_task(worker_id, endpoint, bucket, duration, client_to, stop_
             time.sleep(0.05)
 
 
-def good_worker_task(worker_id, endpoint, bucket, duration, stop_evt, results):
-    s3 = get_s3_client(endpoint, timeout=10.0)
+def good_worker_task(worker_id, endpoint, bucket, duration, stop_evt, results, timeout=30.0):
+    s3 = get_s3_client(endpoint, timeout=timeout)
     seq = 0
     start_time = time.time()
 
@@ -314,8 +314,8 @@ def good_worker_task(worker_id, endpoint, bucket, duration, stop_evt, results):
         })
 
 
-def probe_worker_task(worker_id, endpoint, bucket, duration, stop_evt, results):
-    s3 = get_s3_client(endpoint, timeout=10.0)
+def probe_worker_task(worker_id, endpoint, bucket, duration, stop_evt, results, timeout=30.0):
+    s3 = get_s3_client(endpoint, timeout=timeout)
     seq = 0
     start_time = time.time()
 
@@ -362,10 +362,10 @@ def calc_stats(latencies):
 # 5. Experiment Runner
 # ==============================================================================
 def run_concurrency_iteration(mgr, profiler, endpoint, degraded_concurrency, good_concurrency,
-                              duration, client_timeout, output_dir, run_id):
+                              duration, client_timeout, output_dir, run_id, good_timeout=30.0):
     logger.info(f"\n=======================================================")
     logger.info(f" Starting Concurrency Level: {degraded_concurrency} Degraded Workers")
-    logger.info(f" Good Workers: {good_concurrency}, Duration: {duration}s, Timeout: {client_timeout}s")
+    logger.info(f" Good Workers: {good_concurrency}, Duration: {duration}s, Degraded Timeout: {client_timeout}s, Good Timeout: {good_timeout}s")
     logger.info(f"=======================================================")
 
     # Inject degraded fault
@@ -386,11 +386,11 @@ def run_concurrency_iteration(mgr, profiler, endpoint, degraded_concurrency, goo
 
         for i in range(good_concurrency):
             executor.submit(good_worker_task, i, endpoint, "bucket-good",
-                            duration, stop_evt, good_results)
+                            duration, stop_evt, good_results, good_timeout)
 
         for i in range(2):
             executor.submit(probe_worker_task, i, endpoint, "bucket-good",
-                            duration, stop_evt, probe_results)
+                            duration, stop_evt, probe_results, good_timeout)
 
         # Allow workers to ramp up and saturate before sampling
         time.sleep(3.0)
@@ -473,6 +473,8 @@ def main():
                         help="Duration in seconds per concurrency level (default 15)")
     parser.add_argument("--client-timeout", type=float, default=5.0,
                         help="Client read timeout in seconds (default 5.0)")
+    parser.add_argument("--good-timeout", type=float, default=30.0,
+                        help="Good pool client timeout in seconds (default 30.0)")
     parser.add_argument("--endpoint", default="http://10.0.0.2:8000",
                         help="S3 endpoint (default http://10.0.0.2:8000)")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR,
@@ -491,6 +493,10 @@ def main():
         logger.info("Restoring cluster before starting benchmark...")
         mgr.restore_cluster()
 
+    fast_fail_val = "false" if args.mode == "baseline" else "true"
+    logger.info(f"Configuring RGW via admin socket: objecter_fast_fail_undersized_pgs = {fast_fail_val}")
+    mgr.run_asok("config", "set", "objecter_fast_fail_undersized_pgs", fast_fail_val)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_id = f"{args.mode}_{timestamp}"
     out_file = os.path.join(args.output_dir, f"fast_fail_{run_id}.json")
@@ -503,6 +509,7 @@ def main():
             "good_workers": args.good_workers,
             "duration": args.duration,
             "client_timeout": args.client_timeout,
+            "good_timeout": args.good_timeout,
             "endpoint": args.endpoint,
         },
         "iterations": [],
@@ -520,10 +527,16 @@ def main():
                 client_timeout=args.client_timeout,
                 output_dir=args.output_dir,
                 run_id=run_id,
+                good_timeout=args.good_timeout,
             )
             results["iterations"].append(res)
             time.sleep(2.0)
     finally:
+        logger.info("Restoring RGW fast-fail to true...")
+        try:
+            mgr.run_asok("config", "set", "objecter_fast_fail_undersized_pgs", "true")
+        except Exception as e:
+            logger.warning(f"Error resetting fast-fail config: {e}")
         logger.info("Final cleanup: ensuring cluster is fully restored...")
         mgr.restore_cluster()
 

@@ -8,25 +8,21 @@ This investigation scientifically isolated and reproduced the four independent m
 1. **Mechanism 1 (Worker Thread Starvation)**: Synchronous librados calls or futex sleeps (`Throttle::get()`) hold physical OS threads in the Beast frontend, starving unrelated requests.
 2. **Mechanism 2 (Objecter Throttle Saturation)**: Stalled writes to degraded pools consume the shared global in-flight budget (`objecter_inflight_ops`), freezing operations across 100% healthy data and metadata pools.
 3. **Mechanism 3 (Shared Bucket Index & Metadata Coupling)**: Even when separate data pools are assigned to different placement rules (e.g. `good-placement` vs `degraded-placement`), RGW defaults all buckets to the exact same shared index pool (`default.rgw.buckets.index`). Because every S3 `PUT` performs a 2-phase index transaction (`prepare` and `complete`), any OSD failure or peering event affecting the shared index pool punctures data-pool isolation and cascades to healthy buckets.
-4. **Mechanism 4 (Frontend Beast Ingress Coroutine Exhaustion)**: RGW's asynchronous HTTP server operates with a finite coroutine thread pool (`rgw_thread_pool_size = 128`). When degraded requests take 5–6 seconds to time out, they hold open coroutine slots and socket contexts. Stalled requests monopolize up to 80% of frontend capacity, causing incoming healthy requests to sit queued in the kernel TCP accept backlog and exploding client P95 latencies to 10s.
+4. **Mechanism 4 (Frontend Beast Ingress Coroutine Exhaustion)**: RGW's asynchronous HTTP server operates with a finite coroutine thread pool (`rgw_thread_pool_size = 128`). When degraded requests take 5–15 seconds to time out, or when fast-failed requests enter a tight retry loop, they monopolize frontend worker slots. Incoming healthy requests sit queued in the kernel TCP accept backlog, exploding client P95 latencies.
 
 Below is the complete inventory of all ideas, architectures, and proposals developed throughout this research, organized by status, architectural layer, and implementation feasibility.
 
 ---
 
-## 2. Implemented & Validated Architectures (PR Series 1–4)
+## 2. Implemented & Validated Architectures (PR Series 1–3)
 
-These four foundational features have been implemented in C++, verified with unit tests, benchmarked against live clusters under multi-concurrency contention workloads, and structured into stacked git branches.
+These three foundational features have been implemented in C++, verified with 13 deterministic unit tests, benchmarked against live clusters under multi-concurrency contention workloads, and structured into stacked git branches.
 
 ```
        [ Client S3 Traffic ]
                  │
                  ▼
        [ RGW Beast Frontend ]
-                 │
-                 ▼  <─── PR 4: wip-rgw-fast-fail-circuit-breaker
-  [ Fast-Fail PG Viability Gate ]
-    (OSDMap undersized PG check & S3 SlowDown)
                  │
                  ▼
      [ Objecter Admission Engine ]
@@ -91,43 +87,64 @@ These four foundational features have been implemented in C++, verified with uni
   - **Catastrophic Outage Elimination**: Prevents 100% failure on bucket listings under frozen write storms (0% $\to$ 100% success; 117x good pool throughput surge).
   - **Production Scale (128 & 256 ops)**: **+53% to +71%** throughput increase; **24% to 48%** tail latency reduction.
 
-### Idea 4: Upstream Fast-Fail Circuit Breaker & S3 SlowDown Backpressure
-- **Status**: **Implemented & Pushed** (`wip-rgw-fast-fail-circuit-breaker`, PR 4)
-- **Layer**: Storage Client & REST Gateway (`src/osdc/Objecter.cc`, `src/rgw/rgw_rest.cc`, `src/rgw/rgw_common.cc`, `src/osdc/error_code.cc`)
-- **Concept**:
-  - Inspects target PG acting set viability in `Objecter::_calc_target`: when `acting.size() < pool->get_min_size()`, write operations are immediately intercepted and failed with `osdc_errc::pg_undersized` (mapped to `-EAGAIN`) before consuming any in-flight throttle budget or entering RADOS queues.
-  - S3 REST engine translates `-EAGAIN` to AWS-standard HTTP 503 `SlowDown` response accompanied by a `Retry-After: 1` header, converting client hangs and socket exhaustion into cooperative rate reduction.
-  - Dynamically configurable via `objecter_fast_fail_undersized_pgs` (default: true) and `rgw_slowdown_retry_after` (default: 1).
-- **Empirical Impact** (Live Multi-Concurrency Benchmark, degraded workers $C \in [10, 30, 60, 100]$):
-  - **7,638 HTTP 503 SlowDown responses** emitted in place of client hangs.
-  - Client timeouts reduced by **>95%** (from 100% timeout failure down to <5% under extreme 100-worker concurrency).
-  - Degraded write P50 latency collapsed from **6.02s to 84.2ms (71.5x reduction)**.
-  - Good pool throughput sustained at **26.11 ops/s** with healthy P95 latency of **145.4ms** even under 100 degraded concurrent workers.
+---
+
+## 3. Case Study & Empirical Rejection: Upstream Fast-Fail Circuit Breaker (PR 4 Evaluation)
+
+### The Proposed Architecture
+- **Concept**: Inspect target PG acting set viability in `Objecter::_calc_target`: when `acting.size() < pool->get_min_size()`, intercept write operations and immediately return `osdc_errc::pg_undersized` (mapped to `-EAGAIN` / HTTP 503 `SlowDown` with `Retry-After: 1`) before taking op budget tokens.
+- **Hypothesis**: By failing doomed writes at admission in <1ms, RADOS queues would remain empty, frontend connections would close quickly, and healthy traffic would be fully protected.
+
+### Empirical Evaluation & Multi-Concurrency Findings
+
+The benchmark harness ([`src/test/rgw/test_fast_fail_circuit_breaker.py`](file:///home/ultron/development/ceph/src/test/rgw/test_fast_fail_circuit_breaker.py)) was executed across degraded concurrency sweeps ($C \in [10, 30, 60, 100]$ degraded workers) under both a 5.0s timeout and a realistic 15.0s client timeout.
+
+#### Comparative Results (15.0s Degraded Client Timeout)
+
+| Degraded Workers ($C$) | Baseline Good Ops Completed | Baseline Good Throughput | "Fixed" Good Ops Completed | "Fixed" Good Throughput | Healthy P95 Latency (Base vs Fixed) |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **10 Workers** | 864 ops | 18.0 ops/s | 781 ops | 26.5 ops/s | 129.5 ms vs 150.8 ms |
+| **30 Workers** | **1,044 ops** | **23.4 ops/s** | 539 ops | 18.2 ops/s | 128.2 ms vs 314.3 ms |
+| **60 Workers** | **1,019 ops** | **22.5 ops/s** | 270 ops | 6.2 ops/s | 130.5 ms vs 754.7 ms |
+| **100 Workers** | **1,016 ops** | **22.3 ops/s** | **158 ops** | **4.9 ops/s** | **143.6 ms vs 19,181.9 ms** |
+
+### Why the Patch Failed: Rejection Analysis
+
+1. **Subversion of PR 1's `PoolThrottle` Containment**:
+   - PR 1 relies on **token saturation to contain failures**. When a degraded pool is failing, `PoolThrottle` allows at most $N$ operations in flight. Once those $N$ operations enter and stall, **the degraded pool is choked**. It acts as an automatic, self-regulating brake: no more degraded writes can proceed, and the remaining tokens are preserved for the healthy pool.
+   - The fast-fail circuit breaker intercepted doomed writes *before* `_take_op_budget`. Because doomed writes never took budget, **the degraded pool never exhausted its throttle tokens**. The PR 1 automatic brake was completely disabled.
+
+2. **The Fast-Fail Retry Storm (Live-Lock at Ingress)**:
+   - In the baseline, degraded workers hung on 15s timeouts, submitting only **200 requests over 25 seconds (8 req/s)**. Degraded workers were effectively dormant, leaving 100% of the Beast frontend available for healthy workers.
+   - With the fast-fail circuit breaker, requests returned in 80ms. The 100 degraded workers looped rapidly, bombarding RGW with **2,943 requests (117 req/s — a 15x flood)**.
+   - Without per-bucket coroutine quotas in Beast, this retry storm monopolized the 128 Beast worker coroutines, pushing incoming healthy requests into the Linux kernel TCP accept backlog and collapsing healthy throughput by **84.4%** (1,016 down to 158 ops).
+
+- **Verdict**: **REJECTED**. Fast-fail at the Objecter admission layer without server-side Beast ingress coroutine quotas undermines the cross-pool isolation guarantees achieved by PR 1.
 
 ---
 
-## 3. Comprehensive Inventory of Prospective Architectural Ideas
+## 4. Comprehensive Inventory of Prospective Architectural Ideas
 
-Below is the complete collection of prospective ideas addressing remaining failure modes and architectural bottlenecks, ranked by layer and implementation priority.
+Below is the complete collection of remaining prospective ideas, ranked by layer and implementation priority.
 
 ```
 +---------------------------------------------------------------------------------------------------------+
 |                                    PROSPECTIVE ARCHITECTURAL ROADMAP                                    |
 +---------------------------------------------------------------------------------------------------------+
 | Layer 1: S3 Frontend & Ingress Management (Coroutines, Indexing & Admission)                            |
-|   • Idea 5: Per-Placement Bucket Index Pool Isolation & Decoupled Indexing (Fix for Mechanism 3)       |
-|   • Idea 6: Beast Frontend Coroutine Partitioning & Ingress Concurrency Quotas (Fix for Mechanism 4)   |
-|   • Idea 7: Beast Coroutine Yielding Fiber Adapter (Option B for Sync Librados Calls)                   |
-|   • Idea 8: RGW Adaptive Bucket Index Sharding & Dynamic Auto-Resharding                               |
+|   • Idea 4: Per-Placement Bucket Index Pool Isolation & Decoupled Indexing (Fix for Mechanism 3)       |
+|   • Idea 5: Beast Frontend Coroutine Partitioning & Ingress Concurrency Quotas (Fix for Mechanism 4)   |
+|   • Idea 6: Beast Coroutine Yielding Fiber Adapter (Option B for Sync Librados Calls)                   |
+|   • Idea 7: RGW Adaptive Bucket Index Sharding & Dynamic Auto-Resharding                               |
 +---------------------------------------------------------------------------------------------------------+
 | Layer 2: Objecter Admission & Scheduling (Dynamic Allocation, QoS, Costing)                             |
-|   • Idea 9: Work-Conserving Headroom Elasticity (Dynamic Token Lending)                                 |
-|   • Idea 10: Degraded-Aware Adaptive In-Flight Window Shrinking in Objecter                             |
-|   • Idea 11: Intra-Pool Read vs. Write Priority Segregation                                             |
-|   • Idea 12: Byte- / Cost-Weighted Objecter Throttling Curves                                           |
+|   • Idea 8: Work-Conserving Headroom Elasticity (Dynamic Token Lending)                                 |
+|   • Idea 9: Degraded-Aware Adaptive In-Flight Window Shrinking in Objecter                              |
+|   • Idea 10: Intra-Pool Read vs. Write Priority Segregation                                            |
+|   • Idea 11: Byte- / Cost-Weighted Objecter Throttling Curves                                           |
 +---------------------------------------------------------------------------------------------------------+
 | Layer 3: Common Infrastructure (Condition Queues, Lock Contention)                                      |
-|   • Idea 13: Multi-Queue Deficit Round Robin (DRR) in src/common/Throttle.h                            |
+|   • Idea 12: Multi-Queue Deficit Round Robin (DRR) in src/common/Throttle.h                            |
 +---------------------------------------------------------------------------------------------------------+
 ```
 
@@ -135,7 +152,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ### Deep Dive into Prospective Ideas
 
-### Idea 5: Per-Placement Bucket Index Pool Isolation & Decoupled Indexing
+### Idea 4: Per-Placement Bucket Index Pool Isolation & Decoupled Indexing
 - **Architectural Layer**: RGW Placement & Bucket Index Subsystem (`src/rgw/rgw_zone.cc`, `src/rgw/driver/rados/rgw_rados.cc`, `src/rgw/rgw_bucket.cc`)
 - **Problem (Mechanism 3)**:
   In Ceph RGW, every S3 `PUT` performs a 2-phase index transaction (`prepare` and `complete`) against the bucket index object. By default, all placement targets in a zone map `index_pool` to `default.rgw.buckets.index`. Even if an operator defines separate data pools (e.g. `good_pool` on healthy NVMe/hosts and `degraded_pool` on failure-prone HDDs), writes to both pools contend for the single shared index pool. When any OSD participating in the shared index pool fails or peers, transactions across ALL placement targets freeze simultaneously, puncturing data-pool isolation.
@@ -149,13 +166,13 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 6: Beast Frontend Coroutine Partitioning & Ingress Concurrency Quotas
+### Idea 5: Beast Frontend Coroutine Partitioning & Ingress Concurrency Quotas
 - **Architectural Layer**: RGW Async Frontend (`src/rgw/rgw_asio_frontend.cc`, `src/rgw/rgw_asio_frontend.h`)
 - **Problem (Mechanism 4)**:
-  RGW Beast uses Boost.Asio with a finite coroutine pool (`rgw_thread_pool_size = 128` threads). When client writes to a degraded pool stall or take 5–6 seconds before timing out, each stalled request occupies a coroutine context, an OS thread slot, and an open TCP socket. With 60–100 degraded client workers, 50%–80% of all Beast worker threads are held captive. Incoming requests for healthy pools cannot be accepted and sit waiting in the Linux kernel TCP accept queue (`backlog`), causing client-perceived P95 latencies to explode to ~10s despite healthy pools being idle.
+  RGW Beast uses Boost.Asio with a finite coroutine pool (`rgw_thread_pool_size = 128` threads). When client writes to a degraded pool stall or enter a tight retry loop, each request occupies a coroutine context, an OS thread slot, and an open TCP socket. Saturated degraded requests monopolize Beast worker threads, forcing incoming requests for healthy pools to wait in the Linux kernel TCP accept queue (`backlog`), causing client-perceived P95 latencies to explode to ~19s.
 - **Proposed Architecture**:
   1. **Per-Bucket / Per-Tenant / Per-Placement Ingress Coroutine Caps**: Maintain atomic counters of active in-flight Beast coroutines grouped by bucket, tenant, and placement rule.
-  2. **Early Ingress Rejection Gate**: In `RGWAsioFrontend::process_request`, before allocating full S3 request structures or reading the HTTP payload, check the active coroutine count against a dynamic or configured ceiling (e.g., no single bucket may occupy > 25% of `rgw_thread_pool_size`). If saturated, immediately return HTTP 503 `SlowDown` or close the socket with `-EAGAIN`.
+  2. **Early Ingress Rejection Gate**: In `RGWAsioFrontend::process_request`, before allocating full S3 request structures or reading the HTTP payload, check the active coroutine count against a configured ceiling (e.g., no single bucket may occupy > 25% of `rgw_thread_pool_size`). If saturated, immediately return HTTP 503 `SlowDown` or close the socket.
   3. **Dedicated Ingress Priority Pools**: Reserve a fraction of Beast coroutines (e.g., 20%) exclusively for metadata operations (GET bucket listing, HEAD, auth) and high-priority placement targets.
 - **Key Advantages**:
   - Eliminates kernel TCP accept backlog stalling for healthy requests.
@@ -164,7 +181,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 7: Beast Coroutine Yielding Fiber Adapter (Option B for Synchronous Librados Calls)
+### Idea 6: Beast Coroutine Yielding Fiber Adapter (Option B for Synchronous Librados Calls)
 - **Architectural Layer**: RGW Beast Frontend (`src/rgw/rgw_asio_frontend.cc`)
 - **Problem**:
   While our Option A (Objecter async queue) eliminated futex sleeps in admission, legacy synchronous librados calls (e.g. synchronous metadata updates) can still block threads if not rewritten asynchronously.
@@ -176,7 +193,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 8: RGW Adaptive Bucket Index Sharding & Dynamic Auto-Resharding
+### Idea 7: RGW Adaptive Bucket Index Sharding & Dynamic Auto-Resharding
 - **Architectural Layer**: RGW Bucket Management (`src/rgw/rgw_reshard.cc`)
 - **Problem**:
   Bucket index operations funnel through specific shards in `default.rgw.buckets.index`. If a shard's primary OSD degrades, all index writes for that shard stall.
@@ -189,7 +206,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 9: Work-Conserving Headroom Elasticity (Dynamic Token Lending)
+### Idea 8: Work-Conserving Headroom Elasticity (Dynamic Token Lending)
 - **Architectural Layer**: Objecter Admission (`src/osdc/Objecter.h`, `src/osdc/Objecter.cc`)
 - **Problem**:
   Static per-pool ratios (`pool_ratio = 0.50`) prevent a single active pool from utilizing 100% of cluster capabilities when all other pools are completely idle.
@@ -203,7 +220,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 10: Degraded-Aware Adaptive In-Flight Window Shrinking in Objecter
+### Idea 9: Degraded-Aware Adaptive In-Flight Window Shrinking in Objecter
 - **Architectural Layer**: Objecter Admission (`src/osdc/Objecter.cc`)
 - **Problem**:
   Even without an RGW fast-fail, `Objecter` itself knows which PGs are degraded via OSDMap updates. Treating degraded PGs identically to clean PGs allows degraded ops to fill the entire per-pool quota.
@@ -217,7 +234,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 11: Intra-Pool Read vs. Write Priority Separation
+### Idea 10: Intra-Pool Read vs. Write Priority Separation
 - **Architectural Layer**: Objecter Pool Throttling (`src/osdc/Objecter.h`)
 - **Problem**:
   Within the same data pool, heavy object write bursts (`PUT`) saturate pool tokens, causing lightweight read operations (`GET`, `HEAD`) to experience tail latency spikes.
@@ -231,7 +248,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 12: Cost- / Byte-Weighted Objecter Throttling Curves
+### Idea 11: Cost- / Byte-Weighted Objecter Throttling Curves
 - **Architectural Layer**: Objecter Admission (`src/osdc/Objecter.cc`)
 - **Problem**:
   Currently, `op_throttle_ops` counts every operation as 1 token regardless of cost. A 4 MB multi-part chunk write consumes the same 1 token as a 0-byte stat query.
@@ -243,7 +260,7 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-### Idea 13: Multi-Queue / Deficit Round Robin (DRR) in `common/Throttle.h`
+### Idea 12: Multi-Queue / Deficit Round Robin (DRR) in `common/Throttle.h`
 - **Architectural Layer**: Common Core Primitives (`src/common/Throttle.h`, `src/common/Throttle.cc`)
 - **Problem**:
   Ceph's legacy `Throttle::_wait()` uses a single linked list of condition variables (`std::list<condition_variable> conds`):
@@ -262,14 +279,14 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-## 4. Architectural Comparison Matrix
+## 5. Architectural Comparison Matrix
 
 | # | Idea / Architecture | Status | Target Layer | Primary Problem Solved | Latency Impact | Throughput Impact | Implementation Complexity |
 | :---: | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
-| **1** | **Per-Pool In-Flight Partitioning** *(PR 1)* | **Merged** | Objecter | Blast-radius cross-pool containment | -25% tail | +32% | Medium |
-| **2** | **Option A Async Non-Blocking Queue** *(PR 2)* | **Merged** | Objecter | Beast OS thread futex blocking | -40% P95 | +74% | High |
-| **3** | **Priority Class-of-Service** *(PR 3)* | **Merged** | Objecter | Metadata & index control starvation | -48% Max | +53% to +71% | Medium |
-| **4** | **Upstream Fast-Fail & S3 SlowDown** *(PR 4)* | **Merged** | Driver / REST | Doomed writes to undersized PGs & client retry storms | **<1ms vs 30s** | Saves 100% wasted ops | Medium |
+| **1** | **Per-Pool In-Flight Partitioning** *(PR 1)* | **Accepted** | Objecter | Blast-radius cross-pool containment | -25% tail | +32% | Medium |
+| **2** | **Option A Async Non-Blocking Queue** *(PR 2)* | **Accepted** | Objecter | Beast OS thread futex blocking | -40% P95 | +74% | High |
+| **3** | **Priority Class-of-Service** *(PR 3)* | **Accepted** | Objecter | Metadata & index control starvation | -48% Max | +53% to +71% | Medium |
+| **4** | **Upstream Fast-Fail Circuit Breaker** *(PR 4)* | **Rejected** | Driver / REST | Doomed writes to undersized PGs | Collapsed deg latency | **-84% good throughput (subverts PR 1)** | Medium |
 | **5** | **Per-Placement Index Isolation & Decoupled Indexing** | Proposed | RGW Index / Zone | Shared index pool cascading cross-pool failure (Mechanism 3) | -60% tail under peering | Eliminates index contention | High |
 | **6** | **Beast Ingress Coroutine Partitioning** | Proposed | RGW Frontend | TCP accept queue backlog & thread starvation (Mechanism 4) | -90% P95 under storm | Prevents frontend lockup | Medium |
 | **7** | **Beast Coroutine Yielding Fiber Adapter** | Proposed | RGW Beast | Synchronous librados calls in coroutines | Eliminates stalls | +40% thread capacity | High |
@@ -282,26 +299,22 @@ Below is the complete collection of prospective ideas addressing remaining failu
 
 ---
 
-## 5. Strategic Roadmap & Recommended Next Phase
+## 6. Strategic Roadmap & Recommended Next Phase
 
 ```mermaid
 gantt
     title Ceph RGW Contention & QoS Roadmap
     dateFormat  YYYY-MM
-    section Completed (Stacked PRs 1-4)
+    section Accepted (Stacked PRs 1-3)
     Per-Pool Partitioning (PR 1)                :done, pr1, 2026-09-01, 2026-09-10
     Option A Async Queue (PR 2)                 :done, pr2, 2026-09-10, 2026-09-15
     Priority Class-of-Service (PR 3)            :done, pr3, 2026-09-15, 2026-09-22
-    Fast-Fail & S3 SlowDown (PR 4)              :done, pr4, 2026-09-22, 2026-09-23
-    section Recommended Next (PR 5-6)
-    Per-Placement Index Isolation (PR 5)        :active, pr5, 2026-09-24, 2026-10-02
-    Beast Coroutine Partitioning (PR 6)         :active, pr6, 2026-10-02, 2026-10-10
-    section Future Enhancements (PR 7+)
-    Work-Conserving Headroom Elasticity (PR 7)  :pr7, 2026-10-10, 2026-10-20
-    Multi-Queue DRR in Throttle.h (PR 8)        :pr8, 2026-10-20, 2026-10-30
+    section Case Study / Rejected
+    Fast-Fail Circuit Breaker (PR 4)            :crit, pr4, 2026-09-22, 2026-09-23
+    section Recommended Next (PR 4-5)
+    Per-Placement Index Isolation (PR 4)        :active, pr5, 2026-09-24, 2026-10-02
+    Beast Coroutine Partitioning (PR 5)         :active, pr6, 2026-10-02, 2026-10-10
+    section Future Enhancements
+    Work-Conserving Headroom Elasticity         :pr7, 2026-10-10, 2026-10-20
+    Multi-Queue DRR in Throttle.h               :pr8, 2026-10-20, 2026-10-30
 ```
-
-### Next Action: PR 5 (Per-Placement Bucket Index Pool Isolation & Decoupled Indexing) & PR 6 (Beast Ingress Coroutine Partitioning)
-While **PRs 1–4** have fortified Objecter and client admission, the empirical investigation uncovered that full resilience under arbitrary multi-pool failure demands addressing the remaining two architectural root causes:
-1. **PR 5 (Per-Placement Index Isolation)**: Decouples the shared `default.rgw.buckets.index` bottleneck so that peering or failures in degraded storage pools cannot contaminate bucket index operations of isolated healthy placement tiers.
-2. **PR 6 (Beast Ingress Coroutine Partitioning)**: Enforces strict coroutine caps per bucket and tenant at the HTTP gateway layer, ensuring that hanging degraded requests cannot monopolize the 128 Beast worker coroutines and stall healthy requests in the TCP accept backlog.
