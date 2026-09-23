@@ -318,3 +318,77 @@ gantt
     Work-Conserving Headroom Elasticity         :pr7, 2026-10-10, 2026-10-20
     Multi-Queue DRR in Throttle.h               :pr8, 2026-10-20, 2026-10-30
 ```
+
+---
+
+## 7. Empirical Compute & Concurrency Stress Analysis
+
+To resolve the empirical question of whether completed operations scale with concurrency and whether in-flight budgets are a bottleneck under heavy compute (Ultron 88 CPU threads, Jarvis 64 CPU threads), a three-part stress study was executed.
+
+### 7.1 The Scaling Puzzle Resolved
+
+In earlier PR 4 benchmarks, healthy throughput remained static at ~1,000 completed operations (~40 ops/s) across all iterations. The empirical forensics revealed:
+1. **Target of Sweep**: In the PR 4 benchmark, the swept parameter was **degraded workers** ($10 \to 30 \to 60 \to 100$). Degraded writes were blocked by the physical fault (OSD 2 down, `min_size=3`), yielding 0 completed degraded ops.
+2. **Fixed Client Concurrency**: Healthy workers were held constant at **10 workers** across all iterations. At ~100–140ms synchronous round-trip latency, 10 workers can complete at most $\approx 10 \times (1 / 0.12\text{s}) \approx 80\text{ ops/s}$, yielding ~1,000 operations over 25 seconds. The throughput was client-concurrency bound, not Ceph bound.
+3. **Pacing Sleep**: Earlier PR 1 tests defaulted to `--good-rate 5.0` or `10.0` ops/s with client-side sleep intervals, artificially capping throughput regardless of available cluster compute.
+
+### 7.2 Experiment 1: Compute Saturation & Worker Concurrency Scaling
+
+- **Configuration**: Pure healthy workload (`bucket-good`), `--skip-fault`, uncapped rate (`--good-rate 0`), unconstrained budget (`objecter_inflight_ops = 24576`), 15s duration.
+- **Telemetry File**: `/home/ultron/development/49/compute_stress_worker_scaling_sweep_good_workers_20260923_163614.json`
+
+| Metric | 10 Good W | 25 Good W | 50 Good W | 100 Good W | 150 Good W | 200 Good W |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Completed Ops (200 OK)** | **1,533** (100%) | **2,275** (100%) | **3,014** (100%) | **3,259** (100%) | **3,588** (100%) | **3,551** (100%) |
+| **Throughput (ops/s)** | **94.85** | **148.24** | **188.57** | **192.49** | **187.17** | **173.66** |
+| **Client P50 Latency** | 96.9 ms | 161.6 ms | 246.1 ms | 449.0 ms | 631.3 ms | 854.7 ms |
+| **Client P95 Latency** | 125.6 ms | 225.2 ms | 371.5 ms | 776.8 ms | 1,137.2 ms | 1,524.3 ms |
+| **Ceph Server P50 Latency** | 90.0 ms | 142.0 ms | 226.0 ms | 413.0 ms | 580.0 ms | 762.0 ms |
+| **Ceph Server Max Latency** | 190.0 ms | 470.0 ms | 487.0 ms | 1,365.0 ms | 1,699.0 ms | 2,734.0 ms |
+
+**Key Findings**:
+1. Completed operations scale directly with worker concurrency, climbing from 1,533 ops at 10 workers to 3,588 ops at 150 workers.
+2. The cluster throughput peaks at **~192.5 ops/s** between 50 and 100 workers, representing the hardware saturation ceiling of BlueStore NVMe WAL/DB writes and 3-replica consistency on this testbed.
+3. Beyond 100 workers, Little's Law ($L = \lambda W$) governs: throughput plateaus while latency increases linearly with concurrency (P50 increases from 96.9ms at 10w to 854.7ms at 200w).
+
+### 7.3 Experiment 2: Budget Elasticity & Saturation Stress at 100 Workers
+
+- **Configuration**: High concurrency fixed at 100 good workers (`--good-rate 0`), `--skip-fault`, sweeping `objecter_inflight_ops` from 20 to 24,576 ops (pool ratio 0.50), 15s duration.
+- **Telemetry File**: `/home/ultron/development/49/compute_stress_budget_scaling_sweep_inflight_ops_20260923_164018.json`
+
+| Metric | 20 Inflight Ops | 50 Inflight Ops | 100 Inflight Ops | 250 Inflight Ops | 500 Inflight Ops | 24576 Inflight Ops |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Per-Pool Op Cap (50%)** | 10 ops | 25 ops | 50 ops | 125 ops | 250 ops | 12,288 ops |
+| **Completed Ops (200 OK)** | 2,614 (57.4%) | 3,425 (89.3%) | **3,059 (100%)** | **2,974 (100%)** | **2,972 (100%)** | **3,005 (100%)** |
+| **Client Errors (HTTP 503)** | **1,942** | 412 | **0** | **0** | **0** | **0** |
+| **Throughput (ops/s)** | 106.27 | 198.23 | 177.63 | 171.51 | 171.62 | 171.11 |
+| **Client P50 Latency** | 449.6 ms | 425.8 ms | 474.3 ms | 490.3 ms | 492.9 ms | 495.2 ms |
+| **Client P95 Latency** | 676.9 ms | 583.0 ms | 909.1 ms | 831.5 ms | 803.9 ms | 801.0 ms |
+
+**Key Findings**:
+1. **Budget Threshold**: When 100 concurrent workers run against a 20-op budget (pool cap = 10, queue cap = 40, total capacity = 50), the 100 workers overflow the queue, triggering 1,942 HTTP 503 SlowDown rejections (57.4% success rate).
+2. **Clearance Point**: At `objecter_inflight_ops >= 100` (pool cap $\ge 50$, queue cap $\ge 200$), the queue capacity easily absorbs all 100 concurrent workers, achieving 100.0% completion with 0 errors and zero throttle waits.
+3. **Budget Elasticity**: Increasing the budget beyond 100 ops (up to 24,576) does not increase throughput, as throughput is fully hardware-bound at ~171–177 ops/s.
+
+### 7.4 Experiment 3: High-Compute Degraded Contention Stress (100 Good vs 100 Degraded Workers)
+
+- **Configuration**: 100 Good Workers (uncapped rate) + 100 Degraded Workers, `objecter_inflight_ops = 100`, fault active (OSD 2 stopped, `degraded_pool min_size=3`), 15s duration.
+- **Telemetry Files**:
+  - Baseline: `/home/ultron/development/49/compute_stress_contention_100w_baseline_20260923_164214.json`
+  - Fixed: `/home/ultron/development/49/compute_stress_contention_100w_fixed_20260923_164305.json`
+
+| Metric | BASELINE (Legacy Global Throttle) | FIXED (PR 1/2/3 Per-Pool Async Throttle) | Delta / Impact |
+| :--- | :---: | :---: | :---: |
+| **Good Pool Completed (200 OK)** | 483 (73.1%) | **3,012 (100.0%)** | **+523% (+6.2x ops)** |
+| **Good Pool Client Timeouts (408)** | **178 (26.9%)** | **0 (0.0%)** | **Eliminated (100% reliability)** |
+| **Good Pool Throughput** | 11.86 ops/s | **145.3 ops/s** | **+1,125% (12.2x speedup)** |
+| **Good Pool Client P50 Latency** | 763.4 ms | **499.9 ms** | **-34.5%** |
+| **Good Pool Client P95 Latency** | 1,192.9 ms | **739.4 ms** | **-38.0%** |
+| **Server Good PUT Max Latency** | **24.87 seconds** | **1.11 seconds** | **22.4x latency reduction** |
+| **Bucket List Probes (Index)** | 3 / 5 (60.0%) | **30 / 30 (100.0%)** | **Zero probe timeouts** |
+| **Global Throttle Wait Count** | **1,674 waits** | **0 waits** | **Zero throttle stalls** |
+| **Global Throttle Wait Time Sum** | **2,928.98 seconds** | **0.0 seconds** | **100% wait time eliminated** |
+
+**Summary Conclusion**:
+Under heavy compute stress (200 total concurrent workers across Ultron and Jarvis), legacy shared throttling completely breaks down: the 100 degraded writes consume the shared budget and freeze, forcing healthy workers to suffer 1,674 throttle waits (48.8 minutes of accumulated thread stall time) and 178 client timeouts. PR 1/2/3's Per-Pool Partitioning completely isolates the healthy pool, achieving **145.3 ops/s (12.2x higher throughput)**, 100% success rate, and sub-1.2s max latency.
+```
