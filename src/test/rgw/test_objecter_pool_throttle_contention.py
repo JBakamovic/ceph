@@ -404,7 +404,7 @@ def get_s3_client(endpoint, timeout=10.0, max_pool=150):
 
 def good_worker_task(worker_id, endpoint, bucket, duration, rate, client_to, stop_evt, results):
     s3 = get_s3_client(endpoint, timeout=client_to)
-    interval = 1.0 / max(rate, 0.1)
+    interval = 1.0 / rate if rate > 0 else 0.0
     seq = 0
     start_time = time.time()
 
@@ -440,7 +440,7 @@ def good_worker_task(worker_id, endpoint, bucket, duration, rate, client_to, sto
         })
 
         elapsed = t1 - t0
-        if elapsed < interval:
+        if rate > 0 and elapsed < interval:
             time.sleep(interval - elapsed)
 
 
@@ -1145,6 +1145,10 @@ def format_sweep_table(sweep_results):
     inflight_limits = [str(s["config"]["inflight_ops"]) for s in summaries]
     out.append(f"| {'Global In-Flight Ops Limit':<{label_w}} | " + " | ".join([f"{c:<{col_w}}" for c in inflight_limits]) + " |")
 
+    # Good Workers
+    good_workers = [str(s["config"].get("good_workers", "?")) for s in summaries]
+    out.append(f"| {'Good Workers':<{label_w}} | " + " | ".join([f"{c:<{col_w}}" for c in good_workers]) + " |")
+
     # Degraded Workers
     deg_workers = [str(s["config"]["degraded_workers"]) for s in summaries]
     out.append(f"| {'Degraded Workers':<{label_w}} | " + " | ".join([f"{c:<{col_w}}" for c in deg_workers]) + " |")
@@ -1211,7 +1215,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--sweep-param",
-        choices=["ratio", "degraded_workers", "inflight_ops"],
+        choices=["ratio", "degraded_workers", "inflight_ops", "good_workers"],
         default="ratio",
         help="Parameter to sweep over when --mode sweep is selected.",
     )
@@ -1436,6 +1440,40 @@ def main():
                     skip_fault=args.skip_fault,
                 )
                 sweep_results.append((f"{ops} Inflight Ops", res))
+                logger.info("Cooling down cluster for 5 seconds before next iteration...")
+                time.sleep(5)
+
+        elif args.sweep_param == "good_workers":
+            val_str = args.sweep_values or "10,25,50,100,200"
+            workers_list = [int(x.strip()) for x in val_str.split(",") if x.strip()]
+            logger.info(f"Executing Good Workers Sweep: {workers_list} (include_baseline={args.include_baseline})")
+
+            if args.include_baseline:
+                max_w = max(workers_list)
+                logger.info(f"Running Baseline iteration with {max_w} good workers...")
+                res_base = runner.run_experiment(
+                    run_name=f"{base_name}_baseline_{max_w}w",
+                    pool_throttle_enable=False,
+                    inflight_ops=args.objecter_inflight_ops,
+                    pool_ratio=args.pool_ratio,
+                    good_workers=max_w,
+                    skip_fault=args.skip_fault,
+                )
+                sweep_results.append((f"Baseline ({max_w}w)", res_base))
+                logger.info("Cooling down cluster for 5 seconds before next iteration...")
+                time.sleep(5)
+
+            for w in workers_list:
+                logger.info(f"\n--- Running Sweep Iteration: good_workers = {w} ---")
+                res = runner.run_experiment(
+                    run_name=f"{base_name}_good_{w}w",
+                    pool_throttle_enable=True,
+                    inflight_ops=args.objecter_inflight_ops,
+                    pool_ratio=args.pool_ratio,
+                    good_workers=w,
+                    skip_fault=args.skip_fault,
+                )
+                sweep_results.append((f"{w} Good W", res))
                 logger.info("Cooling down cluster for 5 seconds before next iteration...")
                 time.sleep(5)
 
