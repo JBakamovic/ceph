@@ -1365,7 +1365,7 @@ def format_multi_run_aggregate_table(name1, runs1, name2, runs2):
     return "\n".join(out)
 
 
-def format_run_breakdown_table(runs1, runs2):
+def format_run_breakdown_table(runs1, runs2, name1="Unprio", name2="Prio"):
     """Formats a concise per-run breakdown comparing each iteration."""
     n = max(len(runs1), len(runs2))
     col_w = [6, 16, 14, 16, 16, 14, 16]
@@ -1373,7 +1373,7 @@ def format_run_breakdown_table(runs1, runs2):
         total = sum(col_w) + len(col_w) + 1
         return sep * total
 
-    header = f"| {'Run':<{col_w[0]}} | {'Unprio Ops':<{col_w[1]}} | {'Unprio Tput':<{col_w[2]}} | {'Unprio Meta P95':<{col_w[3]}} | {'Prio Ops':<{col_w[4]}} | {'Prio Tput':<{col_w[5]}} | {'Prio Meta P95':<{col_w[6]}} |"
+    header = f"| {'Run':<{col_w[0]}} | {f'{name1} Ops':<{col_w[1]}} | {f'{name1} Tput':<{col_w[2]}} | {f'{name1} Meta P95':<{col_w[3]}} | {f'{name2} Ops':<{col_w[4]}} | {f'{name2} Tput':<{col_w[5]}} | {f'{name2} Meta P95':<{col_w[6]}} |"
     out = ["\n" + line("="), header, line("=")]
 
     for i in range(n):
@@ -1501,36 +1501,98 @@ def main():
         print(table)
 
     elif args.mode == "compare-async":
-        logger.info("Executing Comparative Benchmark: Run 1 (Synchronous Futex Blocking) vs Run 2 (Option A Asynchronous Queue)")
-
-        # Run 1: Synchronous Blocking (per-pool throttling enabled, but async queue disabled)
-        res_sync = runner.run_experiment(
-            run_name=f"{base_name}_sync_blocking",
-            pool_throttle_enable=True,
-            pool_throttle_async=False,
-            inflight_ops=args.objecter_inflight_ops,
-            pool_ratio=args.pool_ratio,
-            skip_fault=args.skip_fault,
+        repetitions = max(1, getattr(args, "repeat", 1))
+        logger.info(
+            f"Executing Comparative Benchmark: Run 1 (Synchronous Futex Blocking / PR 1) vs Run 2 (Option A Asynchronous Queue / PR 2) "
+            f"[{repetitions} Repetitions]"
         )
 
-        logger.info("Cooling down cluster for 5 seconds before Run 2...")
-        time.sleep(5)
+        sync_runs = []
+        async_runs = []
 
-        # Run 2: Asynchronous Non-Blocking Queue (Option A)
-        res_async = runner.run_experiment(
-            run_name=f"{base_name}_option_a_async",
-            pool_throttle_enable=True,
-            pool_throttle_async=True,
-            queue_ratio=args.queue_ratio,
-            max_queue_ops=args.max_queue_ops,
-            inflight_ops=args.objecter_inflight_ops,
-            pool_ratio=args.pool_ratio,
-            skip_fault=args.skip_fault,
-        )
+        for rep in range(1, repetitions + 1):
+            rep_suffix = f"_run{rep}" if repetitions > 1 else ""
+            logger.info(f"\n========================================================")
+            logger.info(f" REPETITION {rep}/{repetitions}: Run 1 (Synchronous Futex Blocking / PR 1)")
+            logger.info(f"========================================================")
+            res_sync = runner.run_experiment(
+                run_name=f"{base_name}_sync_blocking{rep_suffix}",
+                pool_throttle_enable=True,
+                pool_throttle_async=False,
+                inflight_ops=args.objecter_inflight_ops,
+                pool_ratio=args.pool_ratio,
+                good_workers=args.good_workers,
+                degraded_workers=args.degraded_workers,
+                duration=args.duration,
+                skip_fault=args.skip_fault,
+            )
+            sync_runs.append(res_sync)
 
-        # Print comparison table
-        table = format_summary_table(res_sync, res_async)
-        print(table)
+            logger.info("Cooling down cluster for 5 seconds before Run 2...")
+            time.sleep(5)
+
+            logger.info(f"\n========================================================")
+            logger.info(f" REPETITION {rep}/{repetitions}: Run 2 (Option A Asynchronous Queue / PR 2)")
+            logger.info(f"========================================================")
+            res_async = runner.run_experiment(
+                run_name=f"{base_name}_option_a_async{rep_suffix}",
+                pool_throttle_enable=True,
+                pool_throttle_async=True,
+                queue_ratio=args.queue_ratio,
+                max_queue_ops=args.max_queue_ops,
+                inflight_ops=args.objecter_inflight_ops,
+                pool_ratio=args.pool_ratio,
+                good_workers=args.good_workers,
+                degraded_workers=args.degraded_workers,
+                duration=args.duration,
+                skip_fault=args.skip_fault,
+            )
+            async_runs.append(res_async)
+
+            if rep < repetitions:
+                logger.info("Cooling down cluster for 5 seconds before next repetition...")
+                time.sleep(5)
+
+        if repetitions == 1:
+            table = format_summary_table(sync_runs[0], async_runs[0])
+            print(table)
+        else:
+            table_agg = format_multi_run_aggregate_table(
+                "SYNC (PR 1 Sync Futex)", sync_runs,
+                "ASYNC (PR 2 Option A)", async_runs
+            )
+            print(table_agg)
+
+            table_runs = format_run_breakdown_table(sync_runs, async_runs, name1="Sync", name2="Async")
+            print(table_runs)
+
+            # Archive multi-repetition aggregate telemetry JSON
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            agg_file = os.path.join(args.output_dir, f"{base_name}_async_aggregate_{repetitions}runs_{ts}.json")
+            agg_data = {
+                "benchmark": "compare-async",
+                "repetitions": repetitions,
+                "timestamp": datetime.now().isoformat(),
+                "config": {
+                    "inflight_ops": args.objecter_inflight_ops,
+                    "pool_ratio": args.pool_ratio,
+                    "good_workers": args.good_workers,
+                    "good_rate": args.good_rate,
+                    "degraded_workers": args.degraded_workers,
+                    "duration": args.duration,
+                    "queue_ratio": args.queue_ratio,
+                    "max_queue_ops": args.max_queue_ops,
+                },
+                "sync_runs": sync_runs,
+                "async_runs": async_runs,
+                "aggregated_statistics": {
+                    "sync": extract_run_metrics(sync_runs),
+                    "async": extract_run_metrics(async_runs),
+                }
+            }
+            with open(agg_file, "w") as f:
+                json.dump(agg_data, f, indent=2)
+            logger.info(f"Multi-repetition aggregate results saved to: {agg_file}")
 
     elif args.mode == "compare-priority":
         repetitions = max(1, getattr(args, "repeat", 1))

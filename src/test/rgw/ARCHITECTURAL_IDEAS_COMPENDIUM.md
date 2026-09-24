@@ -75,7 +75,7 @@ These three foundational features have been implemented in C++, verified with 13
   - Throughput increased by **+74.1%** (38.93 $\to$ 67.79 ops/s).
 
 ### Idea 3: Priority Tiering / Class-of-Service (CoS) for Metadata & Index Planes
-- **Status**: **Implemented & Pushed** (`wip-objecter-pool-throttle-priority`, PR 3)
+- **Status**: **Evaluated & Rejected** (`wip-objecter-pool-throttle-priority`, PR 3)
 - **Layer**: Quality-of-Service Engine (`src/osdc/Objecter.h`, `src/osdc/Objecter.cc`)
 - **Concept**:
   - Matches priority pools by wildcard patterns (`objecter_pool_priority_pools = "*meta*,*index*,*control*"`).
@@ -83,9 +83,10 @@ These three foundational features have been implemented in C++, verified with 13
     $$\text{normal\_ceiling\_ops} = \lfloor \text{global\_max\_ops} \times (1.0 - \text{reserved\_ratio}) \rfloor$$
   - Permanently reserves a buffer (default 20%) that normal data writes can never consume.
   - Priority operations bypass the normal ceiling and are granted first-priority drainage on budget return.
-- **Empirical Impact**:
-  - **Catastrophic Outage Elimination**: Prevents 100% failure on bucket listings under frozen write storms (0% $\to$ 100% success; 117x good pool throughput surge).
-  - **Production Scale (128 & 256 ops)**: **+53% to +71%** throughput increase; **24% to 48%** tail latency reduction.
+- **Empirical Re-Evaluation ($N=5$ repetitions under compute stress)**:
+  - While initial micro-benchmarks showed listing latency improvements when the global budget was severely constrained, rigorous statistical evaluation under compute stress (Ultron 88 CPU threads, Jarvis 64 CPU threads, 100 good vs 100 degraded workers) proved that PR 1 alone already completely eliminates starvation, 408 timeouts (0.0), and throttle stalls (0.0s).
+  - Reserving 20% of tokens for priority classes acts as an artificial tax on data writes, degrading good data throughput by **-11.6%** (2,916 down to 2,579 ops) and increasing P95 latency by **+21.9%** (797ms to 971ms) without meaningful end-to-end gain.
+  - **Verdict**: **REJECTED**. PR 1 is sufficient; PR 3 introduces budget fragmentation and configuration complexity without justifying its penalty on standard data workloads.
 
 ---
 
@@ -285,7 +286,7 @@ Below is the complete collection of remaining prospective ideas, ranked by layer
 | :---: | :--- | :---: | :--- | :--- | :--- | :--- | :---: |
 | **1** | **Per-Pool In-Flight Partitioning** *(PR 1)* | **Accepted** | Objecter | Blast-radius cross-pool containment | -25% tail | +32% | Medium |
 | **2** | **Option A Async Non-Blocking Queue** *(PR 2)* | **Accepted** | Objecter | Beast OS thread futex blocking | -40% P95 | +74% | High |
-| **3** | **Priority Class-of-Service** *(PR 3)* | **Accepted** | Objecter | Metadata & index control starvation | -48% Max | +53% to +71% | Medium |
+| **3** | **Priority Class-of-Service** *(PR 3)* | **Rejected** | Objecter | Metadata & index control starvation | +22% write P95 penalty (-30% listing P50) | **-11.6% good throughput (budget fragmentation)** | Medium |
 | **4** | **Upstream Fast-Fail Circuit Breaker** *(PR 4)* | **Rejected** | Driver / REST | Doomed writes to undersized PGs | Collapsed deg latency | **-84% good throughput (subverts PR 1)** | Medium |
 | **5** | **Per-Placement Index Isolation & Decoupled Indexing** | Proposed | RGW Index / Zone | Shared index pool cascading cross-pool failure (Mechanism 3) | -60% tail under peering | Eliminates index contention | High |
 | **6** | **Beast Ingress Coroutine Partitioning** | Proposed | RGW Frontend | TCP accept queue backlog & thread starvation (Mechanism 4) | -90% P95 under storm | Prevents frontend lockup | Medium |
@@ -305,15 +306,15 @@ Below is the complete collection of remaining prospective ideas, ranked by layer
 gantt
     title Ceph RGW Contention & QoS Roadmap
     dateFormat  YYYY-MM
-    section Accepted (Stacked PRs 1-3)
+    section Accepted Core Architecture
     Per-Pool Partitioning (PR 1)                :done, pr1, 2026-09-01, 2026-09-10
-    Option A Async Queue (PR 2)                 :done, pr2, 2026-09-10, 2026-09-15
-    Priority Class-of-Service (PR 3)            :done, pr3, 2026-09-15, 2026-09-22
-    section Case Study / Rejected
+    Option A Async Queue (PR 2)                 :active, pr2, 2026-09-10, 2026-09-24
+    section Evaluated & Rejected
+    Priority Class-of-Service (PR 3)            :crit, pr3, 2026-09-23, 2026-09-24
     Fast-Fail Circuit Breaker (PR 4)            :crit, pr4, 2026-09-22, 2026-09-23
-    section Recommended Next (PR 4-5)
-    Per-Placement Index Isolation (PR 4)        :active, pr5, 2026-09-24, 2026-10-02
-    Beast Coroutine Partitioning (PR 5)         :active, pr6, 2026-10-02, 2026-10-10
+    section Recommended Next (PR 5-6)
+    Per-Placement Index Isolation (PR 5)        :active, pr5, 2026-09-25, 2026-10-02
+    Beast Coroutine Partitioning (PR 6)         :active, pr6, 2026-10-02, 2026-10-10
     section Future Enhancements
     Work-Conserving Headroom Elasticity         :pr7, 2026-10-10, 2026-10-20
     Multi-Queue DRR in Throttle.h               :pr8, 2026-10-20, 2026-10-30
@@ -464,4 +465,3 @@ The rigorous $N=5$ benchmark definitively answers the architectural question of 
 3. **Conclusion & Upstream Recommendation**:
    - **PR 1 (Per-Pool Throttle Partitioning) is already good enough and fully sufficient** for production object storage workloads.
    - PR 3 (Priority Class-of-Service) introduces token budget fragmentation and configuration complexity without delivering a compelling end-to-end performance benefit for standard S3 write/read workloads. PR 1 should be upstreamed as the primary, standalone architectural solution.
-```
