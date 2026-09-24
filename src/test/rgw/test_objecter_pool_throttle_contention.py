@@ -36,6 +36,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import json
 import logging
+import math
 import os
 import re
 import signal
@@ -1199,6 +1200,201 @@ def format_sweep_table(sweep_results):
     return "\n".join(out)
 
 
+
+def compute_stats_series(values):
+    """Computes mean, stddev, median, min, and max for a list of floats."""
+    if not values:
+        return {"mean": 0.0, "std": 0.0, "median": 0.0, "min": 0.0, "max": 0.0}
+    n = len(values)
+    mean_val = sum(values) / n
+    std_val = math.sqrt(sum((x - mean_val) ** 2 for x in values) / (n - 1)) if n > 1 else 0.0
+    sorted_v = sorted(values)
+    med_val = (sorted_v[n // 2] if n % 2 == 1 else (sorted_v[n // 2 - 1] + sorted_v[n // 2]) / 2.0)
+    return {
+        "mean": round(mean_val, 4),
+        "std": round(std_val, 4),
+        "median": round(med_val, 4),
+        "min": round(min(values), 4),
+        "max": round(max(values), 4),
+    }
+
+
+def extract_run_metrics(runs):
+    """Extracts raw metric distributions across a list of runs."""
+    metrics = {
+        "good_completed": [],
+        "good_timeouts": [],
+        "good_throughput": [],
+        "good_p50": [],
+        "good_p95": [],
+        "good_max": [],
+        "probe_list_completed": [],
+        "probe_list_timeouts": [],
+        "probe_list_p50": [],
+        "probe_list_p95": [],
+        "probe_list_max": [],
+        "probe_meta_completed": [],
+        "probe_meta_timeouts": [],
+        "probe_meta_p50": [],
+        "probe_meta_p95": [],
+        "probe_meta_max": [],
+        "server_put_p50": [],
+        "server_put_max": [],
+        "server_list_p50": [],
+        "throttle_wait_count": [],
+        "throttle_wait_sum": [],
+    }
+    for r in runs:
+        cm = r.get("client_metrics", {})
+        gp = cm.get("good_pool", {})
+        gl = gp.get("latency", {})
+        metrics["good_completed"].append(gp.get("completed_200", 0))
+        metrics["good_timeouts"].append(gp.get("timeouts_408", 0))
+        metrics["good_throughput"].append(gp.get("throughput_ops_sec", 0.0))
+        metrics["good_p50"].append(gl.get("p50", 0.0) * 1000.0)
+        metrics["good_p95"].append(gl.get("p95", 0.0) * 1000.0)
+        metrics["good_max"].append(gl.get("max", 0.0) * 1000.0)
+
+        pl = cm.get("probe_list", {})
+        pl_lat = pl.get("latency", {})
+        metrics["probe_list_completed"].append(pl.get("completed_200", 0))
+        metrics["probe_list_timeouts"].append(pl.get("timeouts_408", 0))
+        metrics["probe_list_p50"].append(pl_lat.get("p50", 0.0) * 1000.0)
+        metrics["probe_list_p95"].append(pl_lat.get("p95", 0.0) * 1000.0)
+        metrics["probe_list_max"].append(pl_lat.get("max", 0.0) * 1000.0)
+
+        pm = cm.get("probe_meta", {})
+        pm_lat = pm.get("latency", {})
+        metrics["probe_meta_completed"].append(pm.get("completed_200", 0))
+        metrics["probe_meta_timeouts"].append(pm.get("timeouts_408", 0))
+        metrics["probe_meta_p50"].append(pm_lat.get("p50", 0.0) * 1000.0)
+        metrics["probe_meta_p95"].append(pm_lat.get("p95", 0.0) * 1000.0)
+        metrics["probe_meta_max"].append(pm_lat.get("max", 0.0) * 1000.0)
+
+        sm = r.get("server_ceph_metrics", {})
+        metrics["server_put_p50"].append(sm.get("good_put_latency", sm.get("good_latency", {})).get("p50", 0.0) * 1000.0)
+        metrics["server_put_max"].append(sm.get("good_put_latency", sm.get("good_latency", {})).get("max", 0.0) * 1000.0)
+        metrics["server_list_p50"].append(sm.get("good_list_latency", {}).get("p50", 0.0) * 1000.0)
+
+        pc = r.get("perf_counters", {})
+        gt = pc.get("global_throttle", {})
+        metrics["throttle_wait_count"].append(gt.get("wait_count_delta", pc.get("throttle_wait_count_delta", 0)))
+        metrics["throttle_wait_sum"].append(gt.get("wait_sum_sec", pc.get("throttle_wait_sum_sec", 0.0)))
+
+    return {k: compute_stats_series(v) for k, v in metrics.items()}
+
+
+def format_multi_run_aggregate_table(name1, runs1, name2, runs2):
+    """Formats an aggregate statistics comparison table across multiple runs."""
+    n1 = len(runs1)
+    n2 = len(runs2)
+    s1 = extract_run_metrics(runs1)
+    s2 = extract_run_metrics(runs2)
+
+    col_w = [34, 28, 28, 18]
+    def line(sep="-"):
+        total = sum(col_w) + len(col_w) + 1
+        return sep * total
+
+    def row(c1, c2, c3, c4=""):
+        return f"| {c1:<{col_w[0]}} | {c2:<{col_w[1]}} | {c3:<{col_w[2]}} | {c4:<{col_w[3]}} |"
+
+    def stat_str(st, unit="", prec=1):
+        m = st["mean"]
+        s = st["std"]
+        if prec == 0:
+            return f"{m:.0f} ± {s:.0f}{unit}"
+        elif prec == 1:
+            return f"{m:.1f} ± {s:.1f}{unit}"
+        else:
+            return f"{m:.2f} ± {s:.2f}{unit}"
+
+    def delta_str(st1, st2, lower_is_better=False):
+        m1 = st1["mean"]
+        m2 = st2["mean"]
+        if abs(m1) < 1e-6:
+            return "-"
+        diff = ((m2 - m1) / m1) * 100.0
+        sign = "+" if diff > 0 else ""
+        text = f"{sign}{diff:.1f}%"
+        if lower_is_better:
+            return f"{text} (Faster)" if diff < 0 else f"{text}"
+        else:
+            return f"{text} (Better)" if diff > 0 else f"{text}"
+
+    out = []
+    out.append("\n" + line("="))
+    out.append(row("METRIC (AGGREGATE STATS)", f"{name1} (N={n1})", f"{name2} (N={n2})", "DELTA (MEAN)"))
+    out.append(line("="))
+
+    out.append(row("Good Pool Completed (200 OK)", stat_str(s1["good_completed"], " ops", 1), stat_str(s2["good_completed"], " ops", 1), delta_str(s1["good_completed"], s2["good_completed"])))
+    out.append(row("Good Pool Timeouts (408)", stat_str(s1["good_timeouts"], "", 1), stat_str(s2["good_timeouts"], "", 1), ""))
+    out.append(row("Good Pool Throughput", stat_str(s1["good_throughput"], " ops/s", 1), stat_str(s2["good_throughput"], " ops/s", 1), delta_str(s1["good_throughput"], s2["good_throughput"])))
+    out.append(row("Good Pool P50 Latency (Client)", stat_str(s1["good_p50"], " ms", 1), stat_str(s2["good_p50"], " ms", 1), delta_str(s1["good_p50"], s2["good_p50"], True)))
+    out.append(row("Good Pool P95 Latency (Client)", stat_str(s1["good_p95"], " ms", 1), stat_str(s2["good_p95"], " ms", 1), delta_str(s1["good_p95"], s2["good_p95"], True)))
+    out.append(row("Good Pool Max Latency (Client)", stat_str(s1["good_max"], " ms", 1), stat_str(s2["good_max"], " ms", 1), delta_str(s1["good_max"], s2["good_max"], True)))
+
+    out.append(line("-"))
+    out.append(row("NON-DATA PROBES (INDEX & META)", "", "", ""))
+    out.append(line("-"))
+    out.append(row("Bucket List Completed (200 OK)", stat_str(s1["probe_list_completed"], "", 1), stat_str(s2["probe_list_completed"], "", 1), ""))
+    out.append(row("Bucket List Timeouts (408)", stat_str(s1["probe_list_timeouts"], "", 1), stat_str(s2["probe_list_timeouts"], "", 1), ""))
+    out.append(row("Bucket List P50 Latency", stat_str(s1["probe_list_p50"], " ms", 1), stat_str(s2["probe_list_p50"], " ms", 1), delta_str(s1["probe_list_p50"], s2["probe_list_p50"], True)))
+    out.append(row("Bucket List P95 Latency", stat_str(s1["probe_list_p95"], " ms", 1), stat_str(s2["probe_list_p95"], " ms", 1), delta_str(s1["probe_list_p95"], s2["probe_list_p95"], True)))
+    out.append(row("Bucket List Max Latency", stat_str(s1["probe_list_max"], " ms", 1), stat_str(s2["probe_list_max"], " ms", 1), delta_str(s1["probe_list_max"], s2["probe_list_max"], True)))
+
+    out.append(row("Bucket Head (Meta) Completed", stat_str(s1["probe_meta_completed"], "", 1), stat_str(s2["probe_meta_completed"], "", 1), ""))
+    out.append(row("Bucket Head Timeouts (408)", stat_str(s1["probe_meta_timeouts"], "", 1), stat_str(s2["probe_meta_timeouts"], "", 1), ""))
+    out.append(row("Bucket Head P50 Latency", stat_str(s1["probe_meta_p50"], " ms", 1), stat_str(s2["probe_meta_p50"], " ms", 1), delta_str(s1["probe_meta_p50"], s2["probe_meta_p50"], True)))
+    out.append(row("Bucket Head P95 Latency", stat_str(s1["probe_meta_p95"], " ms", 1), stat_str(s2["probe_meta_p95"], " ms", 1), delta_str(s1["probe_meta_p95"], s2["probe_meta_p95"], True)))
+    out.append(row("Bucket Head Max Latency", stat_str(s1["probe_meta_max"], " ms", 1), stat_str(s2["probe_meta_max"], " ms", 1), delta_str(s1["probe_meta_max"], s2["probe_meta_max"], True)))
+
+    out.append(line("-"))
+    out.append(row("CEPH SERVER LOG AUDIT", "", "", ""))
+    out.append(line("-"))
+    out.append(row("Server Good PUT P50 Latency", stat_str(s1["server_put_p50"], " ms", 1), stat_str(s2["server_put_p50"], " ms", 1), delta_str(s1["server_put_p50"], s2["server_put_p50"], True)))
+    out.append(row("Server Good PUT Max Latency", stat_str(s1["server_put_max"], " ms", 1), stat_str(s2["server_put_max"], " ms", 1), delta_str(s1["server_put_max"], s2["server_put_max"], True)))
+    out.append(row("Server Bucket List P50 Latency", stat_str(s1["server_list_p50"], " ms", 1), stat_str(s2["server_list_p50"], " ms", 1), delta_str(s1["server_list_p50"], s2["server_list_p50"], True)))
+
+    out.append(line("-"))
+    out.append(row("OBJECTER THROTTLE (ADMIN SOCKET)", "", "", ""))
+    out.append(line("-"))
+    out.append(row("Throttle Wait Count Delta", stat_str(s1["throttle_wait_count"], "", 1), stat_str(s2["throttle_wait_count"], "", 1), ""))
+    out.append(row("Throttle Wait Time Sum", stat_str(s1["throttle_wait_sum"], " s", 2), stat_str(s2["throttle_wait_sum"], " s", 2), ""))
+    out.append(line("="))
+    return "\n".join(out)
+
+
+def format_run_breakdown_table(runs1, runs2):
+    """Formats a concise per-run breakdown comparing each iteration."""
+    n = max(len(runs1), len(runs2))
+    col_w = [6, 16, 14, 16, 16, 14, 16]
+    def line(sep="-"):
+        total = sum(col_w) + len(col_w) + 1
+        return sep * total
+
+    header = f"| {'Run':<{col_w[0]}} | {'Unprio Ops':<{col_w[1]}} | {'Unprio Tput':<{col_w[2]}} | {'Unprio Meta P95':<{col_w[3]}} | {'Prio Ops':<{col_w[4]}} | {'Prio Tput':<{col_w[5]}} | {'Prio Meta P95':<{col_w[6]}} |"
+    out = ["\n" + line("="), header, line("=")]
+
+    for i in range(n):
+        r1 = runs1[i] if i < len(runs1) else {}
+        r2 = runs2[i] if i < len(runs2) else {}
+
+        u_ops = f"{r1.get('client_metrics', {}).get('good_pool', {}).get('completed_200', 0)} ops"
+        u_tp = f"{r1.get('client_metrics', {}).get('good_pool', {}).get('throughput_ops_sec', 0.0):.1f} ops/s"
+        u_meta = f"{r1.get('client_metrics', {}).get('probe_meta', {}).get('latency', {}).get('p95', 0.0) * 1000.0:.1f} ms"
+
+        p_ops = f"{r2.get('client_metrics', {}).get('good_pool', {}).get('completed_200', 0)} ops"
+        p_tp = f"{r2.get('client_metrics', {}).get('good_pool', {}).get('throughput_ops_sec', 0.0):.1f} ops/s"
+        p_meta = f"{r2.get('client_metrics', {}).get('probe_meta', {}).get('latency', {}).get('p95', 0.0) * 1000.0:.1f} ms"
+
+        row = f"| {f'#{i+1}':<{col_w[0]}} | {u_ops:<{col_w[1]}} | {u_tp:<{col_w[2]}} | {u_meta:<{col_w[3]}} | {p_ops:<{col_w[4]}} | {p_tp:<{col_w[5]}} | {p_meta:<{col_w[6]}} |"
+        out.append(row)
+
+    out.append(line("="))
+    return "\n".join(out)
+
+
 # ==============================================================================
 # 6. Main Entrypoint
 # ==============================================================================
@@ -1255,6 +1451,7 @@ def parse_arguments():
     parser.add_argument("--probe-rate", type=float, default=2.0, help="Request rate for non-data probes (/s)")
     parser.add_argument("--probe-workers", type=int, default=1, help="Concurrent workers for non-data probes")
     parser.add_argument("--probe-max-keys", type=int, default=50, help="MaxKeys for list_objects_v2 probe")
+    parser.add_argument("--repeat", "--repetitions", dest="repeat", type=int, default=1, help="Number of times to repeat the experiment (default 1)")
     parsed = parser.parse_args()
     parsed.enable_probes = not parsed.disable_probes
     return parsed
@@ -1336,44 +1533,107 @@ def main():
         print(table)
 
     elif args.mode == "compare-priority":
-        logger.info("Executing Comparative Benchmark: Run 1 (Unprioritized Equal Tier) vs Run 2 (Priority Class-of-Service)")
-
-        # Run 1: Unprioritized Equal Tier (per-pool throttling enabled, but priority tiering disabled)
-        res_unprio = runner.run_experiment(
-            run_name=f"{base_name}_unprioritized",
-            pool_throttle_enable=True,
-            pool_throttle_async=args.pool_throttle_async,
-            queue_ratio=args.queue_ratio,
-            max_queue_ops=args.max_queue_ops,
-            pool_priority_tiering=False,
-            priority_reserved_ratio=0.0,
-            inflight_ops=args.objecter_inflight_ops,
-            pool_ratio=args.pool_ratio,
-            skip_fault=args.skip_fault,
+        repetitions = max(1, getattr(args, "repeat", 1))
+        logger.info(
+            f"Executing Comparative Benchmark: Run 1 (Unprioritized Equal Tier) vs Run 2 (Priority Class-of-Service) "
+            f"[{repetitions} Repetitions]"
         )
 
-        logger.info("Cooling down cluster for 5 seconds before Run 2...")
-        time.sleep(5)
+        unprio_runs = []
+        prio_runs = []
 
-        # Run 2: Priority Class-of-Service
-        res_prio = runner.run_experiment(
-            run_name=f"{base_name}_prioritized",
-            pool_throttle_enable=True,
-            pool_throttle_async=args.pool_throttle_async,
-            queue_ratio=args.queue_ratio,
-            max_queue_ops=args.max_queue_ops,
-            pool_priority_tiering=True,
-            priority_pools=args.priority_pools,
-            priority_reserved_ratio=args.priority_reserved_ratio,
-            priority_ops_ratio=args.priority_ops_ratio,
-            inflight_ops=args.objecter_inflight_ops,
-            pool_ratio=args.pool_ratio,
-            skip_fault=args.skip_fault,
-        )
+        for rep in range(1, repetitions + 1):
+            rep_suffix = f"_run{rep}" if repetitions > 1 else ""
+            logger.info(f"\n========================================================")
+            logger.info(f" REPETITION {rep}/{repetitions}: Run 1 (Unprioritized Equal Tier)")
+            logger.info(f"========================================================")
+            res_unprio = runner.run_experiment(
+                run_name=f"{base_name}_unprioritized{rep_suffix}",
+                pool_throttle_enable=True,
+                pool_throttle_async=args.pool_throttle_async,
+                queue_ratio=args.queue_ratio,
+                max_queue_ops=args.max_queue_ops,
+                pool_priority_tiering=False,
+                priority_reserved_ratio=0.0,
+                inflight_ops=args.objecter_inflight_ops,
+                pool_ratio=args.pool_ratio,
+                good_workers=args.good_workers,
+                degraded_workers=args.degraded_workers,
+                duration=args.duration,
+                skip_fault=args.skip_fault,
+            )
+            unprio_runs.append(res_unprio)
 
-        # Print comparison table
-        table = format_summary_table(res_unprio, res_prio)
-        print(table)
+            logger.info("Cooling down cluster for 5 seconds before Run 2...")
+            time.sleep(5)
+
+            logger.info(f"\n========================================================")
+            logger.info(f" REPETITION {rep}/{repetitions}: Run 2 (Priority Class-of-Service)")
+            logger.info(f"========================================================")
+            res_prio = runner.run_experiment(
+                run_name=f"{base_name}_prioritized{rep_suffix}",
+                pool_throttle_enable=True,
+                pool_throttle_async=args.pool_throttle_async,
+                queue_ratio=args.queue_ratio,
+                max_queue_ops=args.max_queue_ops,
+                pool_priority_tiering=True,
+                priority_pools=args.priority_pools,
+                priority_reserved_ratio=args.priority_reserved_ratio,
+                priority_ops_ratio=args.priority_ops_ratio,
+                inflight_ops=args.objecter_inflight_ops,
+                pool_ratio=args.pool_ratio,
+                good_workers=args.good_workers,
+                degraded_workers=args.degraded_workers,
+                duration=args.duration,
+                skip_fault=args.skip_fault,
+            )
+            prio_runs.append(res_prio)
+
+            if rep < repetitions:
+                logger.info("Cooling down cluster for 5 seconds before next repetition...")
+                time.sleep(5)
+
+        if repetitions == 1:
+            table = format_summary_table(unprio_runs[0], prio_runs[0])
+            print(table)
+        else:
+            table_agg = format_multi_run_aggregate_table(
+                "UNPRIORITIZED (Equal Tier)", unprio_runs,
+                "PRIORITIZED (Class-of-Service)", prio_runs
+            )
+            print(table_agg)
+
+            table_runs = format_run_breakdown_table(unprio_runs, prio_runs)
+            print(table_runs)
+
+            # Archive multi-repetition aggregate telemetry JSON
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            agg_file = os.path.join(args.output_dir, f"{base_name}_priority_aggregate_{repetitions}runs_{ts}.json")
+            agg_data = {
+                "benchmark": "compare-priority",
+                "repetitions": repetitions,
+                "timestamp": datetime.now().isoformat(),
+                "config": {
+                    "inflight_ops": args.objecter_inflight_ops,
+                    "pool_ratio": args.pool_ratio,
+                    "good_workers": args.good_workers,
+                    "good_rate": args.good_rate,
+                    "degraded_workers": args.degraded_workers,
+                    "duration": args.duration,
+                    "priority_reserved_ratio": args.priority_reserved_ratio,
+                    "priority_ops_ratio": args.priority_ops_ratio,
+                    "priority_pools": args.priority_pools,
+                },
+                "unprioritized_runs": unprio_runs,
+                "prioritized_runs": prio_runs,
+                "aggregated_statistics": {
+                    "unprioritized": extract_run_metrics(unprio_runs),
+                    "prioritized": extract_run_metrics(prio_runs),
+                },
+            }
+            with open(agg_file, "w") as f:
+                json.dump(agg_data, f, indent=2)
+            logger.info(f"Aggregate telemetry successfully archived to {agg_file}")
 
     elif args.mode == "sweep":
         sweep_results = []
